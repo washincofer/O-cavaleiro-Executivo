@@ -103,6 +103,10 @@ func _apply_attack_hits() -> void:
         var target := area.get_parent()
         if target == null or not target.has_method("take_damage"):
             continue
+        # A hitbox e a hurtbox do jogador compartilham a camada de combate.
+        # Nunca permita que um golpe seja aplicado ao proprio jogador.
+        if target == self or target.is_in_group("player"):
+            continue
 
         var target_id := target.get_instance_id()
         if hit_targets.has(target_id):
