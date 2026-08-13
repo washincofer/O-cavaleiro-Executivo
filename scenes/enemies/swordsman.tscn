@@ -1,0 +1,86 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource path="res://scripts/enemies/swordsman.gd" type="Script" id="1"]
+
+[sub_resource type="RectangleShape2D" id="swordsman_body_shape"]
+size = Vector2(18, 48)
+
+[sub_resource type="RectangleShape2D" id="swordsman_hurt_shape"]
+size = Vector2(18, 46)
+
+[sub_resource type="RectangleShape2D" id="swordsman_attack_shape"]
+size = Vector2(30, 24)
+
+[sub_resource type="CircleShape2D" id="swordsman_detection_shape"]
+radius = 1.0
+
+[node name="Swordsman" type="CharacterBody2D"]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("1")
+max_health = 30
+
+[node name="Body" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-9, -24, 7, -24, 9, -12, 9, 24, -9, 24, -9, -8, -12, -12)
+color = Color(0.34, 0.38, 0.42, 1)
+
+[node name="Shoulder" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-11, -18, 10, -18, 12, -11, -9, -11)
+color = Color(0.23, 0.25, 0.27, 1)
+
+[node name="Badge" type="Polygon2D" parent="."]
+position = Vector2(4, -9)
+polygon = PackedVector2Array(-2, -2, 2, -2, 2, 2, -2, 2)
+color = Color(0.72, 0.69, 0.48, 1)
+
+[node name="SteamCanister" type="Polygon2D" parent="."]
+position = Vector2(-10, -2)
+polygon = PackedVector2Array(-3, -7, 3, -7, 4, 7, -4, 7)
+color = Color(0.45, 0.30, 0.20, 1)
+
+[node name="Sword" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(6, -8, 24, -6, 24, -3, 7, -2)
+color = Color(0.78, 0.78, 0.76, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("swordsman_body_shape")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 0
+monitoring = false
+monitorable = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("swordsman_hurt_shape")
+
+[node name="AttackHitbox" type="Area2D" parent="."]
+position = Vector2(-18, -2)
+collision_layer = 0
+collision_mask = 2
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackHitbox"]
+shape = SubResource("swordsman_attack_shape")
+
+[node name="Visual" type="Polygon2D" parent="AttackHitbox"]
+polygon = PackedVector2Array(-15, -12, 15, -12, 15, 12, -15, 12)
+color = Color(1, 0.34, 0.24, 0.20)
+visible = false
+
+[node name="DebugLabel" type="Label" parent="."]
+offset_left = -24.0
+offset_top = -44.0
+offset_right = 35.0
+offset_bottom = -34.0
+theme_override_font_sizes/font_size = 6
+text = "IDLE"
+
+[node name="HealthLabel" type="Label" parent="."]
+offset_left = -25.0
+offset_top = -35.0
+offset_right = 38.0
+offset_bottom = -25.0
+theme_override_font_sizes/font_size = 6
+text = "ESP 30/30"

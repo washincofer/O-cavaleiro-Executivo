@@ -1,0 +1,79 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource path="res://scripts/enemies/intern_shooter.gd" type="Script" id="1"]
+
+[sub_resource type="RectangleShape2D" id="intern_body_shape"]
+size = Vector2(15, 44)
+
+[sub_resource type="RectangleShape2D" id="intern_hurt_shape"]
+size = Vector2(15, 42)
+
+[node name="InternShooter" type="CharacterBody2D"]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("1")
+max_health = 20
+
+[node name="Body" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-7, -22, 6, -22, 8, 22, -8, 22)
+color = Color(0.48, 0.43, 0.37, 1)
+
+[node name="LightShoulder" type="Polygon2D" parent="."]
+position = Vector2(-3, -11)
+polygon = PackedVector2Array(-7, -3, 8, -3, 10, 2, -7, 2)
+color = Color(0.28, 0.30, 0.31, 1)
+
+[node name="InternBadge" type="Polygon2D" parent="."]
+position = Vector2(4, -7)
+polygon = PackedVector2Array(-2, -2, 2, -2, 2, 2, -2, 2)
+color = Color(0.80, 0.72, 0.45, 1)
+
+[node name="Weapon" type="Node2D" parent="."]
+scale = Vector2(-1, 1)
+
+[node name="Crossbow" type="Polygon2D" parent="Weapon"]
+position = Vector2(9, -5)
+polygon = PackedVector2Array(0, -2, 22, -2, 25, 0, 22, 2, 0, 2)
+color = Color(0.34, 0.24, 0.18, 1)
+
+[node name="Cylinder" type="Polygon2D" parent="Weapon"]
+position = Vector2(14, -9)
+polygon = PackedVector2Array(-4, -3, 5, -3, 5, 3, -4, 3)
+color = Color(0.61, 0.42, 0.24, 1)
+
+[node name="Pressure" type="Polygon2D" parent="Weapon"]
+position = Vector2(20, -12)
+polygon = PackedVector2Array(-2, -2, 3, -2, 5, 0, 3, 2, -2, 2)
+color = Color(0.88, 0.88, 0.78, 0.65)
+visible = false
+
+[node name="Muzzle" type="Marker2D" parent="Weapon"]
+position = Vector2(34, -5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("intern_body_shape")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 0
+monitoring = false
+monitorable = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("intern_hurt_shape")
+
+[node name="DebugLabel" type="Label" parent="."]
+offset_left = -25.0
+offset_top = -41.0
+offset_right = 42.0
+offset_bottom = -31.0
+theme_override_font_sizes/font_size = 6
+text = "IDLE"
+
+[node name="HealthLabel" type="Label" parent="."]
+offset_left = -25.0
+offset_top = -33.0
+offset_right = 42.0
+offset_bottom = -23.0
+theme_override_font_sizes/font_size = 6
+text = "EST 20/20"

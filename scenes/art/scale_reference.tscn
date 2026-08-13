@@ -1,0 +1,52 @@
+[gd_scene format=3]
+
+[node name="ScaleReference" type="Node2D"]
+
+[node name="Title" type="Label" parent="."]
+position = Vector2(8, 6)
+theme_override_font_sizes/font_size = 9
+text = "DG - ESCALA PROVISORIA (px)"
+
+[node name="Intern" type="Polygon2D" parent="."]
+position = Vector2(50, 108)
+polygon = PackedVector2Array(-7, -22, 7, -22, 7, 22, -7, 22)
+color = Color(0.72, 0.72, 0.72, 1)
+
+[node name="Label" type="Label" parent="Intern"]
+position = Vector2(-24, 28)
+theme_override_font_sizes/font_size = 7
+text = "Estag. 44"
+
+[node name="Swordsman" type="Polygon2D" parent="."]
+position = Vector2(118, 106)
+polygon = PackedVector2Array(-8, -24, 8, -24, 8, 24, -8, 24)
+color = Color(0.62, 0.62, 0.62, 1)
+
+[node name="Label" type="Label" parent="Swordsman"]
+position = Vector2(-27, 30)
+theme_override_font_sizes/font_size = 7
+text = "Espad. 48"
+
+[node name="Knight" type="Polygon2D" parent="."]
+position = Vector2(188, 106)
+polygon = PackedVector2Array(-9, -24, 9, -24, 9, 24, -9, 24)
+color = Color(0.84, 0.84, 0.84, 1)
+
+[node name="Label" type="Label" parent="Knight"]
+position = Vector2(-27, 30)
+theme_override_font_sizes/font_size = 7
+text = "Caval. 48"
+
+[node name="Coordinator" type="Polygon2D" parent="."]
+position = Vector2(264, 100)
+polygon = PackedVector2Array(-13, -30, 13, -30, 13, 30, -13, 30)
+color = Color(0.48, 0.48, 0.48, 1)
+
+[node name="Label" type="Label" parent="Coordinator"]
+position = Vector2(-28, 36)
+theme_override_font_sizes/font_size = 7
+text = "Coord. 60"
+
+[node name="GroundLine" type="Line2D" parent="."]
+points = PackedVector2Array(20, 130, 305, 130)
+width = 1.0

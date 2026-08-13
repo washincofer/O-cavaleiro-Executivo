@@ -1,0 +1,45 @@
+[gd_scene format=3]
+
+[node name="InternSilhouetteReference" type="Node2D"]
+
+[node name="Title" type="Label" parent="."]
+position = Vector2(8, 6)
+theme_override_font_sizes/font_size = 9
+text = "DG - ESTAGIARIO / SILHUETA TECNICA"
+
+[node name="Ground" type="Line2D" parent="."]
+points = PackedVector2Array(20, 142, 300, 142)
+width = 1.0
+
+[node name="Intern" type="Node2D" parent="."]
+position = Vector2(112, 120)
+
+[node name="Torso" type="Polygon2D" parent="Intern"]
+polygon = PackedVector2Array(-7, -12, 6, -12, 8, 22, -8, 22)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Head" type="Polygon2D" parent="Intern"]
+position = Vector2(0, -17)
+polygon = PackedVector2Array(-6, -5, 5, -5, 7, 3, 2, 6, -5, 5, -7, 0)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Crossbow" type="Polygon2D" parent="Intern"]
+position = Vector2(4, -5)
+polygon = PackedVector2Array(0, -2, 28, -2, 32, 0, 28, 2, 0, 2)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Cylinder" type="Polygon2D" parent="Intern"]
+position = Vector2(15, -10)
+polygon = PackedVector2Array(-4, -3, 5, -3, 5, 3, -4, 3)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Scale" type="Label" parent="."]
+position = Vector2(68, 150)
+theme_override_font_sizes/font_size = 7
+text = "Corpo: 44 px | roupa leve | besta pneumatica"
+
+[node name="Notes" type="Label" parent="."]
+position = Vector2(174, 48)
+size = Vector2(140, 90)
+theme_override_font_sizes/font_size = 6
+text = "LEITURA DG\n- menos armadura\n- arma maior que ele\n- cracha de estagio\n- postura defensiva\n- perigoso, mas inseguro"

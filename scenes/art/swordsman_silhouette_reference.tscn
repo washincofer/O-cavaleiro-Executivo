@@ -1,0 +1,50 @@
+[gd_scene format=3]
+
+[node name="SwordsmanSilhouetteReference" type="Node2D"]
+
+[node name="Title" type="Label" parent="."]
+position = Vector2(8, 6)
+theme_override_font_sizes/font_size = 9
+text = "DG - ESPADACHIM / SILHUETA TECNICA"
+
+[node name="Ground" type="Line2D" parent="."]
+points = PackedVector2Array(20, 142, 300, 142)
+width = 1.0
+
+[node name="Swordsman" type="Node2D" parent="."]
+position = Vector2(112, 118)
+
+[node name="Torso" type="Polygon2D" parent="Swordsman"]
+polygon = PackedVector2Array(-9, -14, 8, -14, 11, -8, 10, 24, -10, 24, -11, -5, -14, -8)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Head" type="Polygon2D" parent="Swordsman"]
+position = Vector2(0, -19)
+polygon = PackedVector2Array(-7, -6, 6, -6, 8, 3, 3, 6, -6, 5, -8, 0)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Shoulder" type="Polygon2D" parent="Swordsman"]
+position = Vector2(-3, -10)
+polygon = PackedVector2Array(-13, -5, 14, -5, 17, 4, -12, 4)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Canister" type="Polygon2D" parent="Swordsman"]
+position = Vector2(-12, -5)
+polygon = PackedVector2Array(-4, -8, 3, -8, 5, 9, -5, 9)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Sword" type="Polygon2D" parent="Swordsman"]
+position = Vector2(2, -10)
+polygon = PackedVector2Array(4, -3, 31, -1, 31, 3, 5, 5)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Scale" type="Label" parent="."]
+position = Vector2(72, 150)
+theme_override_font_sizes/font_size = 7
+text = "Corpo: 48 px | espada curta | armadura leve"
+
+[node name="Notes" type="Label" parent="."]
+position = Vector2(176, 48)
+size = Vector2(135, 82)
+theme_override_font_sizes/font_size = 6
+text = "LEITURA DG\n- ombro assimetrico\n- tanque pequeno\n- espada curta\n- cracha discreto\n- perigoso, nao cartunesco"

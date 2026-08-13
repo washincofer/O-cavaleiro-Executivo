@@ -1,0 +1,45 @@
+[gd_scene format=3]
+
+[node name="CoordinatorSilhouetteReference" type="Node2D"]
+
+[node name="Title" type="Label" parent="."]
+position = Vector2(8, 6)
+theme_override_font_sizes/font_size = 9
+text = "DG - COORDENADOR / SILHUETA TECNICA"
+
+[node name="Ground" type="Line2D" parent="."]
+points = PackedVector2Array(20, 146, 304, 146)
+width = 1.0
+
+[node name="Coordinator" type="Node2D" parent="."]
+position = Vector2(104, 116)
+
+[node name="Torso" type="Polygon2D" parent="Coordinator"]
+polygon = PackedVector2Array(-13, -23, 11, -23, 17, -12, 15, 30, -16, 30, -17, -8, -20, -12)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Head" type="Polygon2D" parent="Coordinator"]
+position = Vector2(0, -30)
+polygon = PackedVector2Array(-9, -7, 8, -7, 10, 4, 4, 10, -8, 8, -11, 1)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Mace" type="Polygon2D" parent="Coordinator"]
+position = Vector2(7, -3)
+polygon = PackedVector2Array(0, -2, 42, -2, 42, 2, 0, 2)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="MaceHead" type="Polygon2D" parent="Coordinator"]
+position = Vector2(53, -3)
+polygon = PackedVector2Array(-10, -11, 8, -11, 13, -5, 13, 6, 8, 12, -11, 12, -15, 5, -15, -5)
+color = Color(0.08, 0.08, 0.08, 1)
+
+[node name="Scale" type="Label" parent="."]
+position = Vector2(57, 153)
+theme_override_font_sizes/font_size = 7
+text = "Corpo: 60 px | largo | maca pneumatica pesada"
+
+[node name="Notes" type="Label" parent="."]
+position = Vector2(174, 45)
+size = Vector2(140, 96)
+theme_override_font_sizes/font_size = 6
+text = "LEITURA DG\n- ombros largos\n- barba por fazer\n- postura cansada\n- arma enorme\n- placa COORD.\n- autoridade sem elegancia"
