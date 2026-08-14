@@ -120,6 +120,15 @@ func _update_facing() -> void:
     body_visual.flip_h = facing < 0.0
 
 func _update_animation() -> void:
+    # Sprint 8B: every animation is authored facing right; flip_h mirrors to the left.
+    body_visual.flip_h = facing < 0.0
+
+    if dash_time_left > 0.0:
+        body_visual.play("dash")
+        return
+    if attack_time_left > 0.0:
+        body_visual.play("attack")
+        return
     if not is_on_floor():
         if velocity.y < -35.0:
             body_visual.play("jump")

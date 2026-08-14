@@ -36,15 +36,14 @@ echo "Importando e validando o projeto com Godot ${GODOT_RELEASE}..."
 "${TOOLS_DIR}/godot" --headless --path "${PWD}" --import
 
 echo "Exportando a versao Web para dist/..."
-"${TOOLS_DIR}/godot" --headless --path "${PWD}" --export-release "Web" "dist/cavaleiro.html"
+"${TOOLS_DIR}/godot" --headless --path "${PWD}" --export-release "Web" "dist/cavaleiro-8b.html"
 
 # Render serves index.html at the root. The generated runtime assets keep the
-# "cavaleiro" basename, which also bypasses old cached index.pck/index.wasm
-# files from deployments made before the visual Sprint 8 update.
-mv dist/cavaleiro.html dist/index.html
+# Sprint-specific basename, bypassing packages cached by older visual builds.
+mv dist/cavaleiro-8b.html dist/index.html
 
 test -f dist/index.html
-test -f dist/cavaleiro.js
-test -f dist/cavaleiro.wasm
-test -f dist/cavaleiro.pck
+test -f dist/cavaleiro-8b.js
+test -f dist/cavaleiro-8b.wasm
+test -f dist/cavaleiro-8b.pck
 echo "Exportacao Web concluida."

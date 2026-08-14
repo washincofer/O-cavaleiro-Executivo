@@ -33,6 +33,7 @@ shape = SubResource("right_wall_shape")
 position = Vector2(48, 132)
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
+zoom = Vector2(2, 2)
 position = Vector2(56, -10)
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
@@ -46,7 +47,7 @@ script = ExtResource("4")
 
 [node name="PhaseLabel" type="Label" parent="Encounter"]
 position = Vector2(390, 9)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "PREPARANDO LABORATORIO"
 
 [node name="ExitDoor" type="StaticBody2D" parent="Encounter"]
@@ -62,7 +63,7 @@ color = Color(0.46, 0.16, 0.14, 1)
 [node name="AccessLabel" type="Label" parent="Encounter"]
 position = Vector2(778, 84)
 size = Vector2(170, 20)
-theme_override_font_sizes/font_size = 7
+theme_override_font_sizes/font_size = 14
 text = "ACESSO EXECUTIVO AUTORIZADO"
 visible = false
 
@@ -82,5 +83,5 @@ offset_left = 8.0
 offset_top = 6.0
 offset_right = 90.0
 offset_bottom = 20.0
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 16
 text = "HP 100/100"

@@ -1,0 +1,68 @@
+[gd_resource type="SpriteFrames" load_steps=18 format=3]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/idle_0.png" id="1_idle_0"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/idle_1.png" id="2_idle_1"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/run_0.png" id="3_run_0"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/run_1.png" id="4_run_1"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/run_2.png" id="5_run_2"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/run_3.png" id="6_run_3"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/jump_0.png" id="7_jump_0"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/apex_0.png" id="8_apex_0"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/fall_0.png" id="9_fall_0"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/attack_0.png" id="10_attack_0"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/attack_1.png" id="11_attack_1"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/attack_2.png" id="12_attack_2"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/dash0.png" id="13_dash0"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/dash1.png" id="14_dash1"]
+[ext_resource type="Texture2D" path="res://assets/sprint8b/player/dash2.png" id="15_dash2"]
+
+[resource]
+animations = [{
+"frames": [{"duration": 1.0, "texture": ExtResource("1_idle_0")},
+{"duration": 1.0, "texture": ExtResource("2_idle_1")}],
+"loop": true,
+"name": &"idle",
+"speed": 3.0
+},
+{
+"frames": [{"duration": 1.0, "texture": ExtResource("3_run_0")},
+{"duration": 1.0, "texture": ExtResource("4_run_1")},
+{"duration": 1.0, "texture": ExtResource("5_run_2")},
+{"duration": 1.0, "texture": ExtResource("6_run_3")}],
+"loop": true,
+"name": &"run",
+"speed": 10.0
+},
+{
+"frames": [{"duration": 1.0, "texture": ExtResource("7_jump_0")}],
+"loop": false,
+"name": &"jump",
+"speed": 8
+},
+{
+"frames": [{"duration": 1.0, "texture": ExtResource("8_apex_0")}],
+"loop": false,
+"name": &"apex",
+"speed": 8
+},
+{
+"frames": [{"duration": 1.0, "texture": ExtResource("9_fall_0")}],
+"loop": false,
+"name": &"fall",
+"speed": 8
+},
+{
+"frames": [{"duration": 1.0, "texture": ExtResource("10_attack_0")},
+{"duration": 1.0, "texture": ExtResource("11_attack_1")},
+{"duration": 1.0, "texture": ExtResource("12_attack_2")}],
+"loop": false,
+"name": &"attack",
+"speed": 12
+},
+{
+"frames": [{"duration": 1.0, "texture": ExtResource("13_dash0")},
+{"duration": 1.0, "texture": ExtResource("14_dash1")},
+{"duration": 1.0, "texture": ExtResource("15_dash2")}],
+"loop": false,
+"name": &"dash",
+"speed": 18
+}]

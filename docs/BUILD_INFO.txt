@@ -1,6 +1,4 @@
-O CAVALEIRO EXECUTIVO
-Build: Sprint 8A — Integração Visual Jogável
-Base mecânica: Sprint 7 congelada
-Escopo integrado: protagonista + Recepção básica
-Engine-alvo: Godot 4.x
-Estado: aguardando execução/playtest real
+O Cavaleiro Executivo — Laboratório
+Build: Sprint 8B — Correção de Integração Visual
+Base mecânica congelada: Sprint 7
+Foco: facing, escala uniforme, dash visual e densidade 2x de personagem/cenário
