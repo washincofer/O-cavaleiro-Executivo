@@ -24,3 +24,14 @@ services:
       - path: /*
         name: Cache-Control
         value: no-cache
+      # Keep these explicit rules so Render replaces the immutable rules from
+      # older Blueprint revisions instead of preserving them in the service.
+      - path: /*.js
+        name: Cache-Control
+        value: no-cache
+      - path: /*.wasm
+        name: Cache-Control
+        value: no-cache
+      - path: /*.pck
+        name: Cache-Control
+        value: no-cache
