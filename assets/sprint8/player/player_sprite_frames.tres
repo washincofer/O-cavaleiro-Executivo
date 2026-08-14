@@ -1,0 +1,47 @@
+[gd_resource type="SpriteFrames" load_steps=11 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprint8/player/idle_0.png" id="1_idle"]
+[ext_resource type="Texture2D" path="res://assets/sprint8/player/run_0.png" id="2_run0"]
+[ext_resource type="Texture2D" path="res://assets/sprint8/player/run_1.png" id="3_run1"]
+[ext_resource type="Texture2D" path="res://assets/sprint8/player/run_2.png" id="4_run2"]
+[ext_resource type="Texture2D" path="res://assets/sprint8/player/run_3.png" id="5_run3"]
+[ext_resource type="Texture2D" path="res://assets/sprint8/player/run_4.png" id="6_run4"]
+[ext_resource type="Texture2D" path="res://assets/sprint8/player/run_5.png" id="7_run5"]
+[ext_resource type="Texture2D" path="res://assets/sprint8/player/jump_0.png" id="8_jump0"]
+[ext_resource type="Texture2D" path="res://assets/sprint8/player/jump_1.png" id="9_jump1"]
+[ext_resource type="Texture2D" path="res://assets/sprint8/player/jump_2.png" id="10_jump2"]
+
+[resource]
+animations = [{
+"frames": [{"duration": 1.0, "texture": ExtResource("1_idle")}],
+"loop": true,
+"name": &"idle",
+"speed": 4.0
+}, {
+"frames": [
+{"duration": 1.0, "texture": ExtResource("2_run0")},
+{"duration": 1.0, "texture": ExtResource("3_run1")},
+{"duration": 1.0, "texture": ExtResource("4_run2")},
+{"duration": 1.0, "texture": ExtResource("5_run3")},
+{"duration": 1.0, "texture": ExtResource("6_run4")},
+{"duration": 1.0, "texture": ExtResource("7_run5")}
+],
+"loop": true,
+"name": &"run",
+"speed": 10.0
+}, {
+"frames": [{"duration": 1.0, "texture": ExtResource("8_jump0")}],
+"loop": false,
+"name": &"jump",
+"speed": 8.0
+}, {
+"frames": [{"duration": 1.0, "texture": ExtResource("9_jump1")}],
+"loop": false,
+"name": &"apex",
+"speed": 8.0
+}, {
+"frames": [{"duration": 1.0, "texture": ExtResource("10_jump2")}],
+"loop": false,
+"name": &"fall",
+"speed": 8.0
+}]
