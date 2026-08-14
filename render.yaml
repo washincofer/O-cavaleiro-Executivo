@@ -19,12 +19,8 @@ services:
       - path: /*
         name: X-Content-Type-Options
         value: nosniff
-      - path: /index.html
+      # Godot keeps stable asset names between builds. They must be
+      # revalidated so a browser never runs an old .pck after a deploy.
+      - path: /*
         name: Cache-Control
         value: no-cache
-      - path: /*.wasm
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
-      - path: /*.pck
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
