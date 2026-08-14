@@ -28,7 +28,7 @@ polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
 color = Color(0.42, 0.42, 0.42, 1)
 
 [node name="ShooterPlatform" type="StaticBody2D" parent="."]
-position = Vector2(480, 112)
+position = Vector2(480, 136)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ShooterPlatform"]
 shape = SubResource("platform_shape")
 [node name="Visual" type="Polygon2D" parent="ShooterPlatform"]

@@ -19,6 +19,16 @@ var is_dead := false
 func _ready() -> void:
     health = max_health
     health_changed.emit(health, max_health)
+    call_deferred("_disable_player_body_collision")
+
+func _disable_player_body_collision() -> void:
+    # Player and enemies may overlap for combat, but should never behave as
+    # physical platforms for one another. Damage still comes from hitboxes.
+    var player_body := get_tree().get_first_node_in_group("player") as PhysicsBody2D
+    if player_body == null:
+        return
+    add_collision_exception_with(player_body)
+    player_body.add_collision_exception_with(self)
 
 func apply_gravity(delta: float) -> void:
     if not is_on_floor():

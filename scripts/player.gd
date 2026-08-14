@@ -101,11 +101,7 @@ func _update_attack(delta: float) -> void:
 func _apply_attack_hits() -> void:
     for area in attack_hitbox.get_overlapping_areas():
         var target := area.get_parent()
-        if target == null or not target.has_method("take_damage"):
-            continue
-        # A hitbox e a hurtbox do jogador compartilham a camada de combate.
-        # Nunca permita que um golpe seja aplicado ao proprio jogador.
-        if target == self or target.is_in_group("player"):
+        if target == null or target == self or not target.has_method("take_damage"):
             continue
 
         var target_id := target.get_instance_id()
