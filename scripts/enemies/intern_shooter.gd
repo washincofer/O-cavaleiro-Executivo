@@ -173,8 +173,13 @@ func _spawn_bolt() -> void:
     var bolt = PROJECTILE_SCENE.instantiate()
     get_tree().current_scene.add_child(bolt)
     bolt.global_position = muzzle.global_position
-    var target_position := player.global_position + Vector2(0, -6)
-    bolt.setup((target_position - muzzle.global_position).normalized(), self)
+
+    # The intern fires on a fixed horizontal line. The player's vertical
+    # movement after (or during) the windup never bends the projectile.
+    # This makes jumping a readable way to evade the shot and avoids
+    # any homing-like impression.
+    var shot_direction := Vector2(facing, 0.0)
+    bolt.setup(shot_direction, self)
 
 func _player_is_too_close() -> bool:
     if player == null:

@@ -15,7 +15,34 @@ func _ready() -> void:
     scale.x = -1.0 if direction.x < 0.0 else 1.0
 
 func _physics_process(delta: float) -> void:
-    global_position += direction.normalized() * speed * delta
+    var start_position := global_position
+    var end_position := start_position + direction.normalized() * speed * delta
+
+    # Continuous sweep between the current and next position. This prevents
+    # the bolt from skipping thin StaticBody2D colliders between physics frames.
+    var query := PhysicsRayQueryParameters2D.create(start_position, end_position)
+    query.collision_mask = 1
+    query.collide_with_bodies = true
+    query.collide_with_areas = false
+
+    if owner_enemy is CollisionObject2D:
+        query.exclude = [owner_enemy.get_rid()]
+
+    var hit := get_world_2d().direct_space_state.intersect_ray(query)
+    if not hit.is_empty():
+        var collider: Object = hit.get("collider")
+        if collider is StaticBody2D:
+            global_position = hit.get("position", start_position)
+            queue_free()
+            return
+        if collider is Node and collider.is_in_group("player") and collider.has_method("take_damage"):
+            var horizontal_sign := signf(direction.x)
+            collider.take_damage(damage, Vector2(horizontal_sign * knockback_x, knockback_y))
+            global_position = hit.get("position", start_position)
+            queue_free()
+            return
+
+    global_position = end_position
     lifetime -= delta
     if lifetime <= 0.0:
         queue_free()
