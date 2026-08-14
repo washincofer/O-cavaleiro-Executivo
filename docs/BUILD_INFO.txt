@@ -1,4 +1,9 @@
-O Cavaleiro Executivo — Laboratório
-Build: Sprint 8B — Correção de Integração Visual
-Base mecânica congelada: Sprint 7
-Foco: facing, escala uniforme, dash visual e densidade 2x de personagem/cenário
+O CAVALEIRO EXECUTIVO
+Sprint 9 — Build de Integração Completa
+
+BASE MECÂNICA: Sprint 7 (aprovada)
+SPRINT 8: encerrada como marco visual/conceitual
+MAIN SCENE: res://scenes/dev/sprint9_master_test.tscn
+CENA SEQUENCIAL: res://scenes/dev/reception_full_test.tscn
+
+Objetivo: testar todos os personagens e sistemas juntos antes de retomar refinamento visual.

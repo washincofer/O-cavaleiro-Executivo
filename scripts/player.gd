@@ -22,7 +22,7 @@ signal health_changed(current_health: int, max_health: int)
 @export var attack_cooldown := 0.22
 @export var invulnerability_duration := 0.45
 
-@onready var body_visual: AnimatedSprite2D = $Sprite
+@onready var body_visual: Polygon2D = $Body
 @onready var attack_hitbox: Area2D = $AttackHitbox
 @onready var attack_visual: Polygon2D = $AttackHitbox/Visual
 
@@ -38,7 +38,6 @@ var hit_targets: Dictionary = {}
 func _ready() -> void:
     health = max_health
     attack_visual.visible = false
-    body_visual.play("idle")
     health_changed.emit(health, max_health)
 
 func _physics_process(delta: float) -> void:
@@ -52,7 +51,6 @@ func _physics_process(delta: float) -> void:
         dash_time_left -= delta
         velocity.x = facing * dash_speed
         velocity.y = 0.0
-        _update_animation()
         move_and_slide()
         return
 
@@ -80,7 +78,6 @@ func _physics_process(delta: float) -> void:
     if Input.is_action_just_pressed("restart"):
         get_tree().reload_current_scene()
 
-    _update_animation()
     move_and_slide()
 
 func _start_attack() -> void:
@@ -117,29 +114,6 @@ func _apply_attack_hits() -> void:
 
 func _update_facing() -> void:
     attack_hitbox.position.x = facing * 18.0
-    body_visual.flip_h = facing < 0.0
-
-func _update_animation() -> void:
-    # Sprint 8B: every animation is authored facing right; flip_h mirrors to the left.
-    body_visual.flip_h = facing < 0.0
-
-    if dash_time_left > 0.0:
-        body_visual.play("dash")
-        return
-    if attack_time_left > 0.0:
-        body_visual.play("attack")
-        return
-    if not is_on_floor():
-        if velocity.y < -35.0:
-            body_visual.play("jump")
-        elif absf(velocity.y) <= 35.0:
-            body_visual.play("apex")
-        else:
-            body_visual.play("fall")
-    elif absf(velocity.x) > 8.0:
-        body_visual.play("run")
-    else:
-        body_visual.play("idle")
 
 func take_damage(amount: int, knockback := Vector2.ZERO) -> void:
     if invulnerability_left > 0.0:
