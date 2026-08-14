@@ -32,6 +32,13 @@ fi
 
 rm -rf dist
 mkdir -p dist
+echo "Importando e validando o projeto com Godot ${GODOT_RELEASE}..."
+"${TOOLS_DIR}/godot" --headless --path "${PWD}" --import
+
+echo "Exportando a versao Web para dist/..."
 "${TOOLS_DIR}/godot" --headless --path "${PWD}" --export-release "Web" "dist/index.html"
 
 test -f dist/index.html
+test -f dist/index.wasm
+test -f dist/index.pck
+echo "Exportacao Web concluida."

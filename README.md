@@ -13,9 +13,9 @@ e publica o conteúdo da pasta `dist`.
 3. Conecte o repositório e confirme a criação do serviço
    `o-cavaleiro-executivo`.
 
-Não é necessário cadastrar variáveis de ambiente. Cada push na branch conectada
-gera uma nova versão do jogo. Os cabeçalhos exigidos pelo build Web com threads
-já estão definidos no Blueprint.
+Não é necessário cadastrar variáveis de ambiente manualmente. Cada push na branch
+conectada gera uma nova versão do jogo. Os cabeçalhos exigidos pelo build Web com
+threads e a configuração de build já estão definidos no Blueprint.
 
 ## Exportar Web localmente
 
@@ -29,4 +29,3 @@ O resultado será criado em `dist/`. Para testar, sirva essa pasta por HTTP com 
 cabeçalhos `Cross-Origin-Opener-Policy: same-origin` e
 `Cross-Origin-Embedder-Policy: require-corp`; abrir o HTML diretamente pelo sistema
 de arquivos não é suportado pelo runtime Web.
-

@@ -4,6 +4,9 @@ services:
     name: o-cavaleiro-executivo
     buildCommand: bash scripts/build_web.sh
     staticPublishPath: ./dist
+    envVars:
+      - key: SKIP_INSTALL_DEPS
+        value: true
     previews:
       generation: automatic
     headers:
@@ -19,4 +22,9 @@ services:
       - path: /index.html
         name: Cache-Control
         value: no-cache
-
+      - path: /*.wasm
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*.pck
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
