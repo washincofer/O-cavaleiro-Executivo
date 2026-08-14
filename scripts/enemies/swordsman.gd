@@ -25,6 +25,8 @@ const STATE_NAMES := [
 @export_group("Swordsman AI")
 @export var detection_range := 190.0
 @export var vertical_detection_tolerance := 64.0
+@export var pursuit_range := 285.0
+@export var pursuit_vertical_tolerance := 105.0
 @export var chase_speed := 72.0
 @export var chase_acceleration := 620.0
 @export var attack_range := 31.0
@@ -72,6 +74,9 @@ func _physics_process(delta: float) -> void:
 
     if player == null or not is_instance_valid(player):
         _resolve_player()
+
+    if state != State.IDLE and state != State.DEAD and not _can_pursue_player():
+        _set_state(State.IDLE)
 
     apply_gravity(delta)
 
@@ -175,6 +180,13 @@ func _can_detect_player() -> bool:
     var dx := absf(player.global_position.x - global_position.x)
     var dy := absf(player.global_position.y - global_position.y)
     return dx <= detection_range and dy <= vertical_detection_tolerance
+
+func _can_pursue_player() -> bool:
+    if player == null:
+        return false
+    var dx := absf(player.global_position.x - global_position.x)
+    var dy := absf(player.global_position.y - global_position.y)
+    return dx <= pursuit_range and dy <= pursuit_vertical_tolerance
 
 func _face_player() -> void:
     if player == null:

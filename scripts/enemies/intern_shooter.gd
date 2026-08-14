@@ -3,6 +3,7 @@ extends "res://scripts/enemies/enemy_base.gd"
 enum State {
     IDLE,
     ALERT,
+    APPROACH,
     AIM,
     FIRE,
     RELOAD,
@@ -14,6 +15,7 @@ enum State {
 const STATE_NAMES := [
     "IDLE",
     "ALERTA",
+    "SEGUIR",
     "MIRAR",
     "DISPARAR",
     "RECARREGAR",
@@ -27,8 +29,13 @@ const PROJECTILE_SCENE := preload("res://scenes/enemies/pneumatic_bolt.tscn")
 @export_group("Intern AI")
 @export var detection_range := 235.0
 @export var vertical_detection_tolerance := 90.0
+@export var pursuit_range := 310.0
+@export var pursuit_vertical_tolerance := 125.0
+@export var max_shoot_distance := 170.0
 @export var flee_distance := 82.0
 @export var comfortable_distance := 126.0
+@export var approach_speed := 58.0
+@export var approach_acceleration := 520.0
 @export var flee_speed := 72.0
 @export var flee_acceleration := 600.0
 @export var alert_duration := 0.22
@@ -70,6 +77,11 @@ func _physics_process(delta: float) -> void:
     if player == null or not is_instance_valid(player):
         _resolve_player()
 
+    # Once engaged, enemies may pursue farther than their initial detection
+    # range. If the player leaves the pursuit leash completely, they stop.
+    if state != State.IDLE and state != State.DEAD and not _can_pursue_player():
+        _set_state(State.IDLE)
+
     apply_gravity(delta)
 
     match state:
@@ -77,6 +89,8 @@ func _physics_process(delta: float) -> void:
             _process_idle(delta)
         State.ALERT:
             _process_alert(delta)
+        State.APPROACH:
+            _process_approach(delta)
         State.AIM:
             _process_aim(delta)
         State.FIRE:
@@ -101,27 +115,58 @@ func _process_alert(delta: float) -> void:
     slow_horizontal(delta)
     _face_player()
     state_time_left -= delta
-    if _player_is_too_close():
+    if state_time_left <= 0.0:
+        _choose_distance_state()
+
+func _process_approach(delta: float) -> void:
+    if player == null:
+        slow_horizontal(delta)
+        return
+
+    _face_player()
+    var distance := _horizontal_distance_to_player()
+
+    if distance < flee_distance:
         _set_state(State.FLEE)
-    elif state_time_left <= 0.0:
+        return
+    if distance <= max_shoot_distance:
         _set_state(State.AIM, aim_duration)
+        return
+
+    velocity.x = move_toward(velocity.x, facing * approach_speed, approach_acceleration * delta)
 
 func _process_aim(delta: float) -> void:
     slow_horizontal(delta)
     _face_player()
     pressure_visual.visible = true
-    state_time_left -= delta
 
     if _player_is_too_close():
         pressure_visual.visible = false
         _set_state(State.FLEE)
-    elif state_time_left <= 0.0:
+        return
+    if _player_is_too_far_to_shoot():
+        pressure_visual.visible = false
+        _set_state(State.APPROACH)
+        return
+
+    state_time_left -= delta
+    if state_time_left <= 0.0:
         shot_created = false
         _set_state(State.FIRE, fire_pause)
 
 func _process_fire(delta: float) -> void:
     slow_horizontal(delta)
     pressure_visual.visible = false
+
+    # Re-check range at the exact firing moment. Running away during the aim
+    # makes the intern cancel the shot and follow instead of firing forever.
+    if _player_is_too_far_to_shoot():
+        _set_state(State.APPROACH)
+        return
+    if _player_is_too_close():
+        _set_state(State.FLEE)
+        return
+
     if not shot_created:
         _spawn_bolt()
         shot_created = true
@@ -132,10 +177,16 @@ func _process_fire(delta: float) -> void:
 func _process_reload(delta: float) -> void:
     slow_horizontal(delta)
     _face_player()
-    state_time_left -= delta
+
     if _player_is_too_close():
         _set_state(State.FLEE)
-    elif state_time_left <= 0.0:
+        return
+    if _player_is_too_far_to_shoot():
+        _set_state(State.APPROACH)
+        return
+
+    state_time_left -= delta
+    if state_time_left <= 0.0:
         _set_state(State.AIM, aim_duration)
 
 func _process_flee(delta: float) -> void:
@@ -153,19 +204,30 @@ func _process_flee(delta: float) -> void:
         flee_direction = 1.0
     velocity.x = move_toward(velocity.x, flee_direction * flee_speed, flee_acceleration * delta)
 
-    var distance := absf(player.global_position.x - global_position.x)
+    var distance := _horizontal_distance_to_player()
     if distance >= comfortable_distance:
-        _set_state(State.AIM, aim_duration)
+        if distance > max_shoot_distance:
+            _set_state(State.APPROACH)
+        else:
+            _set_state(State.AIM, aim_duration)
 
 func _process_hit(delta: float) -> void:
     pressure_visual.visible = false
     velocity.x = move_toward(velocity.x, 0.0, 440.0 * delta)
     state_time_left -= delta
     if state_time_left <= 0.0:
-        if _player_is_too_close():
-            _set_state(State.FLEE)
-        else:
-            _set_state(State.AIM, aim_duration)
+        _choose_distance_state()
+
+func _choose_distance_state() -> void:
+    if player == null:
+        _set_state(State.IDLE)
+        return
+    if _player_is_too_close():
+        _set_state(State.FLEE)
+    elif _player_is_too_far_to_shoot():
+        _set_state(State.APPROACH)
+    else:
+        _set_state(State.AIM, aim_duration)
 
 func _spawn_bolt() -> void:
     if player == null:
@@ -174,24 +236,42 @@ func _spawn_bolt() -> void:
     get_tree().current_scene.add_child(bolt)
     bolt.global_position = muzzle.global_position
 
-    # The intern fires on a fixed horizontal line. The player's vertical
-    # movement after (or during) the windup never bends the projectile.
-    # This makes jumping a readable way to evade the shot and avoids
-    # any homing-like impression.
-    var shot_direction := Vector2(facing, 0.0)
+    # Snapshot aim: the bolt points to the player's position at the exact
+    # firing moment. After launch, that vector is frozen: the projectile may
+    # travel up or down, but it never curves or homes toward later movement.
+    var shot_direction := (player.global_position - muzzle.global_position).normalized()
+    if shot_direction.length_squared() <= 0.0001:
+        shot_direction = Vector2(facing, 0.0)
     bolt.setup(shot_direction, self)
 
-func _player_is_too_close() -> bool:
+func _horizontal_distance_to_player() -> float:
     if player == null:
-        return false
-    return absf(player.global_position.x - global_position.x) < flee_distance
+        return INF
+    return absf(player.global_position.x - global_position.x)
+
+func _player_is_too_close() -> bool:
+    return _horizontal_distance_to_player() < flee_distance
+
+func _player_is_too_far_to_shoot() -> bool:
+    if player == null:
+        return true
+    var dx := _horizontal_distance_to_player()
+    var dy := absf(player.global_position.y - global_position.y)
+    return dx > max_shoot_distance or dy > vertical_detection_tolerance
 
 func _can_detect_player() -> bool:
     if player == null:
         return false
-    var dx := absf(player.global_position.x - global_position.x)
+    var dx := _horizontal_distance_to_player()
     var dy := absf(player.global_position.y - global_position.y)
     return dx <= detection_range and dy <= vertical_detection_tolerance
+
+func _can_pursue_player() -> bool:
+    if player == null:
+        return false
+    var dx := _horizontal_distance_to_player()
+    var dy := absf(player.global_position.y - global_position.y)
+    return dx <= pursuit_range and dy <= pursuit_vertical_tolerance
 
 func _face_player() -> void:
     if player == null:

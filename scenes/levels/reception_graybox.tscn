@@ -12,6 +12,8 @@ size = Vector2(64, 32)
 [node name="ReceptionGraybox" type="Node2D"]
 
 [node name="Floor" type="StaticBody2D" parent="."]
+collision_layer = 1
+collision_mask = 1
 position = Vector2(480, 164)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Floor"]
 shape = SubResource("floor_shape")
@@ -20,6 +22,8 @@ polygon = PackedVector2Array(-480, -8, 480, -8, 480, 8, -480, 8)
 color = Color(0.28, 0.28, 0.28, 1)
 
 [node name="Counter" type="StaticBody2D" parent="."]
+collision_layer = 1
+collision_mask = 1
 position = Vector2(160, 140)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Counter"]
 shape = SubResource("counter_shape")
@@ -28,6 +32,8 @@ polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
 color = Color(0.42, 0.42, 0.42, 1)
 
 [node name="ShooterPlatform" type="StaticBody2D" parent="."]
+collision_layer = 1
+collision_mask = 1
 position = Vector2(480, 136)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ShooterPlatform"]
 shape = SubResource("platform_shape")

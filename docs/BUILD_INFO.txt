@@ -1,13 +1,10 @@
-O CAVALEIRO EXECUTIVO - SPRINT 9.1
-Patch de Playtest: projetil horizontal do Estagiario
-Base: Sprint 9 / mecanica Sprint 7 validada
+SPRINT 9.4 — MIRA VETORIAL DO ESTAGIÁRIO
+Baseline: Sprint 9.3
+Mudança: tiro mira posição do player no instante do disparo e mantém vetor fixo; CCD diagonal.
 
 O CAVALEIRO EXECUTIVO
-Sprint 9 — Build de Integração Completa
-
-BASE MECÂNICA: Sprint 7 (aprovada)
-SPRINT 8: encerrada como marco visual/conceitual
-MAIN SCENE: res://scenes/dev/sprint9_master_test.tscn
-CENA SEQUENCIAL: res://scenes/dev/reception_full_test.tscn
-
-Objetivo: testar todos os personagens e sistemas juntos antes de retomar refinamento visual.
+Build: Sprint 9.3
+Base mecânica: Sprint 7 aprovada
+Integração global: Sprint 9
+Patches: 9.1 projétil horizontal; 9.2 sweep inicial; 9.3 colisão robusta + IA de distância
+Cena principal de teste: res://scenes/dev/sprint9_master_test.tscn
