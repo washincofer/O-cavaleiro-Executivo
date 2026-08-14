@@ -43,6 +43,10 @@ const PROJECTILE_SCENE := preload("res://scenes/enemies/pneumatic_bolt.tscn")
 @export var fire_pause := 0.10
 @export var reload_duration := 0.72
 @export var hit_stun_duration := 0.16
+@export var flee_jump_velocity := 235.0
+@export var flee_obstacle_check_distance := 12.0
+@export var flee_failed_attack_delay := 0.24
+@export var cornered_aim_duration := 0.48
 
 @onready var weapon: Node2D = $Weapon
 @onready var muzzle: Marker2D = $Weapon/Muzzle
@@ -55,6 +59,10 @@ var state := State.IDLE
 var state_time_left := 0.0
 var facing := -1.0
 var shot_created := false
+var flee_jump_used := false
+var flee_blocked_time := 0.0
+var flee_attempt_origin_x := 0.0
+var cornered_shot := false
 
 func _ready() -> void:
     super._ready()
@@ -140,13 +148,22 @@ func _process_aim(delta: float) -> void:
     _face_player()
     pressure_visual.visible = true
 
-    if _player_is_too_close():
+    # Normal behaviour prefers escape when the player is too close. A
+    # cornered intern is allowed to finish one desperate shot instead of
+    # oscillating forever between FLEE and AIM.
+    if not cornered_shot:
+        if _player_is_too_close():
+            pressure_visual.visible = false
+            _set_state(State.FLEE)
+            return
+        if _player_is_too_far_to_shoot():
+            pressure_visual.visible = false
+            _set_state(State.APPROACH)
+            return
+    elif not _can_pursue_player():
+        cornered_shot = false
         pressure_visual.visible = false
-        _set_state(State.FLEE)
-        return
-    if _player_is_too_far_to_shoot():
-        pressure_visual.visible = false
-        _set_state(State.APPROACH)
+        _set_state(State.IDLE)
         return
 
     state_time_left -= delta
@@ -158,20 +175,23 @@ func _process_fire(delta: float) -> void:
     slow_horizontal(delta)
     pressure_visual.visible = false
 
-    # Re-check range at the exact firing moment. Running away during the aim
-    # makes the intern cancel the shot and follow instead of firing forever.
-    if _player_is_too_far_to_shoot():
-        _set_state(State.APPROACH)
-        return
-    if _player_is_too_close():
-        _set_state(State.FLEE)
-        return
+    # Re-check range at the exact firing moment. A normal shot is cancelled if
+    # the player leaves the firing band. A cornered/desperate shot is allowed
+    # at close range because escape has already failed.
+    if not cornered_shot:
+        if _player_is_too_far_to_shoot():
+            _set_state(State.APPROACH)
+            return
+        if _player_is_too_close():
+            _set_state(State.FLEE)
+            return
 
     if not shot_created:
         _spawn_bolt()
         shot_created = true
     state_time_left -= delta
     if state_time_left <= 0.0:
+        cornered_shot = false
         _set_state(State.RELOAD, reload_duration)
 
 func _process_reload(delta: float) -> void:
@@ -202,7 +222,32 @@ func _process_flee(delta: float) -> void:
     var flee_direction := signf(dx)
     if flee_direction == 0.0:
         flee_direction = 1.0
+
+    # If a solid body blocks the escape route, the intern gets one jump
+    # attempt. This lets him hop onto/over low reception platforms instead of
+    # running forever against their side.
+    var blocked_ahead := _solid_in_flee_path(flee_direction)
+    if blocked_ahead:
+        if is_on_floor() and not flee_jump_used:
+            velocity.y = -flee_jump_velocity
+            flee_jump_used = true
+            flee_blocked_time = 0.0
+        elif is_on_floor() and flee_jump_used:
+            flee_blocked_time += delta
+            if flee_blocked_time >= flee_failed_attack_delay:
+                cornered_shot = true
+                _set_state(State.AIM, cornered_aim_duration)
+                return
+    else:
+        flee_blocked_time = 0.0
+
     velocity.x = move_toward(velocity.x, flee_direction * flee_speed, flee_acceleration * delta)
+
+    # Once meaningful horizontal progress has been made, a future obstacle may
+    # receive another jump attempt.
+    if absf(global_position.x - flee_attempt_origin_x) >= 34.0:
+        flee_jump_used = false
+        flee_attempt_origin_x = global_position.x
 
     var distance := _horizontal_distance_to_player()
     if distance >= comfortable_distance:
@@ -210,6 +255,14 @@ func _process_flee(delta: float) -> void:
             _set_state(State.APPROACH)
         else:
             _set_state(State.AIM, aim_duration)
+
+
+func _solid_in_flee_path(flee_direction: float) -> bool:
+    # test_move uses the intern's real CharacterBody2D collider and all current
+    # collision exceptions/masks, so the player is ignored but level geometry
+    # (platforms, walls, doors) is detected reliably.
+    var motion := Vector2(flee_direction * flee_obstacle_check_distance, 0.0)
+    return test_move(global_transform, motion)
 
 func _process_hit(delta: float) -> void:
     pressure_visual.visible = false
@@ -286,8 +339,18 @@ func _update_facing_visuals() -> void:
     weapon.scale.x = facing
 
 func _set_state(new_state: int, duration := 0.0) -> void:
+    var previous_state := state
     state = new_state
     state_time_left = duration
+
+    if state == State.FLEE and previous_state != State.FLEE:
+        flee_jump_used = false
+        flee_blocked_time = 0.0
+        flee_attempt_origin_x = global_position.x
+        cornered_shot = false
+    elif state != State.AIM and state != State.FIRE:
+        cornered_shot = false
+
     if state != State.AIM:
         pressure_visual.visible = false
     _update_debug_label()

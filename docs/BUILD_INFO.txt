@@ -1,10 +1,11 @@
-SPRINT 9.4 — MIRA VETORIAL DO ESTAGIÁRIO
-Baseline: Sprint 9.3
-Mudança: tiro mira posição do player no instante do disparo e mantém vetor fixo; CCD diagonal.
+O CAVALEIRO EXECUTIVO — LABORATORIO
+Build: Sprint 9.5
+Base mecanica aprovada: Sprint 7
+Sprint 8: marco visual/conceitual
+Sprint 9.x: integracao global e patches de IA
 
-O CAVALEIRO EXECUTIVO
-Build: Sprint 9.3
-Base mecânica: Sprint 7 aprovada
-Integração global: Sprint 9
-Patches: 9.1 projétil horizontal; 9.2 sweep inicial; 9.3 colisão robusta + IA de distância
-Cena principal de teste: res://scenes/dev/sprint9_master_test.tscn
+Sprint 9.5:
+- corrige projétil travado: movimento vetorial fixo + lifetime
+- reforça colisão com cenário via raycast do trecho percorrido
+- Estagiário pula obstáculos durante fuga
+- se continuar encurralado após o salto, faz disparo desesperado
