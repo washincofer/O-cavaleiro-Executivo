@@ -1,0 +1,32 @@
+{
+  "character_id": "coordenador",
+  "visual_status": "APPROVED",
+  "technical_status": "CONDITIONAL_PENDING_PHYSICAL_QA",
+  "directions": [
+    "down",
+    "left",
+    "right",
+    "up"
+  ],
+  "pivot_policy": "bottom_center",
+  "frame_width": "TBD",
+  "frame_height": "TBD",
+  "ground_y": "TBD",
+  "animations": [
+    "idle",
+    "walk",
+    "attack",
+    "hit",
+    "death",
+    "invoke",
+    "order"
+  ],
+  "gameplay_events": [
+    "INVOKE_EVENT",
+    "ORDER_EVENT"
+  ],
+  "special_qa": [
+    "attack_invoke_order_must_be_visually_distinct",
+    "identity_consistent_across_frames"
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "encounter_id": "reception_encounter_v01",
+  "room_states": [
+    "ROOM_IDLE",
+    "ROOM_COMBAT",
+    "ROOM_COMPLETE"
+  ],
+  "start_trigger": {
+    "id": "TRIGGER_ENCOUNTER_START",
+    "activated_by": "player_only",
+    "one_shot": true
+  },
+  "entrance": {
+    "combat_behavior_initial_test": "remain_open"
+  },
+  "exit": {
+    "id": "EXIT_DOOR",
+    "initial_state": "LOCKED",
+    "combat_state": "LOCKED",
+    "complete_state": "OPEN"
+  },
+  "spawns": [
+    {
+      "slot": "SPAWN_ENEMY_A",
+      "enemies": [
+        {
+          "type": "melee",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "slot": "SPAWN_ENEMY_B",
+      "enemies": [
+        {
+          "type": "ranged",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "slot": "SPAWN_ENEMY_C",
+      "enemies": [
+        {
+          "type": "melee",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "wave_mode": "single_wave",
+  "valid_targets": [
+    "player",
+    "active_mercenaries"
+  ],
+  "friendly_fire": false,
+  "victory_condition": {
+    "active_encounter_enemies": 0,
+    "pending_spawns": 0
+  },
+  "completion_delay": "TBD",
+  "restart_required": true
+}

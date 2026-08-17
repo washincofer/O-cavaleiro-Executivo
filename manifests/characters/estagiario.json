@@ -1,0 +1,28 @@
+{
+  "character_id": "estagiario",
+  "visual_status": "APPROVED",
+  "technical_status": "CONDITIONAL_PENDING_PHYSICAL_QA",
+  "directions": [
+    "down",
+    "left",
+    "right",
+    "up"
+  ],
+  "pivot_policy": "bottom_center",
+  "frame_width": "TBD",
+  "frame_height": "TBD",
+  "ground_y": "TBD",
+  "animations": [
+    "idle",
+    "walk",
+    "attack",
+    "hit",
+    "death"
+  ],
+  "gameplay_events": [
+    "PROJECTILE_SPAWN"
+  ],
+  "special_qa": [
+    "weapon_must_read_as_crossbow"
+  ]
+}

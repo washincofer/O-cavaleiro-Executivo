@@ -1,0 +1,26 @@
+{
+  "character_id": "espadachim",
+  "visual_status": "APPROVED",
+  "technical_status": "CONDITIONAL_PENDING_PHYSICAL_QA",
+  "directions": [
+    "down",
+    "left",
+    "right",
+    "up"
+  ],
+  "pivot_policy": "bottom_center",
+  "frame_width": "TBD",
+  "frame_height": "TBD",
+  "ground_y": "TBD",
+  "animations": [
+    "idle",
+    "walk",
+    "attack",
+    "hit",
+    "death"
+  ],
+  "gameplay_events": [
+    "HITBOX_ON",
+    "HITBOX_OFF"
+  ]
+}

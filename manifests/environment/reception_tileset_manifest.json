@@ -1,0 +1,103 @@
+{
+  "tileset_id": "reception",
+  "status": "SPEC_APPROVED_PHYSICAL_ASSETS_PENDING",
+  "grid": "orthogonal",
+  "native_scale": "1x",
+  "sampling": "nearest",
+  "tile_width": "TBD",
+  "tile_height": "TBD",
+  "atlas_padding": "TBD",
+  "atlases": [
+    "atlas_reception_tiles.png",
+    "atlas_reception_architecture.png",
+    "atlas_reception_props.png",
+    "atlas_reception_overlays.png"
+  ],
+  "assets": {
+    "tile_floor_base": {
+      "movement": "pass",
+      "projectile": "pass",
+      "navigation": "walkable",
+      "ysort": false
+    },
+    "tile_floor_var01": {
+      "movement": "pass",
+      "projectile": "pass",
+      "navigation": "walkable",
+      "ysort": false
+    },
+    "tile_floor_var02": {
+      "movement": "pass",
+      "projectile": "pass",
+      "navigation": "walkable",
+      "ysort": false
+    },
+    "tile_floor_var03": {
+      "movement": "pass",
+      "projectile": "pass",
+      "navigation": "walkable",
+      "ysort": false
+    },
+    "tile_wall_horizontal": {
+      "movement": "block",
+      "projectile": "block",
+      "navigation": "blocked",
+      "ysort": "structural"
+    },
+    "arch_door_open": {
+      "movement": "pass",
+      "projectile": "pass",
+      "navigation": "walkable",
+      "transition": "enabled_when_valid"
+    },
+    "arch_door_closed": {
+      "movement": "block",
+      "projectile": "block",
+      "navigation": "blocked",
+      "transition": "disabled"
+    },
+    "arch_door_locked": {
+      "movement": "block",
+      "projectile": "block",
+      "navigation": "blocked",
+      "transition": "disabled"
+    },
+    "arch_pillar_base": {
+      "movement": "block",
+      "projectile": "block",
+      "navigation": "blocked",
+      "ysort": true,
+      "anchor": "base",
+      "footprint": "TBD"
+    },
+    "arch_counter_mid": {
+      "movement": "block",
+      "projectile": "block",
+      "navigation": "blocked",
+      "ysort": true,
+      "anchor": "base",
+      "front_occlusion": "possible",
+      "footprint": "TBD"
+    },
+    "prop_bench": {
+      "movement": "block",
+      "projectile": "pass",
+      "navigation": "blocked",
+      "ysort": true,
+      "anchor": "base"
+    },
+    "prop_archive": {
+      "movement": "block",
+      "projectile": "block",
+      "navigation": "blocked",
+      "ysort": true,
+      "anchor": "base"
+    },
+    "arch_partition_high": {
+      "movement": "block",
+      "projectile": "TBD_BY_ASSET",
+      "navigation": "blocked",
+      "ysort": true
+    }
+  }
+}
