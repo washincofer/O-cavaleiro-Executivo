@@ -36,14 +36,14 @@ echo "Importando e validando o projeto com Godot ${GODOT_RELEASE}..."
 "${TOOLS_DIR}/godot" --headless --path "${PWD}" --import
 
 echo "Exportando a versao Web para dist/..."
-"${TOOLS_DIR}/godot" --headless --path "${PWD}" --export-release "Web" "dist/cavaleiro-sprint9-5-v04.html"
+"${TOOLS_DIR}/godot" --headless --path "${PWD}" --export-release "Web" "dist/reception-playtest-v01.html"
 
 # Render serves index.html at the root. The generated runtime assets keep the
 # Sprint-specific basename, bypassing packages cached by older builds.
-mv dist/cavaleiro-sprint9-5-v04.html dist/index.html
+mv dist/reception-playtest-v01.html dist/index.html
 
 test -f dist/index.html
-test -f dist/cavaleiro-sprint9-5-v04.js
-test -f dist/cavaleiro-sprint9-5-v04.wasm
-test -f dist/cavaleiro-sprint9-5-v04.pck
+test -f dist/reception-playtest-v01.js
+test -f dist/reception-playtest-v01.wasm
+test -f dist/reception-playtest-v01.pck
 echo "Exportacao Web concluida."

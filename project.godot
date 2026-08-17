@@ -4,7 +4,7 @@ config_version=5
 
 [application]
 config/name="O Cavaleiro Executivo - Laboratorio"
-run/main_scene="res://scenes/dev/sprint9_master_test.tscn"
+run/main_scene="res://scenes/playtest/reception_proto_v01.tscn"
 
 [display]
 window/size/viewport_width=320
@@ -31,6 +31,14 @@ move_left={
 move_right={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"physical_keycode":68), Object(InputEventKey,"physical_keycode":4194313)]
+}
+move_up={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":87), Object(InputEventKey,"physical_keycode":4194320)]
+}
+move_down={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":83), Object(InputEventKey,"physical_keycode":4194322)]
 }
 jump={
 "deadzone": 0.5,
