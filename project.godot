@@ -56,3 +56,15 @@ restart={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"physical_keycode":82)]
 }
+select_party_1={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":49)]
+}
+select_party_2={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":50)]
+}
+select_party_3={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":51)]
+}

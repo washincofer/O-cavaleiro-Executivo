@@ -1,0 +1,5 @@
+./MANIFEST.txt
+./SPRINT_11A_README.md
+./project.godot
+./scripts/playtest/reception_actor.gd
+./scripts/playtest/reception_playtest.gd
