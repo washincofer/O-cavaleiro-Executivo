@@ -155,9 +155,9 @@ func _nearest_enemy_in_range(origin: Vector2, max_x: float, max_y: float):
 	for enemy in enemies:
 		if not is_instance_valid(enemy) or not enemy.alive:
 			continue
-		var delta := enemy.global_position - origin
+		var delta: Vector2 = enemy.global_position - origin
 		if absf(delta.x) <= max_x and absf(delta.y) <= max_y:
-			var d := delta.length_squared()
+			var d: float = delta.length_squared()
 			if d < best:
 				best = d
 				result = enemy
@@ -171,7 +171,7 @@ func closest_alive_ally(_source = null):
 			continue
 		if _source == null:
 			return member
-		var d := _source.global_position.distance_squared_to(member.global_position)
+		var d: float = _source.global_position.distance_squared_to(member.global_position)
 		if d < best:
 			best = d
 			result = member
@@ -188,8 +188,8 @@ func _on_actor_died(actor) -> void:
 		report_event("INIMIGO DERROTADO — restam %d" % active_enemies)
 		return
 
-	var was_active := actor == active_actor
-	var dead_slot := actor.party_slot
+	var was_active: bool = actor == active_actor
+	var dead_slot: int = actor.party_slot
 	if was_active:
 		_handoff_from_slot(dead_slot)
 	else:

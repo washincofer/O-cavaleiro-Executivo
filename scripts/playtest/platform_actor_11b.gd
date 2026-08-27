@@ -122,8 +122,8 @@ func _follow_tick() -> void:
 		velocity.x = 0.0
 		return
 
-	var desired_x := leader.global_position.x + follow_offset_x
-	var delta_x := desired_x - global_position.x
+	var desired_x: float = leader.global_position.x + follow_offset_x
+	var delta_x: float = desired_x - global_position.x
 
 	if absf(delta_x) > 18.0:
 		facing = signf(delta_x)
@@ -140,8 +140,8 @@ func _enemy_tick() -> void:
 		velocity.x = 0.0
 		return
 
-	var dx := target.global_position.x - global_position.x
-	var dy := absf(target.global_position.y - global_position.y)
+	var dx: float = target.global_position.x - global_position.x
+	var dy: float = absf(target.global_position.y - global_position.y)
 
 	if absf(dx) <= 24.0 and dy <= 30.0:
 		velocity.x = 0.0
