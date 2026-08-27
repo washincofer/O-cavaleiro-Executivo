@@ -352,7 +352,7 @@ func _on_animation_finished() -> void:
 func _update_animation() -> void:
 	if not is_instance_valid(sprite) or not alive:
 		return
-	sprite.flip_h = facing > 0.0
+	sprite.flip_h = facing < 0.0
 
 	if attack_lock_timer > 0.0 or hurt_lock_timer > 0.0:
 		return

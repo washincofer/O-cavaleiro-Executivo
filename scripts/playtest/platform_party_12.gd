@@ -16,8 +16,10 @@ const WORLD_WIDTH := 1200.0
 const DEATH_Y := 360.0
 
 const CAVE_TILE_PATH := "res://assets/Environment/Cave/Runtime/cave_tileset.png"
+const MOUNTAIN_PATH := "res://assets/Environment/Cave/Runtime/bg_mountains.png"
+const TREES_PATH := "res://assets/Environment/Cave/Runtime/trees.png"
 const CAVE_TILE_SIZE := Vector2i(16, 16)
-const CAVE_FILL_COORD := Vector2i(4, 0)
+const GROUND_RIM_COORD := Vector2i(4, 4)
 
 var actors: Array[Actor] = []
 var enemies: Array[Actor] = []
@@ -28,6 +30,7 @@ var active_enemies := 0
 var total_enemies := 0
 
 var world_layer: Node2D
+var cave_tileset: TileSet
 var actor_layer: Node2D
 var projectile_layer: Node2D
 var camera: Camera2D
@@ -265,31 +268,21 @@ func _build_world() -> void:
 	world_layer.name = "World"
 	add_child(world_layer)
 
-	var cave_tileset := _build_cave_tileset()
+	cave_tileset = _build_cave_tileset()
 
-	var wall_layer := TileMapLayer.new()
-	wall_layer.name = "CaveWall"
-	wall_layer.tile_set = cave_tileset
-	wall_layer.modulate = Color(0.30, 0.30, 0.46)
-	wall_layer.z_index = -5
-	world_layer.add_child(wall_layer)
-	_paint_tiles(wall_layer, Rect2(0, 0, WORLD_WIDTH, DEATH_Y))
-
-	var ground_layer := TileMapLayer.new()
-	ground_layer.name = "CaveGround"
-	ground_layer.tile_set = cave_tileset
-	ground_layer.z_index = -2
-	world_layer.add_child(ground_layer)
+	_add_background()
 
 	# Chao principal em 3 blocos, com vaos que exigem salto (mantido da 11B.1).
-	_add_platform(ground_layer, Rect2(0, 284, 375, 32), false)
-	_add_platform(ground_layer, Rect2(415, 284, 345, 32), false)
-	_add_platform(ground_layer, Rect2(800, 284, 400, 32), false)
+	_add_platform(Rect2(0, 284, 375, 32), false)
+	_add_platform(Rect2(415, 284, 345, 32), false)
+	_add_platform(Rect2(800, 284, 400, 32), false)
 
 	# Plataformas elevadas: todas ao alcance do salto normal (sem a escada da 11C).
-	_add_platform(ground_layer, Rect2(150, 250, 135, 14), true)
-	_add_platform(ground_layer, Rect2(500, 250, 175, 14), true)
-	_add_platform(ground_layer, Rect2(885, 250, 145, 14), true)
+	_add_platform(Rect2(150, 250, 135, 14), true)
+	_add_platform(Rect2(500, 250, 175, 14), true)
+	_add_platform(Rect2(885, 250, 145, 14), true)
+
+	_add_decorations()
 
 	_add_wall_collision(Rect2(-12, 0, 12, DEATH_Y))
 	_add_wall_collision(Rect2(WORLD_WIDTH, 0, 12, DEATH_Y))
@@ -322,22 +315,46 @@ func _build_cave_tileset() -> TileSet:
 	var source := TileSetAtlasSource.new()
 	source.texture = tex
 	source.texture_region_size = CAVE_TILE_SIZE
-	source.create_tile(CAVE_FILL_COORD)
+	source.create_tile(GROUND_RIM_COORD)
 	var tile_set := TileSet.new()
 	tile_set.tile_size = CAVE_TILE_SIZE
 	tile_set.add_source(source, 0)
 	return tile_set
 
-func _paint_tiles(layer: TileMapLayer, rect: Rect2) -> void:
-	var start_x: int = int(floor(rect.position.x / 16.0))
-	var end_x: int = int(ceil((rect.position.x + rect.size.x) / 16.0))
-	var start_y: int = int(floor(rect.position.y / 16.0))
-	var end_y: int = int(ceil((rect.position.y + rect.size.y) / 16.0))
-	for gx in range(start_x, end_x):
-		for gy in range(start_y, end_y):
-			layer.set_cell(Vector2i(gx, gy), 0, CAVE_FILL_COORD)
+func _add_background() -> void:
+	var sky := ColorRect.new()
+	sky.position = Vector2(-50, -50)
+	sky.size = Vector2(WORLD_WIDTH + 100, DEATH_Y + 100)
+	sky.color = Color("6fa8dc")
+	sky.z_index = -10
+	world_layer.add_child(sky)
 
-func _add_platform(ground_layer: TileMapLayer, rect: Rect2, one_way: bool) -> void:
+	var moon := Polygon2D.new()
+	moon.color = Color(0.88, 0.92, 0.98, 0.6)
+	var pts := PackedVector2Array()
+	for i in range(24):
+		var a: float = TAU * float(i) / 24.0
+		pts.append(Vector2(cos(a), sin(a)) * 30.0)
+	moon.polygon = pts
+	moon.position = Vector2(220, 150)
+	moon.z_index = -9
+	world_layer.add_child(moon)
+
+	# bg_mountains.png tem bordas esquerda/direita identicas (confirmado
+	# pixel a pixel), entao encostar copias lado a lado forma um horizonte
+	# continuo sem costura visivel.
+	var mountain_tex: Texture2D = load(MOUNTAIN_PATH)
+	var mountain_w: float = mountain_tex.get_width()
+	var copies: int = int(ceil((WORLD_WIDTH + mountain_w * 2.0) / mountain_w))
+	for i in range(-1, copies):
+		var spr := Sprite2D.new()
+		spr.texture = mountain_tex
+		spr.centered = false
+		spr.position = Vector2(float(i) * mountain_w, 130.0)
+		spr.z_index = -8
+		world_layer.add_child(spr)
+
+func _add_platform(rect: Rect2, one_way: bool) -> void:
 	var body := StaticBody2D.new()
 	body.collision_layer = 1
 	body.collision_mask = 0
@@ -353,7 +370,58 @@ func _add_platform(ground_layer: TileMapLayer, rect: Rect2, one_way: bool) -> vo
 	body.add_child(collision)
 	world_layer.add_child(body)
 
-	_paint_tiles(ground_layer, rect)
+	_draw_platform_visual(rect)
+
+func _draw_platform_visual(rect: Rect2) -> void:
+	# O TileMapLayer e posicionado exatamente no topo-esquerda do retangulo
+	# de colisao (em vez de encaixar num grid global de 16px), entao a
+	# celula (0,0) sempre alinha com a superficie real onde o personagem
+	# pisa — sem isso, plataformas fora do grid global faziam o chao visual
+	# comecar alguns pixels ACIMA da colisao, dando a impressao de que os
+	# personagens afundavam no chao.
+	var rim_h := 16.0
+	var body_h: float = rect.size.y - rim_h
+	if body_h > 0.0:
+		var body_visual := ColorRect.new()
+		body_visual.position = Vector2(rect.position.x, rect.position.y + rim_h)
+		body_visual.size = Vector2(rect.size.x, body_h)
+		body_visual.color = Color("241c17")
+		body_visual.z_index = -1
+		world_layer.add_child(body_visual)
+
+	var rim_layer := TileMapLayer.new()
+	rim_layer.tile_set = cave_tileset
+	rim_layer.position = rect.position
+	rim_layer.z_index = -1
+	world_layer.add_child(rim_layer)
+	var cols: int = int(ceil(rect.size.x / 16.0))
+	for gx in range(cols):
+		rim_layer.set_cell(Vector2i(gx, 0), 0, GROUND_RIM_COORD)
+
+func _add_decorations() -> void:
+	var trees_tex: Texture2D = load(TREES_PATH)
+	var cell_w := 96
+	var cell_h := 64
+	var spots: Array = [
+		{"pos": Vector2(55, 284), "cell": Vector2i(4, 0), "scale": 0.55},
+		{"pos": Vector2(345, 284), "cell": Vector2i(8, 3), "scale": 0.5},
+		{"pos": Vector2(560, 250), "cell": Vector2i(4, 3), "scale": 0.45},
+		{"pos": Vector2(1075, 284), "cell": Vector2i(8, 0), "scale": 0.55},
+	]
+	for spot in spots:
+		var cell: Vector2i = spot["cell"]
+		var atlas := AtlasTexture.new()
+		atlas.atlas = trees_tex
+		atlas.region = Rect2(cell.x * cell_w, cell.y * cell_h, cell_w, cell_h)
+		var spr := Sprite2D.new()
+		spr.texture = atlas
+		spr.centered = true
+		spr.offset = Vector2(0, -30)
+		var s: float = spot["scale"]
+		spr.scale = Vector2(s, s)
+		spr.position = spot["pos"]
+		spr.z_index = -1
+		world_layer.add_child(spr)
 
 func _add_wall_collision(rect: Rect2) -> void:
 	var body := StaticBody2D.new()
