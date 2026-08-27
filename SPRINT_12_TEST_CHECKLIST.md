@@ -46,3 +46,21 @@
       (para antes delas em vez de passar direto).
 - [ ] A GOSMA REAL na C2 tem HP visivelmente maior (6) que um inimigo
       comum.
+- [ ] Antes do loading, uma tela de selecao de personagens estilo Smash
+      Bros mostra 3 colunas (quebra entulho / atravessa barreira / cruza o
+      vao), cada uma com 2 opcoes; clicar muda a borda de cor e atualiza o
+      preview "SEU GRUPO".
+- [ ] Escolher MAGO DE FOGO, MAGO DO RAIO e MAGO ANDARILHO (em vez do trio
+      classico) e clicar COMECAR spawna esses 3 na fase, com HUD/pausa
+      mostrando os nomes corretos.
+- [ ] MAGO DE FOGO com `H` executa Rajada de Fogo (quebra o ENTULHO, igual
+      a Estocada do Guerreiro).
+- [ ] MAGO DO RAIO com `H` executa Tiro Perfurante (atravessa a barreira,
+      igual a Arqueira).
+- [ ] MAGO ANDARILHO com `H` executa Teleporte (cruza o vao largo, igual a
+      Maga).
+- [ ] O menu de pausa (`ESC`) mostra o objetivo com os nomes e mecanicas
+      dos personagens REALMENTE selecionados, nao um texto fixo.
+- [ ] Titulos (nome do jogo, "SELECAO DE PERSONAGENS", "PAUSADO",
+      "CARREGANDO...") usam a fonte decorativa Medieval Scroll of Wisdom
+      sem cortar no topo da tela; textos de UI/paragrafo usam MedievalSharp.

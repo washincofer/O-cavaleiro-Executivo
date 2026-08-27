@@ -165,10 +165,12 @@ func activate_actor_special(actor: Actor) -> void:
 	match actor.role:
 		"warrior":
 			report_event("%s: ESTOCADA" % actor.actor_name)
-		"archer":
+		"archer", "lightning_mage":
 			report_event("%s: TIRO PERFURANTE" % actor.actor_name)
-		"mage":
+		"mage", "wanderer":
 			report_event("%s: CONJURANDO TELEPORTE" % actor.actor_name)
+		"fire_mage":
+			report_event("%s: RAJADA DE FOGO" % actor.actor_name)
 
 func melee_attack_from(source: Actor) -> bool:
 	var victim: Actor = _nearest_enemy_in_range(source.global_position, 38.0, 30.0)
@@ -492,17 +494,37 @@ func _add_gap_marker(from_x: float, to_x: float) -> void:
 	label.add_theme_color_override("font_color", Color("ff6b6b"))
 	world_layer.add_child(label)
 
+const ROLE_TINT := {
+	"warrior": Color("cfd6e0"),
+	"archer": Color("8fd67a"),
+	"mage": Color("b48cff"),
+	"fire_mage": Color("ff9a52"),
+	"lightning_mage": Color("fff27a"),
+	"wanderer": Color("7fe0d1"),
+}
+
+const SLOT_SPAWN_X := [140.0, 105.0, 70.0]
+const SLOT_FOLLOW_OFFSET := [-36.0, -36.0, -72.0]
+
+const ROLE_OBJECTIVE_LINE := {
+	"warrior": "quebra o entulho (Estocada)",
+	"fire_mage": "quebra o entulho (Rajada de Fogo)",
+	"archer": "atravessa a barreira magica (Tiro Perfurante)",
+	"lightning_mage": "atravessa a barreira magica (Tiro Perfurante)",
+	"mage": "cruza o vao largo demais para o pulo (Teleporte)",
+	"wanderer": "cruza o vao largo demais para o pulo (Teleporte)",
+}
+
 func _spawn_party() -> void:
-	var warrior := _spawn_actor("GUERREIRO", "ally", "warrior", Vector2(140, 250), Color("cfd6e0"), 0)
-	warrior.follow_offset_x = -36.0
-
-	var archer := _spawn_actor("ARQUEIRA", "ally", "archer", Vector2(105, 250), Color("8fd67a"), 1)
-	archer.follow_offset_x = -36.0
-
-	var mage := _spawn_actor("MAGA", "ally", "mage", Vector2(70, 250), Color("b48cff"), 2)
-	mage.follow_offset_x = -72.0
-
-	party_slots = [warrior, archer, mage]
+	var roles: Array[String] = PartySelection12.get_party_roles()
+	party_slots = []
+	for i in range(roles.size()):
+		var role: String = roles[i]
+		var display_name: String = Actor.DISPLAY_NAME.get(role, role.to_upper())
+		var tint: Color = ROLE_TINT.get(role, Color.WHITE)
+		var actor := _spawn_actor(display_name, "ally", role, Vector2(SLOT_SPAWN_X[i], 250), tint, i)
+		actor.follow_offset_x = SLOT_FOLLOW_OFFSET[i]
+		party_slots.append(actor)
 
 func _spawn_enemies() -> void:
 	_spawn_actor("RATO", "enemy", "rat", Vector2(680, 250), Color("d9d3c7"))
@@ -567,6 +589,13 @@ func try_break_rubble(actor: Actor) -> void:
 		rubble_body.queue_free()
 		if is_instance_valid(rubble_visual):
 			rubble_visual.queue_free()
+
+func fire_burst_from(actor: Actor) -> void:
+	for enemy in enemies:
+		if is_instance_valid(enemy) and enemy.alive:
+			if enemy.global_position.distance_to(actor.global_position) <= 46.0:
+				enemy.take_damage(1, actor)
+	try_break_rubble(actor)
 
 func _spawn_ward_and_switch() -> void:
 	ward_body = StaticBody2D.new()
@@ -682,14 +711,13 @@ func _build_hud() -> void:
 	objective_label.add_theme_font_size_override("font_size", 6)
 	panel.add_child(objective_label)
 
-	var display_font := SystemFont.new()
-	display_font.font_names = PackedStringArray(["Arial Black", "Segoe UI", "Impact", "sans-serif"])
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
 
 	state_label = Label.new()
 	state_label.position = Vector2(0, 76)
 	state_label.size = Vector2(320, 20)
 	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	state_label.add_theme_font_override("font", display_font)
+	state_label.add_theme_font_override("font", title_font)
 	state_label.add_theme_font_size_override("font_size", 14)
 	state_label.add_theme_color_override("font_color", Color("ffe26f"))
 	state_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
@@ -761,23 +789,29 @@ func _build_pause_menu() -> void:
 	panel.color = Color("1b2028")
 	pause_layer.add_child(panel)
 
-	var title := Label.new()
-	var display_font := SystemFont.new()
-	display_font.font_names = PackedStringArray(["Arial Black", "Segoe UI", "Impact", "sans-serif"])
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
+	var body_font: FontFile = load("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
 
+	var title := Label.new()
 	title.text = "PAUSADO"
 	title.position = Vector2(26, 9)
 	title.size = Vector2(268, 12)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_override("font", display_font)
+	title.add_theme_font_override("font", title_font)
 	title.add_theme_font_size_override("font_size", 11)
 	title.add_theme_color_override("font_color", Color("ffe26f"))
 	pause_layer.add_child(title)
 
+	var objective_lines: Array[String] = []
+	for member in party_slots:
+		if is_instance_valid(member):
+			objective_lines.append("%s %s" % [member.actor_name, ROLE_OBJECTIVE_LINE.get(member.role, "")])
+
 	var instructions := Label.new()
-	instructions.text = "OBJETIVO\nDerrote os inimigos e supere 3 provas — cada uma so\ncede a habilidade especial (H) de UM personagem:\nGUERREIRO quebra entulho (Estocada); ARQUEIRA atravessa\na barreira magica (Tiro Perfurante); MAGA cruza o vao\nlargo demais para o pulo (Teleporte).\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
+	instructions.text = "OBJETIVO\nDerrote os inimigos e supere 3 provas — cada uma so cede a\nhabilidade especial (H) de UM personagem do seu grupo:\n%s\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar" % "\n".join(objective_lines)
 	instructions.position = Vector2(38, 24)
 	instructions.size = Vector2(244, 120)
+	instructions.add_theme_font_override("font", body_font)
 	instructions.add_theme_font_size_override("font_size", 6)
 	instructions.autowrap_mode = TextServer.AUTOWRAP_WORD
 	pause_layer.add_child(instructions)
@@ -787,6 +821,7 @@ func _build_pause_menu() -> void:
 	resume_btn.position = Vector2(46, 150)
 	resume_btn.size = Vector2(100, 18)
 	resume_btn.focus_mode = Control.FOCUS_NONE
+	resume_btn.add_theme_font_override("font", body_font)
 	resume_btn.add_theme_font_size_override("font_size", 8)
 	resume_btn.pressed.connect(_toggle_pause)
 	pause_layer.add_child(resume_btn)
@@ -796,6 +831,7 @@ func _build_pause_menu() -> void:
 	back_btn.position = Vector2(156, 150)
 	back_btn.size = Vector2(120, 18)
 	back_btn.focus_mode = Control.FOCUS_NONE
+	back_btn.add_theme_font_override("font", body_font)
 	back_btn.add_theme_font_size_override("font_size", 8)
 	back_btn.pressed.connect(_on_back_to_select_pressed)
 	pause_layer.add_child(back_btn)

@@ -7,7 +7,9 @@ extends Control
 ## poucos.
 
 const PREVIEW_PATH := "res://assets/UI/Runtime/stage_caverna_preview.png"
-const LOADING_SCENE := "res://scenes/menu/loading_screen_12.tscn"
+const CHARACTER_SELECT_SCENE := "res://scenes/menu/character_select_12.tscn"
+const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf"
+const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
 
 const TILE_COLORS := [
 	Color("ffd23f"),
@@ -34,15 +36,16 @@ const STAGES := [
 var preview_rect: TextureRect
 var preview_label: Label
 var preview_tex: Texture2D
-var display_font: SystemFont
+var title_font: FontFile
+var body_font: FontFile
 var glow_border: ColorRect
 var glow_t := 0.0
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(320, 180)
 
-	display_font = SystemFont.new()
-	display_font.font_names = PackedStringArray(["Arial Black", "Segoe UI", "Impact", "sans-serif"])
+	title_font = load(TITLE_FONT_PATH)
+	body_font = load(BODY_FONT_PATH)
 
 	var bg := ColorRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -53,11 +56,11 @@ func _ready() -> void:
 
 	var title := Label.new()
 	title.text = "O CAVALEIRO EXECUTIVO"
-	title.position = Vector2(0, 2)
+	title.position = Vector2(0, 9)
 	title.size = Vector2(320, 14)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_override("font", display_font)
-	title.add_theme_font_size_override("font_size", 13)
+	title.add_theme_font_override("font", title_font)
+	title.add_theme_font_size_override("font_size", 11)
 	title.add_theme_color_override("font_color", Color("ffe26f"))
 	title.add_theme_color_override("font_outline_color", Color("241a05"))
 	title.add_theme_constant_override("outline_size", 3)
@@ -65,9 +68,10 @@ func _ready() -> void:
 
 	var subtitle := Label.new()
 	subtitle.text = "S E L E C A O   D E   F A S E"
-	subtitle.position = Vector2(0, 16)
+	subtitle.position = Vector2(0, 22)
 	subtitle.size = Vector2(320, 10)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_override("font", body_font)
 	subtitle.add_theme_font_size_override("font_size", 6)
 	subtitle.add_theme_color_override("font_color", Color("8fa6c9"))
 	add_child(subtitle)
@@ -158,7 +162,7 @@ func _build_preview_panel() -> void:
 	preview_label.position = Vector2(8, 128)
 	preview_label.size = Vector2(156, 12)
 	preview_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	preview_label.add_theme_font_override("font", display_font)
+	preview_label.add_theme_font_override("font", body_font)
 	preview_label.add_theme_font_size_override("font_size", 10)
 	preview_label.add_theme_color_override("font_color", Color("ffe26f"))
 	add_child(preview_label)
@@ -198,7 +202,7 @@ func _build_tile(stage: Dictionary, index: int, pos: Vector2, size: Vector2) -> 
 	button.disabled = not unlocked
 	button.focus_mode = Control.FOCUS_NONE
 	button.flat = true
-	button.add_theme_font_override("font", display_font)
+	button.add_theme_font_override("font", body_font)
 	button.add_theme_font_size_override("font_size", 11)
 
 	if unlocked:
@@ -229,4 +233,4 @@ func _show_preview(index: int) -> void:
 		preview_label.text = "EM BREVE"
 
 func _on_stage_pressed() -> void:
-	get_tree().change_scene_to_file(LOADING_SCENE)
+	get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)

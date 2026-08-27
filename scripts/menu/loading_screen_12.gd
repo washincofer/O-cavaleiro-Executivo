@@ -20,15 +20,14 @@ func _ready() -> void:
 	bg.color = Color("10141d")
 	add_child(bg)
 
-	var display_font := SystemFont.new()
-	display_font.font_names = PackedStringArray(["Arial Black", "Segoe UI", "Impact", "sans-serif"])
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
 
 	var title := Label.new()
 	title.text = "CARREGANDO A CAVERNA..."
 	title.position = Vector2(0, 76)
 	title.size = Vector2(320, 14)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_override("font", display_font)
+	title.add_theme_font_override("font", title_font)
 	title.add_theme_font_size_override("font_size", 11)
 	title.add_theme_color_override("font_color", Color("ffe26f"))
 	add_child(title)

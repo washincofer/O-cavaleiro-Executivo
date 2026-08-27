@@ -6,6 +6,9 @@ config_version=5
 config/name="O Cavaleiro Executivo - Laboratorio 12"
 run/main_scene="res://scenes/menu/stage_select_12.tscn"
 
+[autoload]
+PartySelection12="*res://scripts/globals/party_selection_12.gd"
+
 [display]
 window/size/viewport_width=320
 window/size/viewport_height=180

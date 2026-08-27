@@ -38,6 +38,36 @@ const ROLE_ANIM := {
 		"jump": {"path": "res://assets/Characters/Mage/Runtime/Jump.png", "fw": 231, "fh": 190, "count": 2, "fps": 6.0, "loop": false},
 		"fall": {"path": "res://assets/Characters/Mage/Runtime/Fall.png", "fw": 231, "fh": 190, "count": 2, "fps": 6.0, "loop": true},
 	},
+	"fire_mage": {
+		"idle": {"path": "res://assets/Characters/FireMage/Runtime/Idle.png", "fw": 128, "fh": 128, "count": 7, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Characters/FireMage/Runtime/Run.png", "fw": 128, "fh": 128, "count": 8, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/FireMage/Runtime/Fireball.png", "fw": 128, "fh": 128, "count": 8, "fps": 12.0, "loop": false},
+		"special": {"path": "res://assets/Characters/FireMage/Runtime/FlameJet.png", "fw": 128, "fh": 128, "count": 14, "fps": 18.0, "loop": false},
+		"hurt": {"path": "res://assets/Characters/FireMage/Runtime/Hurt.png", "fw": 128, "fh": 128, "count": 3, "fps": 12.0, "loop": false},
+		"death": {"path": "res://assets/Characters/FireMage/Runtime/Dead.png", "fw": 128, "fh": 128, "count": 6, "fps": 10.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/FireMage/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 9, "fps": 8.0, "loop": false},
+		"fall": {"path": "res://assets/Characters/FireMage/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 9, "fps": 8.0, "loop": true},
+	},
+	"lightning_mage": {
+		"idle": {"path": "res://assets/Characters/LightningMage/Runtime/Idle.png", "fw": 128, "fh": 128, "count": 7, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Characters/LightningMage/Runtime/Run.png", "fw": 128, "fh": 128, "count": 8, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/LightningMage/Runtime/LightBall.png", "fw": 128, "fh": 128, "count": 7, "fps": 12.0, "loop": false},
+		"special": {"path": "res://assets/Characters/LightningMage/Runtime/LightCharge.png", "fw": 128, "fh": 128, "count": 13, "fps": 18.0, "loop": false},
+		"hurt": {"path": "res://assets/Characters/LightningMage/Runtime/Hurt.png", "fw": 128, "fh": 128, "count": 3, "fps": 12.0, "loop": false},
+		"death": {"path": "res://assets/Characters/LightningMage/Runtime/Dead.png", "fw": 128, "fh": 128, "count": 5, "fps": 10.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/LightningMage/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": false},
+		"fall": {"path": "res://assets/Characters/LightningMage/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": true},
+	},
+	"wanderer": {
+		"idle": {"path": "res://assets/Characters/Wanderer/Runtime/Idle.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Characters/Wanderer/Runtime/Run.png", "fw": 128, "fh": 128, "count": 8, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/Wanderer/Runtime/MagicArrow.png", "fw": 128, "fh": 128, "count": 6, "fps": 12.0, "loop": false},
+		"special": {"path": "res://assets/Characters/Wanderer/Runtime/Attack2.png", "fw": 128, "fh": 128, "count": 9, "fps": 14.0, "loop": false},
+		"hurt": {"path": "res://assets/Characters/Wanderer/Runtime/Hurt.png", "fw": 128, "fh": 128, "count": 4, "fps": 12.0, "loop": false},
+		"death": {"path": "res://assets/Characters/Wanderer/Runtime/Dead.png", "fw": 128, "fh": 128, "count": 4, "fps": 10.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/Wanderer/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": false},
+		"fall": {"path": "res://assets/Characters/Wanderer/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": true},
+	},
 	"slime": {
 		"idle": {"path": "res://assets/Enemies/Slime/Runtime/Idle.png", "fw": 156, "fh": 156, "count": 14, "fps": 8.0, "loop": true},
 		"move": {"path": "res://assets/Enemies/Slime/Runtime/Walk.png", "fw": 156, "fh": 156, "count": 6, "fps": 8.0, "loop": true},
@@ -61,6 +91,9 @@ const ROLE_BODY := {
 	"warrior": {"scale": 0.842, "offset": Vector2(0.5, -18.5), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 92.0, "max_hp": 5, "ranged": false},
 	"archer": {"scale": 0.889, "offset": Vector2(-1.0, -17.0), "radius": 5.0, "height": 26.0, "shape_y": -15.0, "speed": 96.0, "max_hp": 4, "ranged": true},
 	"mage": {"scale": 0.372, "offset": Vector2(5.0, -46.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
+	"fire_mage": {"scale": 0.485, "offset": Vector2(14.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
+	"lightning_mage": {"scale": 0.390, "offset": Vector2(26.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
+	"wanderer": {"scale": 0.485, "offset": Vector2(0.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
 	"slime": {"scale": 1.0, "offset": Vector2(0.0, -9.0), "radius": 7.0, "height": 14.0, "shape_y": -8.0, "speed": 46.0, "max_hp": 3, "ranged": false},
 	"rat": {"scale": 0.9, "offset": Vector2(0.0, -10.0), "radius": 6.0, "height": 16.0, "shape_y": -9.0, "speed": 58.0, "max_hp": 3, "ranged": false},
 }
@@ -69,8 +102,19 @@ const DISPLAY_NAME := {
 	"warrior": "GUERREIRO",
 	"archer": "ARQUEIRA",
 	"mage": "MAGA",
+	"fire_mage": "MAGO DE FOGO",
+	"lightning_mage": "MAGO DO RAIO",
+	"wanderer": "MAGO ANDARILHO",
 	"slime": "GOSMA",
 	"rat": "RATO",
+}
+
+const RANGED_PROJECTILE_KIND := {
+	"archer": "arrow",
+	"mage": "orb",
+	"fire_mage": "fire_orb",
+	"lightning_mage": "lightning_orb",
+	"wanderer": "arcane_orb",
 }
 
 var controller: Node
@@ -314,7 +358,7 @@ func activate_ranged_attack() -> bool:
 		return false
 	attack_cooldown = attack_cooldown_max
 	_play_attack()
-	var kind := "arrow" if role == "archer" else "orb"
+	var kind: String = RANGED_PROJECTILE_KIND.get(role, "orb")
 	controller.spawn_party_projectile(self, Vector2(facing, 0.0), kind)
 	return true
 
@@ -331,9 +375,11 @@ func activate_special() -> bool:
 	match role:
 		"warrior":
 			return _start_charge()
-		"archer":
+		"fire_mage":
+			return _cast_fire_burst()
+		"archer", "lightning_mage":
 			return _fire_piercing_shot()
-		"mage":
+		"mage", "wanderer":
 			return _cast_teleport()
 	return false
 
@@ -346,11 +392,22 @@ func _start_charge() -> bool:
 		sprite.play("special")
 	return true
 
+func _cast_fire_burst() -> bool:
+	special_cooldown = special_cooldown_max
+	attack_lock_timer = 0.55
+	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("special"):
+		sprite.play("special")
+	controller.fire_burst_from(self)
+	return true
+
 func _fire_piercing_shot() -> bool:
 	special_cooldown = special_cooldown_max
 	attack_lock_timer = 0.2
-	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("attack"):
-		sprite.play("attack")
+	var anim_name := "attack"
+	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("special"):
+		anim_name = "special"
+	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation(anim_name):
+		sprite.play(anim_name)
 	controller.spawn_party_projectile(self, Vector2(facing, 0.0), "pierce_arrow")
 	return true
 
