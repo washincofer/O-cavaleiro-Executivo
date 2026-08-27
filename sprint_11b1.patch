@@ -1,0 +1,314 @@
+--- a/scripts/playtest/platform_party_11b.gd
++++ b/scripts/playtest/platform_party_11b.gd
+@@ -55,7 +55,7 @@
+ 
+ 	if not completed and is_instance_valid(active_actor) and active_actor.alive and active_actor.global_position.x >= 1130.0:
+ 		completed = true
+-		report_event("PLAYTEST 11B CONCLUIDO — pressione R para reiniciar")
++		report_event("PLAYTEST 11B.1 CONCLUIDO — pressione R para reiniciar")
+ 
+ 	_update_hud()
+ 
+@@ -182,6 +182,18 @@
+ 		if is_instance_valid(actor) and actor.alive and actor.global_position.y > DEATH_Y:
+ 			actor.force_kill()
+ 
++func has_floor_ahead(actor, direction: float, horizontal_distance := 14.0) -> bool:
++	if not is_instance_valid(actor) or absf(direction) < 0.01:
++		return true
++
++	var from := actor.global_position + Vector2(signf(direction) * horizontal_distance, -3.0)
++	var to := from + Vector2(0.0, 34.0)
++	var query := PhysicsRayQueryParameters2D.create(from, to, 1)
++	query.collide_with_areas = false
++	query.collide_with_bodies = true
++	var hit := get_world_2d().direct_space_state.intersect_ray(query)
++	return not hit.is_empty()
++
+ func _on_actor_died(actor) -> void:
+ 	if actor.team == "enemy":
+ 		active_enemies = maxi(0, active_enemies - 1)
+@@ -226,19 +238,21 @@
+ 	sky.color = Color("1b2430")
+ 	world_layer.add_child(sky)
+ 
+-	_add_platform(Rect2(0, 284, 350, 32), Color("51606c"))
+-	_add_platform(Rect2(430, 284, 300, 32), Color("51606c"))
+-	_add_platform(Rect2(815, 284, 385, 32), Color("51606c"))
+-
+-	_add_platform(Rect2(165, 226, 135, 14), Color("6b7883"))
+-	_add_platform(Rect2(500, 208, 150, 14), Color("6b7883"))
+-	_add_platform(Rect2(875, 228, 145, 14), Color("6b7883"))
++	# 11B.1: gaps reduzidos para um salto normal, ainda mantendo queda fatal.
++	_add_platform(Rect2(0, 284, 375, 32), Color("51606c"))
++	_add_platform(Rect2(415, 284, 345, 32), Color("51606c"))
++	_add_platform(Rect2(800, 284, 400, 32), Color("51606c"))
++
++	# Plataformas elevadas agora sao one-way e estao dentro da altura real de salto.
++	_add_platform(Rect2(150, 250, 135, 14), Color("6b7883"), true)
++	_add_platform(Rect2(505, 248, 150, 14), Color("6b7883"), true)
++	_add_platform(Rect2(885, 250, 145, 14), Color("6b7883"), true)
+ 
+ 	_add_platform(Rect2(-12, 0, 12, 360), Color("111820"))
+ 	_add_platform(Rect2(WORLD_WIDTH, 0, 12, 360), Color("111820"))
+ 
+-	_add_gap_marker(350, 430)
+-	_add_gap_marker(730, 815)
++	_add_gap_marker(375, 415)
++	_add_gap_marker(760, 800)
+ 
+ 	var exit_flag := Label.new()
+ 	exit_flag.text = "SAIDA 11B"
+@@ -266,7 +280,7 @@
+ 	camera.global_position = Vector2(160, 205)
+ 	add_child(camera)
+ 
+-func _add_platform(rect: Rect2, color: Color) -> void:
++func _add_platform(rect: Rect2, color: Color, one_way := false) -> void:
+ 	var body := StaticBody2D.new()
+ 	body.collision_layer = 1
+ 	body.collision_mask = 0
+@@ -276,6 +290,9 @@
+ 	var shape := RectangleShape2D.new()
+ 	shape.size = rect.size
+ 	collision.shape = shape
++	collision.one_way_collision = one_way
++	if one_way:
++		collision.one_way_collision_margin = 6.0
+ 	body.add_child(collision)
+ 
+ 	var visual := Polygon2D.new()
+@@ -309,9 +326,10 @@
+ 	party_slots = [hero, guard, crossbow]
+ 
+ func _spawn_enemies() -> void:
+-	_spawn_actor("INIMIGO A", "enemy", "enemy", Vector2(535, 250), false, Color("e34e48"))
+-	_spawn_actor("INIMIGO B", "enemy", "enemy", Vector2(945, 195), false, Color("e34e48"))
+-	_spawn_actor("INIMIGO C", "enemy", "enemy", Vector2(1030, 250), false, Color("e58d3b"))
++	# Inimigo A fica no primeiro trecho para permitir testar GUARDA sem atravessar vao.
++	_spawn_actor("INIMIGO A", "enemy", "enemy", Vector2(315, 250), false, Color("e34e48"))
++	_spawn_actor("INIMIGO B", "enemy", "enemy", Vector2(570, 250), false, Color("e34e48"))
++	_spawn_actor("INIMIGO C", "enemy", "enemy", Vector2(990, 250), false, Color("e58d3b"))
+ 
+ func _spawn_actor(
+ 	p_name: String,
+@@ -388,7 +406,7 @@
+ 	if game_over:
+ 		state_label.text = "GAME OVER | R reinicia"
+ 	elif completed:
+-		state_label.text = "SPRINT 11B OK | R reinicia"
++		state_label.text = "SPRINT 11B.1 OK | R reinicia"
+ 	else:
+ 		state_label.text = "PLATAFORMA 2D | inimigos %d" % active_enemies
+ 
+@@ -412,4 +430,4 @@
+ 	else:
+ 		action_label.text = "sem personagem ativo"
+ 
+-	objective_label.text = "Teste: plataforma + troca + queda/morte + auto handoff 1>2>3>1"
++	objective_label.text = "11B.1: salto acessivel + guarda + besta colide + IA evita borda"
+--- a/scripts/playtest/platform_actor_11b.gd
++++ b/scripts/playtest/platform_actor_11b.gd
+@@ -25,6 +25,8 @@
+ var ability_cooldown := 0.0
+ var guard_timer := 0.0
+ var flash_timer := 0.0
++var edge_turn_timer := 0.0
++var edge_turn_direction := 0.0
+ var tint := Color.WHITE
+ 
+ func setup(
+@@ -88,6 +90,7 @@
+ 	ability_cooldown = maxf(0.0, ability_cooldown - delta)
+ 	guard_timer = maxf(0.0, guard_timer - delta)
+ 	flash_timer = maxf(0.0, flash_timer - delta)
++	edge_turn_timer = maxf(0.0, edge_turn_timer - delta)
+ 
+ 	if not is_on_floor():
+ 		velocity.y = minf(velocity.y + gravity * delta, max_fall_speed)
+@@ -127,7 +130,10 @@
+ 
+ 	if absf(delta_x) > 18.0:
+ 		facing = signf(delta_x)
+-		velocity.x = facing * speed * 0.88
++		velocity.x = facing * speed * 0.92
++		# Seguidor pula um vao ao acompanhar o personagem ativo, em vez de cair nele.
++		if is_on_floor() and not controller.has_floor_ahead(self, facing, 14.0):
++			velocity.y = jump_velocity
+ 	else:
+ 		velocity.x = move_toward(velocity.x, 0.0, 20.0)
+ 
+@@ -135,6 +141,12 @@
+ 		velocity.y = jump_velocity
+ 
+ func _enemy_tick() -> void:
++	# Depois de detectar uma borda fatal, afasta-se por alguns instantes antes de retomar a perseguicao.
++	if edge_turn_timer > 0.0:
++		facing = edge_turn_direction
++		velocity.x = facing * speed * 0.50
++		return
++
+ 	var target = controller.closest_alive_ally(self)
+ 	if not is_instance_valid(target):
+ 		velocity.x = 0.0
+@@ -151,6 +163,16 @@
+ 			flash_timer = 0.12
+ 	else:
+ 		facing = signf(dx) if dx != 0.0 else facing
++
++		# Inimigo terrestre nao caminha voluntariamente para uma queda fatal.
++		# Ele ainda pode morrer por queda se outra mecanica o empurrar no futuro.
++		if is_on_floor() and not controller.has_floor_ahead(self, facing, 14.0):
++			edge_turn_direction = -facing
++			edge_turn_timer = 0.55
++			facing = edge_turn_direction
++			velocity.x = facing * speed * 0.50
++			return
++
+ 		velocity.x = facing * speed * 0.62
+ 		if target.global_position.y < global_position.y - 30.0 and is_on_floor():
+ 			velocity.y = jump_velocity * 0.88
+@@ -183,6 +205,8 @@
+ 		return
+ 	if guard_timer > 0.0 and team == "ally":
+ 		flash_timer = 0.16
++		if is_instance_valid(controller):
++			controller.report_event("%s: GUARDA BLOQUEOU DANO" % actor_name)
+ 		return
+ 	if source != null and source.team == team:
+ 		return
+@@ -216,7 +240,9 @@
+ 		draw_arc(Vector2(0, -7), 13.0, 0.0, TAU, 28, Color("ffe26f"), 2.5)
+ 
+ 	if guard_timer > 0.0:
+-		draw_arc(Vector2(0, -7), 16.0, -1.3, 1.3, 24, Color("71d7ff"), 3.0)
++		var guard_angle := 0.0 if facing > 0.0 else PI
++		var guard_center := Vector2(facing * 7.0, -7.0)
++		draw_arc(guard_center, 10.0, guard_angle - 1.05, guard_angle + 1.05, 24, Color("71d7ff"), 3.0)
+ 
+ 	var body_color := Color.WHITE if flash_timer > 0.0 else tint
+ 	draw_circle(Vector2(0, -11), 6.0, Color(0.06, 0.07, 0.09))
+@@ -225,9 +251,10 @@
+ 	draw_line(Vector2.ZERO, Vector2(facing * 11.0, -2.0), Color.WHITE, 2.0)
+ 
+ 	if role == "crossbow":
+-		draw_line(Vector2(-5, -3), Vector2(5, 1), Color("d9a441"), 2.5)
++		draw_line(Vector2(-facing * 5.0, -3.0), Vector2(facing * 5.0, 1.0), Color("d9a441"), 2.5)
+ 	elif role == "guard":
+-		draw_arc(Vector2(facing * 6.0, -1.0), 5.0, -1.2, 1.2, 12, Color("a9c6d8"), 2.0)
++		var shield_angle := 0.0 if facing > 0.0 else PI
++		draw_arc(Vector2(facing * 6.0, -1.0), 5.0, shield_angle - 1.2, shield_angle + 1.2, 12, Color("a9c6d8"), 2.0)
+ 
+ 	var ratio := float(hp) / float(max_hp)
+ 	draw_rect(Rect2(-10, -25, 20, 3), Color(0.12, 0.12, 0.12))
+--- a/scripts/playtest/platform_bolt_11b.gd
++++ b/scripts/playtest/platform_bolt_11b.gd
+@@ -16,13 +16,30 @@
+ 	queue_redraw()
+ 
+ func _physics_process(delta: float) -> void:
+-	position += direction * speed * delta
++	var next_position := global_position + direction * speed * delta
++
++	# 11B.1: raycast entre a posicao atual e a proxima evita atravessar
++	# chao, paredes e plataformas mesmo com o projetil rapido.
++	if _hits_world(next_position):
++		queue_free()
++		return
++
++	global_position = next_position
+ 	life -= delta
++
+ 	if controller.try_bolt_hit(self, owner_actor):
+ 		queue_free()
+ 		return
++
+ 	if life <= 0.0:
+ 		queue_free()
+ 
++func _hits_world(next_position: Vector2) -> bool:
++	var query := PhysicsRayQueryParameters2D.create(global_position, next_position, 1)
++	query.collide_with_areas = false
++	query.collide_with_bodies = true
++	var hit := get_world_2d().direct_space_state.intersect_ray(query)
++	return not hit.is_empty()
++
+ func _draw() -> void:
+ 	draw_line(Vector2(-5, 0), Vector2(5, 0), Color("f0c15a"), 2.0)
+--- /dev/null
++++ b/SPRINT_11B1_README.md
+@@ -0,0 +1,38 @@
++# O Cavaleiro Executivo — Sprint 11B.1 — Platform & Combat Fixes
++
++## Origem
++
++Correcoes derivadas do playtest aprovado da Sprint 11B. O sistema 1/2/3, habilidades manuais, queda fatal, Auto Handoff e camera lateral foram validados e NAO sao redesenhados aqui.
++
++## Correcoes desta revisao
++
++1. **Vaos fatais menores** — ambos passam a ter 40 px, permitindo travessia por salto normal sem eliminar o risco de queda.
++2. **Plataformas elevadas acessiveis** — foram reposicionadas e passam a usar colisao one-way, permitindo saltar por baixo e pousar por cima.
++3. **Besta colide com o cenario** — o projetil usa raycast no trajeto de cada frame e desaparece ao atingir chao, parede ou plataforma.
++4. **Guarda acompanha facing** — escudo e efeito ativo sao espelhados para esquerda/direita.
++5. **Guarda testavel** — o primeiro inimigo nasce no trecho inicial; quando a Guarda bloqueia um golpe, o HUD informa `GUARDA BLOQUEOU DANO`.
++6. **IA evita queda fatal voluntaria** — inimigos terrestres detectam ausencia de piso adiante, recuam e retomam a perseguicao.
++7. **Queda continua sendo morte real** — inimigos nao ficaram imunes ao vao; a protecao esta na IA. Futuramente, um empurrao ainda pode joga-los para a morte.
++8. **Seguidores saltam vaos** — aliados nao controlados tentam saltar ao detectar borda durante o acompanhamento do personagem ativo.
++9. **Inimigos reposicionados no piso** — combate pode ser testado sem depender de plataforma elevada.
++
++## Arquivos alterados
++
++- `scripts/playtest/platform_party_11b.gd`
++- `scripts/playtest/platform_actor_11b.gd`
++- `scripts/playtest/platform_bolt_11b.gd`
++
++## O que permanece da 11B
++
++- party fixa 1 protagonista + ate 2 companions;
++- `1/2/3` troca o personagem controlado;
++- companions nao atacam automaticamente;
++- Espadachim: Guarda manual de laboratorio;
++- Estagiario: disparo manual de besta de laboratorio;
++- Auto Handoff circular `1 -> 2 -> 3 -> 1`, pulando mortos;
++- Game Over apenas quando toda a party morre;
++- camera lateral acompanha o personagem ativo.
++
++## Observacao de design
++
++Plataformas comuns desta sala devem ser alcancaveis pelo salto normal. Plataformas propositalmente inacessiveis ficam reservadas para puzzles/habilidades utilitarias futuras, como o companion de escada.
+--- /dev/null
++++ b/SPRINT_11B1_TEST_CHECKLIST.md
+@@ -0,0 +1,18 @@
++# Checklist — Playtest Sprint 11B.1
++
++- [ ] Atravessar o primeiro vao com salto normal, sem dash obrigatorio.
++- [ ] Atravessar o segundo vao com salto normal.
++- [ ] Saltar de baixo para uma plataforma elevada e pousar sobre ela.
++- [ ] Confirmar que aliados seguidores saltam o vao ao acompanhar o personagem ativo.
++- [ ] Com Estagiario, disparar a besta contra a lateral/parte inferior de uma plataforma e confirmar que o projetil desaparece.
++- [ ] Confirmar que a besta ainda acerta inimigos quando nao ha plataforma bloqueando o trajeto.
++- [ ] Com Espadachim olhando para a direita, ativar Guarda e confirmar orientacao para a direita.
++- [ ] Com Espadachim olhando para a esquerda, ativar Guarda e confirmar orientacao para a esquerda.
++- [ ] Aproximar o Espadachim do Inimigo A, ativar Guarda antes do golpe e confirmar mensagem `GUARDA BLOQUEOU DANO`.
++- [ ] Repetir sem Guarda e confirmar perda de HP.
++- [ ] Observar um inimigo chegando a uma borda fatal e confirmar que ele recua em vez de cair.
++- [ ] Confirmar que o contador de inimigos nao diminui apenas por eles caminharem perto de um vao.
++- [ ] Confirmar novamente troca manual 1/2/3.
++- [ ] Confirmar novamente Auto Handoff ao matar o personagem ativo por queda.
++- [ ] Confirmar novamente Game Over somente com os tres membros mortos.
++- [ ] Chegar ao trecho final e testar combate com os tres inimigos acessiveis.
+--- /dev/null
++++ b/COMMIT_MESSAGE.txt
+@@ -0,0 +1,12 @@
++fix(11b.1): platform collision, guard facing and edge-safe AI
++
++- reduce fatal gaps to jumpable width
++- make elevated platforms reachable one-way platforms
++- stop crossbow bolts on world geometry
++- mirror guard visuals with actor facing
++- surface guard-block feedback for damage testing
++- prevent ground enemies from voluntarily walking into fatal gaps
++- make ally followers jump gaps while following
++- reposition enemies for accessible combat validation
++
++Preserves 11B party switching, manual companion abilities, auto handoff and game-over rules.

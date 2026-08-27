@@ -55,7 +55,7 @@ func _process(delta: float) -> void:
 
 	if not completed and is_instance_valid(active_actor) and active_actor.alive and active_actor.global_position.x >= 1130.0:
 		completed = true
-		report_event("PLAYTEST 11B CONCLUIDO — pressione R para reiniciar")
+		report_event("PLAYTEST 11B.1 CONCLUIDO — pressione R para reiniciar")
 
 	_update_hud()
 
@@ -155,9 +155,9 @@ func _nearest_enemy_in_range(origin: Vector2, max_x: float, max_y: float):
 	for enemy in enemies:
 		if not is_instance_valid(enemy) or not enemy.alive:
 			continue
-		var delta: Vector2 = enemy.global_position - origin
+		var delta := enemy.global_position - origin
 		if absf(delta.x) <= max_x and absf(delta.y) <= max_y:
-			var d: float = delta.length_squared()
+			var d := delta.length_squared()
 			if d < best:
 				best = d
 				result = enemy
@@ -171,7 +171,7 @@ func closest_alive_ally(_source = null):
 			continue
 		if _source == null:
 			return member
-		var d: float = _source.global_position.distance_squared_to(member.global_position)
+		var d := _source.global_position.distance_squared_to(member.global_position)
 		if d < best:
 			best = d
 			result = member
@@ -182,14 +182,26 @@ func _check_falls() -> void:
 		if is_instance_valid(actor) and actor.alive and actor.global_position.y > DEATH_Y:
 			actor.force_kill()
 
+func has_floor_ahead(actor, direction: float, horizontal_distance := 14.0) -> bool:
+	if not is_instance_valid(actor) or absf(direction) < 0.01:
+		return true
+
+	var from := actor.global_position + Vector2(signf(direction) * horizontal_distance, -3.0)
+	var to := from + Vector2(0.0, 34.0)
+	var query := PhysicsRayQueryParameters2D.create(from, to, 1)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	return not hit.is_empty()
+
 func _on_actor_died(actor) -> void:
 	if actor.team == "enemy":
 		active_enemies = maxi(0, active_enemies - 1)
 		report_event("INIMIGO DERROTADO — restam %d" % active_enemies)
 		return
 
-	var was_active: bool = actor == active_actor
-	var dead_slot: int = actor.party_slot
+	var was_active := actor == active_actor
+	var dead_slot := actor.party_slot
 	if was_active:
 		_handoff_from_slot(dead_slot)
 	else:
@@ -226,19 +238,21 @@ func _build_world() -> void:
 	sky.color = Color("1b2430")
 	world_layer.add_child(sky)
 
-	_add_platform(Rect2(0, 284, 350, 32), Color("51606c"))
-	_add_platform(Rect2(430, 284, 300, 32), Color("51606c"))
-	_add_platform(Rect2(815, 284, 385, 32), Color("51606c"))
+	# 11B.1: gaps reduzidos para um salto normal, ainda mantendo queda fatal.
+	_add_platform(Rect2(0, 284, 375, 32), Color("51606c"))
+	_add_platform(Rect2(415, 284, 345, 32), Color("51606c"))
+	_add_platform(Rect2(800, 284, 400, 32), Color("51606c"))
 
-	_add_platform(Rect2(165, 226, 135, 14), Color("6b7883"))
-	_add_platform(Rect2(500, 208, 150, 14), Color("6b7883"))
-	_add_platform(Rect2(875, 228, 145, 14), Color("6b7883"))
+	# Plataformas elevadas agora sao one-way e estao dentro da altura real de salto.
+	_add_platform(Rect2(150, 250, 135, 14), Color("6b7883"), true)
+	_add_platform(Rect2(505, 248, 150, 14), Color("6b7883"), true)
+	_add_platform(Rect2(885, 250, 145, 14), Color("6b7883"), true)
 
 	_add_platform(Rect2(-12, 0, 12, 360), Color("111820"))
 	_add_platform(Rect2(WORLD_WIDTH, 0, 12, 360), Color("111820"))
 
-	_add_gap_marker(350, 430)
-	_add_gap_marker(730, 815)
+	_add_gap_marker(375, 415)
+	_add_gap_marker(760, 800)
 
 	var exit_flag := Label.new()
 	exit_flag.text = "SAIDA 11B"
@@ -266,7 +280,7 @@ func _build_world() -> void:
 	camera.global_position = Vector2(160, 205)
 	add_child(camera)
 
-func _add_platform(rect: Rect2, color: Color) -> void:
+func _add_platform(rect: Rect2, color: Color, one_way := false) -> void:
 	var body := StaticBody2D.new()
 	body.collision_layer = 1
 	body.collision_mask = 0
@@ -276,6 +290,9 @@ func _add_platform(rect: Rect2, color: Color) -> void:
 	var shape := RectangleShape2D.new()
 	shape.size = rect.size
 	collision.shape = shape
+	collision.one_way_collision = one_way
+	if one_way:
+		collision.one_way_collision_margin = 6.0
 	body.add_child(collision)
 
 	var visual := Polygon2D.new()
@@ -309,9 +326,10 @@ func _spawn_party() -> void:
 	party_slots = [hero, guard, crossbow]
 
 func _spawn_enemies() -> void:
-	_spawn_actor("INIMIGO A", "enemy", "enemy", Vector2(535, 250), false, Color("e34e48"))
-	_spawn_actor("INIMIGO B", "enemy", "enemy", Vector2(945, 195), false, Color("e34e48"))
-	_spawn_actor("INIMIGO C", "enemy", "enemy", Vector2(1030, 250), false, Color("e58d3b"))
+	# Inimigo A fica no primeiro trecho para permitir testar GUARDA sem atravessar vao.
+	_spawn_actor("INIMIGO A", "enemy", "enemy", Vector2(315, 250), false, Color("e34e48"))
+	_spawn_actor("INIMIGO B", "enemy", "enemy", Vector2(570, 250), false, Color("e34e48"))
+	_spawn_actor("INIMIGO C", "enemy", "enemy", Vector2(990, 250), false, Color("e58d3b"))
 
 func _spawn_actor(
 	p_name: String,
@@ -388,7 +406,7 @@ func _update_hud() -> void:
 	if game_over:
 		state_label.text = "GAME OVER | R reinicia"
 	elif completed:
-		state_label.text = "SPRINT 11B OK | R reinicia"
+		state_label.text = "SPRINT 11B.1 OK | R reinicia"
 	else:
 		state_label.text = "PLATAFORMA 2D | inimigos %d" % active_enemies
 
@@ -412,4 +430,4 @@ func _update_hud() -> void:
 	else:
 		action_label.text = "sem personagem ativo"
 
-	objective_label.text = "Teste: plataforma + troca + queda/morte + auto handoff 1>2>3>1"
+	objective_label.text = "11B.1: salto acessivel + guarda + besta colide + IA evita borda"

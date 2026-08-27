@@ -1,8 +1,7 @@
-./MANIFEST.txt
-./SPRINT_11B_README.md
-./SPRINT_11B_TEST_CHECKLIST.md
-./project.godot
-./scenes/playtest/platform_party_11b.tscn
-./scripts/playtest/platform_actor_11b.gd
-./scripts/playtest/platform_bolt_11b.gd
-./scripts/playtest/platform_party_11b.gd
+COMMIT_MESSAGE.txt	548 bytes
+SPRINT_11B1_README.md	2260 bytes
+SPRINT_11B1_TEST_CHECKLIST.md	1375 bytes
+scripts/playtest/platform_actor_11b.gd	6982 bytes
+scripts/playtest/platform_bolt_11b.gd	1202 bytes
+scripts/playtest/platform_party_11b.gd	13159 bytes
+sprint_11b1.patch	13260 bytes

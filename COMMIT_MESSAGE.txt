@@ -1,0 +1,12 @@
+fix(11b.1): platform collision, guard facing and edge-safe AI
+
+- reduce fatal gaps to jumpable width
+- make elevated platforms reachable one-way platforms
+- stop crossbow bolts on world geometry
+- mirror guard visuals with actor facing
+- surface guard-block feedback for damage testing
+- prevent ground enemies from voluntarily walking into fatal gaps
+- make ally followers jump gaps while following
+- reposition enemies for accessible combat validation
+
+Preserves 11B party switching, manual companion abilities, auto handoff and game-over rules.

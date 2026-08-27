@@ -25,6 +25,8 @@ var attack_cooldown := 0.0
 var ability_cooldown := 0.0
 var guard_timer := 0.0
 var flash_timer := 0.0
+var edge_turn_timer := 0.0
+var edge_turn_direction := 0.0
 var tint := Color.WHITE
 
 func setup(
@@ -88,6 +90,7 @@ func _physics_process(delta: float) -> void:
 	ability_cooldown = maxf(0.0, ability_cooldown - delta)
 	guard_timer = maxf(0.0, guard_timer - delta)
 	flash_timer = maxf(0.0, flash_timer - delta)
+	edge_turn_timer = maxf(0.0, edge_turn_timer - delta)
 
 	if not is_on_floor():
 		velocity.y = minf(velocity.y + gravity * delta, max_fall_speed)
@@ -122,12 +125,15 @@ func _follow_tick() -> void:
 		velocity.x = 0.0
 		return
 
-	var desired_x: float = leader.global_position.x + follow_offset_x
-	var delta_x: float = desired_x - global_position.x
+	var desired_x := leader.global_position.x + follow_offset_x
+	var delta_x := desired_x - global_position.x
 
 	if absf(delta_x) > 18.0:
 		facing = signf(delta_x)
-		velocity.x = facing * speed * 0.88
+		velocity.x = facing * speed * 0.92
+		# Seguidor pula um vao ao acompanhar o personagem ativo, em vez de cair nele.
+		if is_on_floor() and not controller.has_floor_ahead(self, facing, 14.0):
+			velocity.y = jump_velocity
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, 20.0)
 
@@ -135,13 +141,19 @@ func _follow_tick() -> void:
 		velocity.y = jump_velocity
 
 func _enemy_tick() -> void:
+	# Depois de detectar uma borda fatal, afasta-se por alguns instantes antes de retomar a perseguicao.
+	if edge_turn_timer > 0.0:
+		facing = edge_turn_direction
+		velocity.x = facing * speed * 0.50
+		return
+
 	var target = controller.closest_alive_ally(self)
 	if not is_instance_valid(target):
 		velocity.x = 0.0
 		return
 
-	var dx: float = target.global_position.x - global_position.x
-	var dy: float = absf(target.global_position.y - global_position.y)
+	var dx := target.global_position.x - global_position.x
+	var dy := absf(target.global_position.y - global_position.y)
 
 	if absf(dx) <= 24.0 and dy <= 30.0:
 		velocity.x = 0.0
@@ -151,6 +163,16 @@ func _enemy_tick() -> void:
 			flash_timer = 0.12
 	else:
 		facing = signf(dx) if dx != 0.0 else facing
+
+		# Inimigo terrestre nao caminha voluntariamente para uma queda fatal.
+		# Ele ainda pode morrer por queda se outra mecanica o empurrar no futuro.
+		if is_on_floor() and not controller.has_floor_ahead(self, facing, 14.0):
+			edge_turn_direction = -facing
+			edge_turn_timer = 0.55
+			facing = edge_turn_direction
+			velocity.x = facing * speed * 0.50
+			return
+
 		velocity.x = facing * speed * 0.62
 		if target.global_position.y < global_position.y - 30.0 and is_on_floor():
 			velocity.y = jump_velocity * 0.88
@@ -183,6 +205,8 @@ func take_damage(amount: int, source = null) -> void:
 		return
 	if guard_timer > 0.0 and team == "ally":
 		flash_timer = 0.16
+		if is_instance_valid(controller):
+			controller.report_event("%s: GUARDA BLOQUEOU DANO" % actor_name)
 		return
 	if source != null and source.team == team:
 		return
@@ -216,7 +240,9 @@ func _draw() -> void:
 		draw_arc(Vector2(0, -7), 13.0, 0.0, TAU, 28, Color("ffe26f"), 2.5)
 
 	if guard_timer > 0.0:
-		draw_arc(Vector2(0, -7), 16.0, -1.3, 1.3, 24, Color("71d7ff"), 3.0)
+		var guard_angle := 0.0 if facing > 0.0 else PI
+		var guard_center := Vector2(facing * 7.0, -7.0)
+		draw_arc(guard_center, 10.0, guard_angle - 1.05, guard_angle + 1.05, 24, Color("71d7ff"), 3.0)
 
 	var body_color := Color.WHITE if flash_timer > 0.0 else tint
 	draw_circle(Vector2(0, -11), 6.0, Color(0.06, 0.07, 0.09))
@@ -225,9 +251,10 @@ func _draw() -> void:
 	draw_line(Vector2.ZERO, Vector2(facing * 11.0, -2.0), Color.WHITE, 2.0)
 
 	if role == "crossbow":
-		draw_line(Vector2(-5, -3), Vector2(5, 1), Color("d9a441"), 2.5)
+		draw_line(Vector2(-facing * 5.0, -3.0), Vector2(facing * 5.0, 1.0), Color("d9a441"), 2.5)
 	elif role == "guard":
-		draw_arc(Vector2(facing * 6.0, -1.0), 5.0, -1.2, 1.2, 12, Color("a9c6d8"), 2.0)
+		var shield_angle := 0.0 if facing > 0.0 else PI
+		draw_arc(Vector2(facing * 6.0, -1.0), 5.0, shield_angle - 1.2, shield_angle + 1.2, 12, Color("a9c6d8"), 2.0)
 
 	var ratio := float(hp) / float(max_hp)
 	draw_rect(Rect2(-10, -25, 20, 3), Color(0.12, 0.12, 0.12))
