@@ -83,6 +83,8 @@ var max_hp := 4
 var hp := 4
 var speed := 92.0
 var jump_velocity := -245.0
+var jumps_used := 0
+var max_jumps := 2
 var gravity := 760.0
 var max_fall_speed := 420.0
 var facing := 1.0
@@ -204,6 +206,8 @@ func _physics_process(delta: float) -> void:
 		_enemy_tick()
 
 	move_and_slide()
+	if is_on_floor():
+		jumps_used = 0
 	_update_animation()
 	queue_redraw()
 
@@ -214,8 +218,11 @@ func _controlled_tick() -> void:
 	var multiplier := 1.55 if Input.is_action_pressed("dash") else 1.0
 	velocity.x = axis * speed * multiplier
 
-	if Input.is_action_just_pressed("jump") and is_on_floor():
+	if Input.is_action_just_pressed("jump") and jumps_used < max_jumps:
 		velocity.y = jump_velocity
+		jumps_used += 1
+		if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("jump"):
+			sprite.play("jump")
 
 	if Input.is_action_just_pressed("attack"):
 		controller.activate_actor_action(self)

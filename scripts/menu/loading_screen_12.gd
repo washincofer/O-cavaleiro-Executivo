@@ -20,23 +20,27 @@ func _ready() -> void:
 	bg.color = Color("10141d")
 	add_child(bg)
 
+	var display_font := SystemFont.new()
+	display_font.font_names = PackedStringArray(["Arial Black", "Segoe UI", "Impact", "sans-serif"])
+
 	var title := Label.new()
 	title.text = "CARREGANDO A CAVERNA..."
-	title.position = Vector2(0, 78)
-	title.size = Vector2(320, 12)
+	title.position = Vector2(0, 76)
+	title.size = Vector2(320, 14)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 8)
+	title.add_theme_font_override("font", display_font)
+	title.add_theme_font_size_override("font_size", 11)
 	title.add_theme_color_override("font_color", Color("ffe26f"))
 	add_child(title)
 
 	var bar_bg := ColorRect.new()
-	bar_bg.position = Vector2(80, 100)
+	bar_bg.position = Vector2(80, 102)
 	bar_bg.size = Vector2(BAR_WIDTH, 8)
 	bar_bg.color = Color("2a2f3d")
 	add_child(bar_bg)
 
 	bar_fill = ColorRect.new()
-	bar_fill.position = Vector2(80, 100)
+	bar_fill.position = Vector2(80, 102)
 	bar_fill.size = Vector2(0, 8)
 	bar_fill.color = Color("6fd67a")
 	add_child(bar_fill)

@@ -40,7 +40,6 @@ var camera: Camera2D
 
 var state_label: Label
 var party_label: Label
-var action_label: Label
 var objective_label: Label
 var event_label: Label
 var event_timeout := 0.0
@@ -549,41 +548,48 @@ func _build_hud() -> void:
 	var canvas := CanvasLayer.new()
 	add_child(canvas)
 
+	# HUD compacto e semitransparente: so 2 linhas finas no topo, para o
+	# cenario ficar visivel por tras. Instrucoes completas ficam no menu
+	# de pausa (ESC).
 	var panel := ColorRect.new()
 	panel.position = Vector2(0, 0)
-	panel.size = Vector2(320, 50)
-	panel.color = Color(0.02, 0.025, 0.035, 0.92)
+	panel.size = Vector2(320, 18)
+	panel.color = Color(0.02, 0.025, 0.035, 0.55)
 	canvas.add_child(panel)
 
-	state_label = Label.new()
-	state_label.position = Vector2(5, 2)
-	state_label.add_theme_font_size_override("font_size", 7)
-	panel.add_child(state_label)
-
 	party_label = Label.new()
-	party_label.position = Vector2(5, 14)
+	party_label.position = Vector2(4, 0)
 	party_label.add_theme_font_size_override("font_size", 7)
 	party_label.add_theme_color_override("font_color", Color("ffe26f"))
 	panel.add_child(party_label)
 
-	action_label = Label.new()
-	action_label.position = Vector2(5, 26)
-	action_label.add_theme_font_size_override("font_size", 7)
-	panel.add_child(action_label)
-
 	objective_label = Label.new()
-	objective_label.position = Vector2(5, 38)
+	objective_label.position = Vector2(4, 9)
 	objective_label.add_theme_font_size_override("font_size", 6)
 	panel.add_child(objective_label)
 
+	var display_font := SystemFont.new()
+	display_font.font_names = PackedStringArray(["Arial Black", "Segoe UI", "Impact", "sans-serif"])
+
+	state_label = Label.new()
+	state_label.position = Vector2(0, 76)
+	state_label.size = Vector2(320, 20)
+	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	state_label.add_theme_font_override("font", display_font)
+	state_label.add_theme_font_size_override("font_size", 14)
+	state_label.add_theme_color_override("font_color", Color("ffe26f"))
+	state_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	state_label.add_theme_constant_override("outline_size", 4)
+	canvas.add_child(state_label)
+
 	var help := Label.new()
 	help.text = "ESC: pausar e ver instrucoes"
-	help.position = Vector2(5, 157)
+	help.position = Vector2(5, 168)
 	help.add_theme_font_size_override("font_size", 6)
 	canvas.add_child(help)
 
 	event_label = Label.new()
-	event_label.position = Vector2(6, 144)
+	event_label.position = Vector2(6, 155)
 	event_label.add_theme_font_size_override("font_size", 7)
 	event_label.add_theme_color_override("font_color", Color("ffe26f"))
 	canvas.add_child(event_label)
@@ -593,11 +599,11 @@ func _update_hud() -> void:
 		return
 
 	if game_over:
-		state_label.text = "GAME OVER | R reinicia"
+		state_label.text = "GAME OVER — R reinicia"
 	elif completed:
-		state_label.text = "SPRINT 12 OK | R reinicia"
+		state_label.text = "AREA LIMPA — R reinicia"
 	else:
-		state_label.text = "12 CAVERNA | inimigos %d/%d" % [active_enemies, total_enemies]
+		state_label.text = ""
 
 	var parts: Array[String] = []
 	for i in range(party_slots.size()):
@@ -609,16 +615,8 @@ func _update_hud() -> void:
 		parts.append("%s%d:%s[%s]" % [marker, i + 1, member.actor_name, status])
 	party_label.text = " | ".join(parts)
 
-	if is_instance_valid(active_actor) and active_actor.alive:
-		if active_actor.is_ranged:
-			action_label.text = "J: ataque a distancia de %s" % active_actor.actor_name
-		else:
-			action_label.text = "J: ataque corpo a corpo de %s" % active_actor.actor_name
-	else:
-		action_label.text = "sem personagem ativo"
-
-	var gate_status := "aberto" if gate_open else "fechado (acerte o interruptor)"
-	objective_label.text = "12: inimigos %d/%d | portao %s" % [active_enemies, total_enemies, gate_status]
+	var gate_status := "aberto" if gate_open else "fechado"
+	objective_label.text = "inimigos %d/%d | portao %s" % [active_enemies, total_enemies, gate_status]
 
 func _build_pause_watcher() -> void:
 	var watcher := PauseWatcher.new()
@@ -649,11 +647,15 @@ func _build_pause_menu() -> void:
 	pause_layer.add_child(panel)
 
 	var title := Label.new()
+	var display_font := SystemFont.new()
+	display_font.font_names = PackedStringArray(["Arial Black", "Segoe UI", "Impact", "sans-serif"])
+
 	title.text = "PAUSADO"
 	title.position = Vector2(26, 14)
 	title.size = Vector2(268, 12)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 9)
+	title.add_theme_font_override("font", display_font)
+	title.add_theme_font_size_override("font_size", 11)
 	title.add_theme_color_override("font_color", Color("ffe26f"))
 	pause_layer.add_child(title)
 
