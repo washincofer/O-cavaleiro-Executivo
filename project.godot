@@ -48,6 +48,10 @@ attack={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"physical_keycode":74)]
 }
+special={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":72)]
+}
 dash={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"physical_keycode":75)]

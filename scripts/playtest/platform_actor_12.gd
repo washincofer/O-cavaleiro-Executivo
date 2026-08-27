@@ -13,6 +13,7 @@ const ROLE_ANIM := {
 		"idle": {"path": "res://assets/Characters/Warrior/Runtime/Idle.png", "fw": 135, "fh": 135, "count": 10, "fps": 8.0, "loop": true},
 		"move": {"path": "res://assets/Characters/Warrior/Runtime/Run.png", "fw": 135, "fh": 135, "count": 6, "fps": 12.0, "loop": true},
 		"attack": {"path": "res://assets/Characters/Warrior/Runtime/Attack1.png", "fw": 135, "fh": 135, "count": 4, "fps": 12.0, "loop": false},
+		"special": {"path": "res://assets/Characters/Warrior/Runtime/Attack2.png", "fw": 135, "fh": 135, "count": 4, "fps": 16.0, "loop": false},
 		"hurt": {"path": "res://assets/Characters/Warrior/Runtime/GetHit.png", "fw": 135, "fh": 135, "count": 3, "fps": 12.0, "loop": false},
 		"death": {"path": "res://assets/Characters/Warrior/Runtime/Death.png", "fw": 135, "fh": 135, "count": 9, "fps": 10.0, "loop": false},
 		"jump": {"path": "res://assets/Characters/Warrior/Runtime/Jump.png", "fw": 135, "fh": 135, "count": 2, "fps": 6.0, "loop": false},
@@ -31,6 +32,7 @@ const ROLE_ANIM := {
 		"idle": {"path": "res://assets/Characters/Mage/Runtime/Idle.png", "fw": 231, "fh": 190, "count": 6, "fps": 6.0, "loop": true},
 		"move": {"path": "res://assets/Characters/Mage/Runtime/Run.png", "fw": 231, "fh": 190, "count": 8, "fps": 10.0, "loop": true},
 		"attack": {"path": "res://assets/Characters/Mage/Runtime/Attack1.png", "fw": 231, "fh": 190, "count": 8, "fps": 12.0, "loop": false},
+		"special": {"path": "res://assets/Characters/Mage/Runtime/Attack2.png", "fw": 231, "fh": 190, "count": 8, "fps": 14.0, "loop": false},
 		"hurt": {"path": "res://assets/Characters/Mage/Runtime/GetHit.png", "fw": 231, "fh": 190, "count": 4, "fps": 12.0, "loop": false},
 		"death": {"path": "res://assets/Characters/Mage/Runtime/Death.png", "fw": 231, "fh": 190, "count": 7, "fps": 8.0, "loop": false},
 		"jump": {"path": "res://assets/Characters/Mage/Runtime/Jump.png", "fw": 231, "fh": 190, "count": 2, "fps": 6.0, "loop": false},
@@ -97,6 +99,16 @@ var attack_lock_timer := 0.0
 var hurt_lock_timer := 0.0
 var edge_turn_timer := 0.0
 var edge_turn_direction := 0.0
+
+# Habilidade especial (tecla H) — cada papel tem uma mecanica propria:
+# Guerreiro = Estocada (dash que quebra entulho), Arqueira = Tiro
+# Perfurante (atravessa parede de energia), Maga = Teleporte (cruza vaos
+# largos demais para o pulo duplo).
+var special_cooldown := 0.0
+var special_cooldown_max := 1.4
+var charge_timer := 0.0
+var charge_speed := 320.0
+var charge_direction := 1.0
 
 var sprite: AnimatedSprite2D
 var nameplate: Label
@@ -193,6 +205,8 @@ func _physics_process(delta: float) -> void:
 	attack_lock_timer = maxf(0.0, attack_lock_timer - delta)
 	hurt_lock_timer = maxf(0.0, hurt_lock_timer - delta)
 	edge_turn_timer = maxf(0.0, edge_turn_timer - delta)
+	special_cooldown = maxf(0.0, special_cooldown - delta)
+	charge_timer = maxf(0.0, charge_timer - delta)
 
 	if not is_on_floor():
 		velocity.y = minf(velocity.y + gravity * delta, max_fall_speed)
@@ -212,6 +226,14 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 func _controlled_tick() -> void:
+	if charge_timer > 0.0:
+		velocity.x = charge_direction * charge_speed
+		controller.try_break_rubble(self)
+		if Input.is_action_just_pressed("jump") and jumps_used < max_jumps:
+			velocity.y = jump_velocity
+			jumps_used += 1
+		return
+
 	var axis := Input.get_axis("move_left", "move_right")
 	if axis != 0.0:
 		facing = signf(axis)
@@ -226,6 +248,9 @@ func _controlled_tick() -> void:
 
 	if Input.is_action_just_pressed("attack"):
 		controller.activate_actor_action(self)
+
+	if Input.is_action_just_pressed("special"):
+		controller.activate_actor_special(self)
 
 func _follow_tick() -> void:
 	var leader: Node = controller.get_active_actor()
@@ -299,6 +324,43 @@ func melee_attack() -> bool:
 	attack_cooldown = attack_cooldown_max
 	_play_attack()
 	return controller.melee_attack_from(self)
+
+func activate_special() -> bool:
+	if not alive or special_cooldown > 0.0 or charge_timer > 0.0:
+		return false
+	match role:
+		"warrior":
+			return _start_charge()
+		"archer":
+			return _fire_piercing_shot()
+		"mage":
+			return _cast_teleport()
+	return false
+
+func _start_charge() -> bool:
+	special_cooldown = special_cooldown_max
+	charge_timer = 0.22
+	charge_direction = facing
+	attack_lock_timer = charge_timer
+	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("special"):
+		sprite.play("special")
+	return true
+
+func _fire_piercing_shot() -> bool:
+	special_cooldown = special_cooldown_max
+	attack_lock_timer = 0.2
+	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("attack"):
+		sprite.play("attack")
+	controller.spawn_party_projectile(self, Vector2(facing, 0.0), "pierce_arrow")
+	return true
+
+func _cast_teleport() -> bool:
+	special_cooldown = special_cooldown_max
+	attack_lock_timer = 0.35
+	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("special"):
+		sprite.play("special")
+	controller.teleport_actor(self, facing)
+	return true
 
 func _play_attack() -> void:
 	attack_lock_timer = attack_cooldown_max

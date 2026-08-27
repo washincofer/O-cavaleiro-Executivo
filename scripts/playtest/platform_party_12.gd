@@ -15,7 +15,7 @@ const PauseWatcher = preload("res://scripts/playtest/pause_watcher_12.gd")
 const Switch = preload("res://scripts/playtest/platform_switch_12.gd")
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 
-const WORLD_WIDTH := 1200.0
+const WORLD_WIDTH := 1320.0
 const DEATH_Y := 360.0
 
 const CAVE_TILE_PATH := "res://assets/Environment/Cave/Runtime/cave_tileset.png"
@@ -53,6 +53,13 @@ var gate_switch: Switch
 var gate_body: StaticBody2D
 var gate_visual: ColorRect
 var gate_open := false
+
+var rubble_body: StaticBody2D
+var rubble_visual: ColorRect
+var rubble_broken := false
+
+var ward_body: StaticBody2D
+var ward_visual: ColorRect
 
 func _ready() -> void:
 	_build_world()
@@ -149,6 +156,20 @@ func activate_actor_action(actor: Actor) -> void:
 		else:
 			report_event("%s: em recarga" % actor.actor_name)
 
+func activate_actor_special(actor: Actor) -> void:
+	if actor != active_actor or not actor.alive:
+		return
+	if not actor.activate_special():
+		report_event("%s: habilidade em recarga" % actor.actor_name)
+		return
+	match actor.role:
+		"warrior":
+			report_event("%s: ESTOCADA" % actor.actor_name)
+		"archer":
+			report_event("%s: TIRO PERFURANTE" % actor.actor_name)
+		"mage":
+			report_event("%s: CONJURANDO TELEPORTE" % actor.actor_name)
+
 func melee_attack_from(source: Actor) -> bool:
 	var victim: Actor = _nearest_enemy_in_range(source.global_position, 38.0, 30.0)
 	if is_instance_valid(victim):
@@ -170,7 +191,7 @@ func try_projectile_hit(projectile: Projectile, owner_actor: Actor) -> bool:
 			enemy.take_damage(1, owner_actor)
 			return true
 
-	if is_instance_valid(gate_switch) and not gate_switch.is_active:
+	if is_instance_valid(gate_switch) and not gate_switch.is_active and projectile.kind == "pierce_arrow":
 		if projectile.global_position.distance_to(gate_switch.global_position) <= 13.0:
 			gate_switch.activate()
 			return true
@@ -290,15 +311,18 @@ func _build_world() -> void:
 
 	_add_background()
 
-	# Chao principal em 3 blocos, com vaos que exigem salto (mantido da 11B.1).
+	# Chao principal: A (0-375) -> vao 1 -> B (415-760) -> vao 2 (com o
+	# puzzle do interruptor) -> C1 (800-950) -> vao 3, LARGO DEMAIS para o
+	# pulo duplo (so o teleporte da Maga atravessa) -> C2 (1170-1320, area final).
 	_add_platform(Rect2(0, 284, 375, 32), false)
 	_add_platform(Rect2(415, 284, 345, 32), false)
-	_add_platform(Rect2(800, 284, 400, 32), false)
+	_add_platform(Rect2(800, 284, 150, 32), false)
+	_add_platform(Rect2(1170, 284, 150, 32), false)
 
 	# Plataformas elevadas: todas ao alcance do salto normal (sem a escada da 11C).
 	_add_platform(Rect2(150, 250, 135, 14), true)
 	_add_platform(Rect2(500, 250, 175, 14), true)
-	_add_platform(Rect2(885, 250, 145, 14), true)
+	_add_platform(Rect2(1220, 250, 90, 14), true)
 
 	_add_decorations()
 	_spawn_puzzle()
@@ -308,6 +332,7 @@ func _build_world() -> void:
 
 	_add_gap_marker(375, 415)
 	_add_gap_marker(760, 800)
+	_add_gap_marker(950, 1170)
 
 	actor_layer = Node2D.new()
 	actor_layer.name = "Actors"
@@ -418,24 +443,28 @@ func _draw_platform_visual(rect: Rect2) -> void:
 		rim_layer.set_cell(Vector2i(gx, 0), 0, GROUND_RIM_COORD)
 
 func _add_decorations() -> void:
+	# trees.png NAO e um grid uniforme — cada arvore tem uma largura propria
+	# (a copa varia bastante entre variantes). Os retangulos abaixo foram
+	# extraidos por componente conexo (alpha > 0) da folha original, entao
+	# cada arvore fica completa (sem metade cortada na borda de uma celula
+	# de grid que nao corresponde ao desenho real).
 	var trees_tex: Texture2D = load(TREES_PATH)
-	var cell_w := 96
-	var cell_h := 64
 	var spots: Array = [
-		{"pos": Vector2(55, 284), "cell": Vector2i(4, 0), "scale": 0.55},
-		{"pos": Vector2(345, 284), "cell": Vector2i(8, 3), "scale": 0.5},
-		{"pos": Vector2(560, 250), "cell": Vector2i(4, 3), "scale": 0.45},
-		{"pos": Vector2(1075, 284), "cell": Vector2i(8, 0), "scale": 0.55},
+		{"pos": Vector2(55, 284), "rect": Rect2(8, 4, 44, 60), "scale": 0.55},
+		{"pos": Vector2(345, 284), "rect": Rect2(70, 2, 53, 62), "scale": 0.5},
+		{"pos": Vector2(560, 250), "rect": Rect2(518, 66, 53, 62), "scale": 0.45},
+		{"pos": Vector2(870, 284), "rect": Rect2(70, 258, 53, 62), "scale": 0.5},
+		{"pos": Vector2(1290, 284), "rect": Rect2(456, 260, 44, 60), "scale": 0.55},
 	]
 	for spot in spots:
-		var cell: Vector2i = spot["cell"]
+		var region: Rect2 = spot["rect"]
 		var atlas := AtlasTexture.new()
 		atlas.atlas = trees_tex
-		atlas.region = Rect2(cell.x * cell_w, cell.y * cell_h, cell_w, cell_h)
+		atlas.region = region
 		var spr := Sprite2D.new()
 		spr.texture = atlas
 		spr.centered = true
-		spr.offset = Vector2(0, -30)
+		spr.offset = Vector2(0, -region.size.y * 0.5)
 		var s: float = spot["scale"]
 		spr.scale = Vector2(s, s)
 		spr.position = spot["pos"]
@@ -478,22 +507,91 @@ func _spawn_party() -> void:
 func _spawn_enemies() -> void:
 	_spawn_actor("RATO", "enemy", "rat", Vector2(680, 250), Color("d9d3c7"))
 
-	# Desafio: a Gosma que guarda o trecho final (atras do portao) e mais
+	# Desafio: a Gosma que guarda a area final (alem do vao largo) e mais
 	# resistente que um inimigo comum.
-	var boss: Actor = _spawn_actor("GOSMA REAL", "enemy", "slime", Vector2(980, 250), Color("8fe06a"))
+	var boss: Actor = _spawn_actor("GOSMA REAL", "enemy", "slime", Vector2(1250, 250), Color("8fe06a"))
 	boss.max_hp = 6
 	boss.hp = 6
 
 func _spawn_puzzle() -> void:
-	# Puzzle: o interruptor fica suspenso sobre o vao 2 (760-800), fora do
-	# alcance do ataque corpo a corpo — so um projetil disparado do fim da
-	# plataforma B alcanca. Acerta-lo remove o portao magico que bloqueia
-	# a entrada da plataforma C, onde a GOSMA REAL espera.
+	# Provacao do trio — cada obstaculo so cede a habilidade especial (tecla
+	# H) de UM personagem especifico:
+	#
+	# 1) ENTULHO sobre a plataforma B: bloqueia a passagem a pe e o ataque
+	#    normal (melee/projetil) e so e destruido pela Estocada do Guerreiro.
+	# 2) BARREIRA MAGICA + interruptor no vao 2: a barreira (layer 2) para
+	#    flecha/orbe comuns mas nao o Tiro Perfurante da Arqueira — so ele
+	#    alcanca o interruptor e abre o portao para a plataforma C1.
+	# 3) VAO LARGO (950-1170) alem da C1: mais largo que o alcance do pulo
+	#    duplo (mesmo com dash); so o Teleporte da Maga atravessa ate a C2,
+	#    onde a GOSMA REAL espera.
+	_spawn_rubble()
+	_spawn_ward_and_switch()
+	_spawn_gate()
+
+func _spawn_rubble() -> void:
+	var rect := Rect2(700, 194, 30, 90)
+	rubble_body = StaticBody2D.new()
+	rubble_body.collision_layer = 1
+	rubble_body.collision_mask = 0
+	rubble_body.position = rect.get_center()
+	var shape := CollisionShape2D.new()
+	var rs := RectangleShape2D.new()
+	rs.size = rect.size
+	shape.shape = rs
+	rubble_body.add_child(shape)
+	world_layer.add_child(rubble_body)
+
+	rubble_visual = ColorRect.new()
+	rubble_visual.position = rect.position
+	rubble_visual.size = rect.size
+	rubble_visual.color = Color("4a3d33")
+	world_layer.add_child(rubble_visual)
+
+	var label := Label.new()
+	label.text = "ENTULHO"
+	label.position = Vector2(rect.position.x - 8.0, rect.position.y - 10.0)
+	label.add_theme_font_size_override("font_size", 6)
+	label.add_theme_color_override("font_color", Color("d9c9a8"))
+	world_layer.add_child(label)
+
+func try_break_rubble(actor: Actor) -> void:
+	if rubble_broken or not is_instance_valid(rubble_body):
+		return
+	# O entulho e alto e fino (bloqueia de ponta a ponta); comparar so o
+	# eixo X evita o erro de medir distancia ate o CENTRO do bloco enquanto
+	# o personagem corre rente ao chao, bem abaixo desse centro.
+	if absf(actor.global_position.x - rubble_body.global_position.x) <= 25.0:
+		rubble_broken = true
+		report_event("ENTULHO DESTRUIDO PELA ESTOCADA")
+		rubble_body.queue_free()
+		if is_instance_valid(rubble_visual):
+			rubble_visual.queue_free()
+
+func _spawn_ward_and_switch() -> void:
+	ward_body = StaticBody2D.new()
+	ward_body.collision_layer = 2
+	ward_body.collision_mask = 0
+	ward_body.position = Vector2(772, 240)
+	var shape := CollisionShape2D.new()
+	var rs := RectangleShape2D.new()
+	rs.size = Vector2(6, 160)
+	shape.shape = rs
+	ward_body.add_child(shape)
+	world_layer.add_child(ward_body)
+
+	ward_visual = ColorRect.new()
+	ward_visual.position = Vector2(769, 160)
+	ward_visual.size = Vector2(6, 160)
+	ward_visual.color = Color(0.45, 0.85, 0.95, 0.5)
+	world_layer.add_child(ward_visual)
+
 	gate_switch = Switch.new()
-	gate_switch.global_position = Vector2(780, 268)
+	gate_switch.global_position = Vector2(786, 268)
 	gate_switch.activated.connect(_on_switch_activated)
 	world_layer.add_child(gate_switch)
 
+func _spawn_gate() -> void:
 	gate_body = StaticBody2D.new()
 	gate_body.collision_layer = 1
 	gate_body.collision_mask = 0
@@ -518,6 +616,22 @@ func _on_switch_activated() -> void:
 		gate_body.queue_free()
 	if is_instance_valid(gate_visual):
 		gate_visual.queue_free()
+
+func teleport_actor(actor: Actor, direction: float) -> void:
+	var distance := 240.0
+	var from: Vector2 = actor.global_position
+	var to: Vector2 = from + Vector2(direction * distance, 0.0)
+	var query := PhysicsRayQueryParameters2D.create(from, to, 1)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty():
+		to = hit.position - Vector2(direction * 4.0, 0.0)
+		report_event("%s: TELEPORTE BLOQUEADO POR OBSTACULO" % actor.actor_name)
+	else:
+		report_event("%s: TELEPORTE" % actor.actor_name)
+	actor.global_position = to
+	actor.velocity = Vector2.ZERO
 
 func _spawn_actor(
 	p_name: String,
@@ -615,8 +729,9 @@ func _update_hud() -> void:
 		parts.append("%s%d:%s[%s]" % [marker, i + 1, member.actor_name, status])
 	party_label.text = " | ".join(parts)
 
+	var rubble_status := "OK" if rubble_broken else "intacto"
 	var gate_status := "aberto" if gate_open else "fechado"
-	objective_label.text = "inimigos %d/%d | portao %s" % [active_enemies, total_enemies, gate_status]
+	objective_label.text = "inimigos %d/%d | entulho %s | portao %s" % [active_enemies, total_enemies, rubble_status, gate_status]
 
 func _build_pause_watcher() -> void:
 	var watcher := PauseWatcher.new()
@@ -641,8 +756,8 @@ func _build_pause_menu() -> void:
 	pause_layer.add_child(dim)
 
 	var panel := ColorRect.new()
-	panel.position = Vector2(26, 10)
-	panel.size = Vector2(268, 160)
+	panel.position = Vector2(26, 6)
+	panel.size = Vector2(268, 170)
 	panel.color = Color("1b2028")
 	pause_layer.add_child(panel)
 
@@ -651,7 +766,7 @@ func _build_pause_menu() -> void:
 	display_font.font_names = PackedStringArray(["Arial Black", "Segoe UI", "Impact", "sans-serif"])
 
 	title.text = "PAUSADO"
-	title.position = Vector2(26, 14)
+	title.position = Vector2(26, 9)
 	title.size = Vector2(268, 12)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_override("font", display_font)
@@ -660,16 +775,16 @@ func _build_pause_menu() -> void:
 	pause_layer.add_child(title)
 
 	var instructions := Label.new()
-	instructions.text = "OBJETIVO\nDerrote os inimigos da caverna. Um portao magico\nbloqueia o trecho final — acerte o interruptor a\ndistancia (flecha ou orbe) do outro lado do vao\npara abri-lo.\n\nCONTROLES\nA/D mover | ESPACO pular | K dash\n1/2/3 trocar personagem | J atacar\nR reiniciar a fase | ESC pausar/continuar"
-	instructions.position = Vector2(38, 30)
-	instructions.size = Vector2(244, 108)
-	instructions.add_theme_font_size_override("font_size", 7)
+	instructions.text = "OBJETIVO\nDerrote os inimigos e supere 3 provas — cada uma so\ncede a habilidade especial (H) de UM personagem:\nGUERREIRO quebra entulho (Estocada); ARQUEIRA atravessa\na barreira magica (Tiro Perfurante); MAGA cruza o vao\nlargo demais para o pulo (Teleporte).\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
+	instructions.position = Vector2(38, 24)
+	instructions.size = Vector2(244, 120)
+	instructions.add_theme_font_size_override("font_size", 6)
 	instructions.autowrap_mode = TextServer.AUTOWRAP_WORD
 	pause_layer.add_child(instructions)
 
 	var resume_btn := Button.new()
 	resume_btn.text = "CONTINUAR"
-	resume_btn.position = Vector2(46, 144)
+	resume_btn.position = Vector2(46, 150)
 	resume_btn.size = Vector2(100, 18)
 	resume_btn.focus_mode = Control.FOCUS_NONE
 	resume_btn.add_theme_font_size_override("font_size", 8)
@@ -678,7 +793,7 @@ func _build_pause_menu() -> void:
 
 	var back_btn := Button.new()
 	back_btn.text = "VOLTAR A SELECAO"
-	back_btn.position = Vector2(156, 144)
+	back_btn.position = Vector2(156, 150)
 	back_btn.size = Vector2(120, 18)
 	back_btn.focus_mode = Control.FOCUS_NONE
 	back_btn.add_theme_font_size_override("font_size", 8)

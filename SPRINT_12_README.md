@@ -89,18 +89,53 @@ circulos coloridos.
   (`pause_watcher_12.gd`, `process_mode = ALWAYS`) para continuar
   funcionando mesmo com a arvore pausada.
 
-## Puzzle e desafio
+## Habilidades especiais (tecla H) — uma mecanica por personagem
 
-- **Puzzle**: um interruptor (`platform_switch_12.gd`) fica suspenso no
-  vao entre a plataforma B e C (x 760–800), fora do alcance do ataque
-  corpo a corpo — só um projetil (flecha da Arqueira ou orbe da Maga)
-  disparado do fim da plataforma B o acerta. Isso reusa o mesmo
-  `try_projectile_hit` já usado para inimigos.
-- Acertar o interruptor remove um **portao magico** (barra roxa,
-  colisao + visual) que bloqueia a entrada da plataforma C.
-- **Desafio**: atras do portao, a **GOSMA REAL** tem o dobro de HP
-  (6 em vez de 3) de um inimigo comum — reforco reservado para quem
-  resolve o puzzle.
+Alem do ataque comum (`J`, corpo a corpo ou a distancia), cada membro do
+trio ganhou uma **habilidade especial na mesma tecla (`H`)**, com mecanica
+e animacao proprias (`ROLE_ANIM["special"]` em `platform_actor_12.gd`,
+usando `Attack2.png` de cada pack — antes nao usado):
+
+| Personagem | Habilidade | O que faz |
+| --- | --- | --- |
+| GUERREIRO | **Estocada** | Investida curta e rapida (0.22s a 320px/s) que destroi ENTULHO no caminho — nada mais quebra esse obstaculo. |
+| ARQUEIRA | **Tiro Perfurante** | Flecha especial (sprite `Arrow/Static.png`, antes nao usado) que atravessa a BARREIRA MAGICA — flecha/orbe comuns sao bloqueados por ela. |
+| MAGA | **Teleporte** | Avanca 240px na direcao virada (com verificacao de obstaculo solido no caminho) — unico jeito de cruzar o vao 3, largo demais ate para o pulo duplo com dash. |
+
+## Puzzle: a Provacao do Trio
+
+Entre a plataforma B e a area final ha 3 obstaculos sequenciais, cada um
+solucionavel por exatamente UM personagem:
+
+1. **Entulho** sobre a plataforma B (corpo solido alto, bloqueia a pe e
+   ataques comuns) — só a Estocada do Guerreiro destroi.
+2. **Barreira magica** + interruptor suspenso no vao 2 (x 760–800): a
+   barreira fica numa collision layer separada (`2`) que bloqueia flecha/
+   orbe comuns (`_hits_world` usa mask `1|2`) mas nao o Tiro Perfurante
+   (mask `1`, ignora a barreira) — só ele alcanca o interruptor e abre o
+   **portao magico** que bloqueia a entrada da plataforma C1.
+3. **Vao largo** (950–1170, 220px) alem da C1 — mais largo que o alcance
+   maximo do pulo duplo com dash (~190px); só o Teleporte da Maga cruza
+   ate a C2.
+
+**Desafio final**: na C2, a **GOSMA REAL** tem o dobro de HP (6 em vez de
+3) de um inimigo comum — recompensa/dificuldade por completar a provacao.
+
+O teleporte da Maga usa um raycast de seguranca (mesma mascara `1` do
+chao/portao) para nao atravessar paredes solidas — ela NAO consegue pular
+o portao fechado por teleporte, só o vao aberto depois dele.
+
+## Correcao: arvores cortadas pela metade
+
+`trees.png` (Pixel Cave Tileset) **nao e um grid uniforme** — a largura de
+cada copa varia bastante entre variantes, apesar da altura de linha ser
+fixa (64px). A primeira versao fatiava por celulas fixas de 96x96, o que
+cortava metade de varias arvores cuja copa ultrapassa essa largura. A
+correcao usou deteccao de componente conexo (alpha > 0, via
+`scipy.ndimage.label`) sobre a folha original para extrair o retangulo
+exato de cada arvore antes de escolher os 5 retangulos usados em
+`_add_decorations()` — sem isso, qualquer escolha por grid arriscava
+cortar a arvore errada.
 
 ## Nota tecnica
 
@@ -134,6 +169,11 @@ tocados (permanecem como registro historico).
 - `scripts/playtest/platform_projectile_12.gd` — flecha (sprite real) e
   orbe magico (desenhado).
 - `scripts/playtest/platform_switch_12.gd` — interruptor do puzzle.
+- `assets/Characters/Warrior/Runtime/Attack2.png`,
+  `assets/Characters/Mage/Runtime/Attack2.png` — animacao da habilidade
+  especial de Guerreiro e Maga (Arqueira reusa a pose de ataque comum,
+  ja que a Huntress 2 nao inclui mais frames de personagem; a distincao
+  fica no sprite do projetil, `Arrow/Static.png`).
 - `scripts/playtest/pause_watcher_12.gd` — detecta ESC mesmo com a
   arvore pausada.
 - `assets/UI/Runtime/stage_caverna_preview.png` — thumbnail da fase

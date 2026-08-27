@@ -29,9 +29,20 @@
       onde parou.
 - [ ] Botao "VOLTAR A SELECAO DE FASE" no menu de pausa volta para a
       tela de selecao (sem o jogo continuar rodando atras).
-- [ ] O interruptor (orbe brilhante) so fica no vao entre as
-      plataformas B e C; corpo a corpo nao o alcanca.
-- [ ] Acertar o interruptor com flecha/orbe remove o portao roxo e
-      libera a plataforma C.
-- [ ] A GOSMA REAL atras do portao tem HP visivelmente maior (6) que
-      um inimigo comum.
+- [ ] Arvores do cenario aparecem inteiras (copa completa), nao pela
+      metade ou cortadas.
+- [ ] `H` executa uma habilidade DIFERENTE por personagem: Guerreiro
+      investe (Estocada), Arqueira dispara uma flecha diferenciada (Tiro
+      Perfurante), Maga conjura e se desloca (Teleporte).
+- [ ] O ENTULHO na plataforma B bloqueia passagem a pe e ataque comum;
+      so a Estocada do Guerreiro (`H` com ele ativo) o destroi.
+- [ ] A barreira magica no vao 2 bloqueia flecha/orbe comuns (`J`) mas
+      o Tiro Perfurante (`H` com a Arqueira) atravessa e acerta o
+      interruptor, abrindo o portao roxo para a plataforma C1.
+- [ ] O vao largo depois da C1 NAO e cruzavel com pulo duplo + dash; so
+      o Teleporte da Maga (`H` com ela ativa, virada na direcao certa)
+      atravessa ate a C2.
+- [ ] O Teleporte nao atravessa o portao fechado nem paredes solidas
+      (para antes delas em vez de passar direto).
+- [ ] A GOSMA REAL na C2 tem HP visivelmente maior (6) que um inimigo
+      comum.

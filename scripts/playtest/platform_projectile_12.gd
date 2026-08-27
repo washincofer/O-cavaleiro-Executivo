@@ -6,6 +6,7 @@ extends Area2D
 ## magico desenhado (a Wizard Pack nao inclui um sprite de feitico solto).
 
 const ARROW_TEXTURE := preload("res://assets/Characters/Archer/Runtime/Arrow/Move.png")
+const PIERCE_TEXTURE := preload("res://assets/Characters/Archer/Runtime/Arrow/Static.png")
 
 var controller: Node
 var owner_actor
@@ -41,6 +42,26 @@ func setup(p_controller: Node, p_owner, p_direction: Vector2, p_kind: String) ->
 		sprite.play("fly")
 		sprite.flip_h = direction.x < 0.0
 		add_child(sprite)
+	elif kind == "pierce_arrow":
+		# Tiro perfurante da Arqueira: atravessa a barreira magica (layer 2)
+		# que bloqueia flechas/orbes comuns — ver _hits_world.
+		speed = 300.0
+		var frames := SpriteFrames.new()
+		frames.remove_animation("default")
+		frames.add_animation("fly")
+		frames.set_animation_loop("fly", true)
+		frames.set_animation_speed("fly", 1.0)
+		var atlas := AtlasTexture.new()
+		atlas.atlas = PIERCE_TEXTURE
+		atlas.region = Rect2(0, 0, 24, 5)
+		frames.add_frame("fly", atlas)
+		sprite = AnimatedSprite2D.new()
+		sprite.sprite_frames = frames
+		sprite.play("fly")
+		sprite.flip_h = direction.x < 0.0
+		sprite.scale = Vector2(1.4, 1.4)
+		sprite.modulate = Color(0.6, 1.0, 1.0)
+		add_child(sprite)
 	else:
 		speed = 220.0
 
@@ -64,7 +85,10 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 func _hits_world(next_position: Vector2) -> bool:
-	var query := PhysicsRayQueryParameters2D.create(global_position, next_position, 1)
+	# Barreiras magicas (layer 2, bit valor 2) bloqueiam flecha/orbe comuns
+	# mas nao o tiro perfurante — ele so enxerga terreno solido (layer 1).
+	var mask := 1 if kind == "pierce_arrow" else 3
+	var query := PhysicsRayQueryParameters2D.create(global_position, next_position, mask)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
