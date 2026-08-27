@@ -4,7 +4,7 @@ config_version=5
 
 [application]
 config/name="O Cavaleiro Executivo - Laboratorio 12"
-run/main_scene="res://scenes/playtest/platform_party_12.tscn"
+run/main_scene="res://scenes/menu/stage_select_12.tscn"
 
 [display]
 window/size/viewport_width=320

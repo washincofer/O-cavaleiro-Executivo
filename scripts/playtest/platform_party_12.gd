@@ -11,6 +11,9 @@ extends Node2D
 
 const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
 const Projectile = preload("res://scripts/playtest/platform_projectile_12.gd")
+const PauseWatcher = preload("res://scripts/playtest/pause_watcher_12.gd")
+const Switch = preload("res://scripts/playtest/platform_switch_12.gd")
+const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 
 const WORLD_WIDTH := 1200.0
 const DEATH_Y := 360.0
@@ -44,11 +47,21 @@ var event_timeout := 0.0
 var completed := false
 var game_over := false
 
+var pause_layer: CanvasLayer
+var is_paused := false
+
+var gate_switch: Switch
+var gate_body: StaticBody2D
+var gate_visual: ColorRect
+var gate_open := false
+
 func _ready() -> void:
 	_build_world()
 	_spawn_party()
 	_spawn_enemies()
 	_build_hud()
+	_build_pause_menu()
+	_build_pause_watcher()
 	_set_active_party_slot(0, false)
 	_update_hud()
 
@@ -157,6 +170,12 @@ func try_projectile_hit(projectile: Projectile, owner_actor: Actor) -> bool:
 		if projectile.global_position.distance_to(enemy.global_position + Vector2(0, -7)) <= 15.0:
 			enemy.take_damage(1, owner_actor)
 			return true
+
+	if is_instance_valid(gate_switch) and not gate_switch.is_active:
+		if projectile.global_position.distance_to(gate_switch.global_position) <= 13.0:
+			gate_switch.activate()
+			return true
+
 	return false
 
 func _nearest_enemy_in_range(origin: Vector2, max_x: float, max_y: float) -> Actor:
@@ -283,6 +302,7 @@ func _build_world() -> void:
 	_add_platform(Rect2(885, 250, 145, 14), true)
 
 	_add_decorations()
+	_spawn_puzzle()
 
 	_add_wall_collision(Rect2(-12, 0, 12, DEATH_Y))
 	_add_wall_collision(Rect2(WORLD_WIDTH, 0, 12, DEATH_Y))
@@ -458,7 +478,47 @@ func _spawn_party() -> void:
 
 func _spawn_enemies() -> void:
 	_spawn_actor("RATO", "enemy", "rat", Vector2(680, 250), Color("d9d3c7"))
-	_spawn_actor("GOSMA", "enemy", "slime", Vector2(980, 250), Color("8fe06a"))
+
+	# Desafio: a Gosma que guarda o trecho final (atras do portao) e mais
+	# resistente que um inimigo comum.
+	var boss: Actor = _spawn_actor("GOSMA REAL", "enemy", "slime", Vector2(980, 250), Color("8fe06a"))
+	boss.max_hp = 6
+	boss.hp = 6
+
+func _spawn_puzzle() -> void:
+	# Puzzle: o interruptor fica suspenso sobre o vao 2 (760-800), fora do
+	# alcance do ataque corpo a corpo — so um projetil disparado do fim da
+	# plataforma B alcanca. Acerta-lo remove o portao magico que bloqueia
+	# a entrada da plataforma C, onde a GOSMA REAL espera.
+	gate_switch = Switch.new()
+	gate_switch.global_position = Vector2(780, 268)
+	gate_switch.activated.connect(_on_switch_activated)
+	world_layer.add_child(gate_switch)
+
+	gate_body = StaticBody2D.new()
+	gate_body.collision_layer = 1
+	gate_body.collision_mask = 0
+	gate_body.position = Vector2(804, 240)
+	var gate_shape := CollisionShape2D.new()
+	var gate_rect := RectangleShape2D.new()
+	gate_rect.size = Vector2(8, 152)
+	gate_shape.shape = gate_rect
+	gate_body.add_child(gate_shape)
+	world_layer.add_child(gate_body)
+
+	gate_visual = ColorRect.new()
+	gate_visual.position = Vector2(800, 164)
+	gate_visual.size = Vector2(8, 152)
+	gate_visual.color = Color(0.56, 0.4, 0.85, 0.85)
+	world_layer.add_child(gate_visual)
+
+func _on_switch_activated() -> void:
+	gate_open = true
+	report_event("INTERRUPTOR ATIVADO — PORTAO ABERTO")
+	if is_instance_valid(gate_body):
+		gate_body.queue_free()
+	if is_instance_valid(gate_visual):
+		gate_visual.queue_free()
 
 func _spawn_actor(
 	p_name: String,
@@ -517,7 +577,7 @@ func _build_hud() -> void:
 	panel.add_child(objective_label)
 
 	var help := Label.new()
-	help.text = "1/2/3 trocar | A/D mover | ESPACO pular | J atacar | K dash | R restart"
+	help.text = "ESC: pausar e ver instrucoes"
 	help.position = Vector2(5, 157)
 	help.add_theme_font_size_override("font_size", 6)
 	canvas.add_child(help)
@@ -557,4 +617,74 @@ func _update_hud() -> void:
 	else:
 		action_label.text = "sem personagem ativo"
 
-	objective_label.text = "12: derrote os inimigos da caverna — %d/%d restantes" % [active_enemies, total_enemies]
+	var gate_status := "aberto" if gate_open else "fechado (acerte o interruptor)"
+	objective_label.text = "12: inimigos %d/%d | portao %s" % [active_enemies, total_enemies, gate_status]
+
+func _build_pause_watcher() -> void:
+	var watcher := PauseWatcher.new()
+	watcher.toggle_requested.connect(_toggle_pause)
+	add_child(watcher)
+
+func _toggle_pause() -> void:
+	is_paused = not is_paused
+	get_tree().paused = is_paused
+	pause_layer.visible = is_paused
+
+func _build_pause_menu() -> void:
+	pause_layer = CanvasLayer.new()
+	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	pause_layer.layer = 10
+	add_child(pause_layer)
+
+	var dim := ColorRect.new()
+	dim.position = Vector2(0, 0)
+	dim.size = Vector2(320, 180)
+	dim.color = Color(0, 0, 0, 0.72)
+	pause_layer.add_child(dim)
+
+	var panel := ColorRect.new()
+	panel.position = Vector2(26, 10)
+	panel.size = Vector2(268, 160)
+	panel.color = Color("1b2028")
+	pause_layer.add_child(panel)
+
+	var title := Label.new()
+	title.text = "PAUSADO"
+	title.position = Vector2(26, 14)
+	title.size = Vector2(268, 12)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 9)
+	title.add_theme_color_override("font_color", Color("ffe26f"))
+	pause_layer.add_child(title)
+
+	var instructions := Label.new()
+	instructions.text = "OBJETIVO\nDerrote os inimigos da caverna. Um portao magico\nbloqueia o trecho final — acerte o interruptor a\ndistancia (flecha ou orbe) do outro lado do vao\npara abri-lo.\n\nCONTROLES\nA/D mover | ESPACO pular | K dash\n1/2/3 trocar personagem | J atacar\nR reiniciar a fase | ESC pausar/continuar"
+	instructions.position = Vector2(38, 30)
+	instructions.size = Vector2(244, 108)
+	instructions.add_theme_font_size_override("font_size", 7)
+	instructions.autowrap_mode = TextServer.AUTOWRAP_WORD
+	pause_layer.add_child(instructions)
+
+	var resume_btn := Button.new()
+	resume_btn.text = "CONTINUAR"
+	resume_btn.position = Vector2(46, 144)
+	resume_btn.size = Vector2(100, 18)
+	resume_btn.focus_mode = Control.FOCUS_NONE
+	resume_btn.add_theme_font_size_override("font_size", 8)
+	resume_btn.pressed.connect(_toggle_pause)
+	pause_layer.add_child(resume_btn)
+
+	var back_btn := Button.new()
+	back_btn.text = "VOLTAR A SELECAO"
+	back_btn.position = Vector2(156, 144)
+	back_btn.size = Vector2(120, 18)
+	back_btn.focus_mode = Control.FOCUS_NONE
+	back_btn.add_theme_font_size_override("font_size", 8)
+	back_btn.pressed.connect(_on_back_to_select_pressed)
+	pause_layer.add_child(back_btn)
+
+	pause_layer.visible = false
+
+func _on_back_to_select_pressed() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file(STAGE_SELECT_SCENE)

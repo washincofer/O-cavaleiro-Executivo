@@ -71,6 +71,37 @@ circulos coloridos.
   contra dano/queda fatal enquanto inativos + resgate automatico, dash,
   camera lateral, restart.
 
+## Selecao de fase, loading e pausa
+
+- `run/main_scene` agora aponta para `scenes/menu/stage_select_12.tscn` —
+  um grid de 8 slots no estilo do menu de robos-mestres da saga Mega Man.
+  Só a **CAVERNA** (esta sprint) esta liberada, com preview real da fase;
+  os outros 7 slots ficam com placeholder `?` desabilitado ("EM BREVE"),
+  para as proximas fases entrarem aos poucos.
+- Clicar na fase liberada leva a `scenes/menu/loading_screen_12.tscn`,
+  uma tela de loading artificial de ~3s (barra de progresso via `Timer`
+  simulado em `_process`) antes de carregar a fase de verdade — mesmo ela
+  carregando quase instantaneamente.
+- Dentro da fase, as instrucoes completas (objetivo + controles) saíram
+  do HUD fixo e só aparecem ao pressionar **ESC**, que pausa o jogo
+  (`get_tree().paused`) e mostra um menu com **CONTINUAR** e **VOLTAR A
+  SELECAO DE FASE**. A deteccao de ESC usa um watcher dedicado
+  (`pause_watcher_12.gd`, `process_mode = ALWAYS`) para continuar
+  funcionando mesmo com a arvore pausada.
+
+## Puzzle e desafio
+
+- **Puzzle**: um interruptor (`platform_switch_12.gd`) fica suspenso no
+  vao entre a plataforma B e C (x 760–800), fora do alcance do ataque
+  corpo a corpo — só um projetil (flecha da Arqueira ou orbe da Maga)
+  disparado do fim da plataforma B o acerta. Isso reusa o mesmo
+  `try_projectile_hit` já usado para inimigos.
+- Acertar o interruptor remove um **portao magico** (barra roxa,
+  colisao + visual) que bloqueia a entrada da plataforma C.
+- **Desafio**: atras do portao, a **GOSMA REAL** tem o dobro de HP
+  (6 em vez de 3) de um inimigo comum — reforco reservado para quem
+  resolve o puzzle.
+
 ## Nota tecnica
 
 Durante a validacao deste sprint (Godot 4.4.1 headless, o mesmo binario
@@ -88,15 +119,25 @@ tocados (permanecem como registro historico).
 
 ## Arquivos
 
-- `project.godot` — `run/main_scene` aponta para `platform_party_12.tscn`.
+- `project.godot` — `run/main_scene` aponta para `scenes/menu/stage_select_12.tscn`.
 - `scripts/build_web.sh` — basename de export atualizado para
   `cavaleiro-sprint12-v01`.
-- `scenes/playtest/platform_party_12.tscn` — cena da sprint.
-- `scripts/playtest/platform_party_12.gd` — mundo, party, inimigos, HUD.
+- `scenes/menu/stage_select_12.tscn` + `scripts/menu/stage_select_12.gd`
+  — grid de selecao de fase estilo Mega Man.
+- `scenes/menu/loading_screen_12.tscn` + `scripts/menu/loading_screen_12.gd`
+  — tela de loading artificial (~3s) antes da fase.
+- `scenes/playtest/platform_party_12.tscn` — cena da fase em si.
+- `scripts/playtest/platform_party_12.gd` — mundo, party, inimigos, HUD,
+  puzzle do portao e menu de pausa.
 - `scripts/playtest/platform_actor_12.gd` — ator com `AnimatedSprite2D`,
   movimento, IA e combate.
 - `scripts/playtest/platform_projectile_12.gd` — flecha (sprite real) e
   orbe magico (desenhado).
+- `scripts/playtest/platform_switch_12.gd` — interruptor do puzzle.
+- `scripts/playtest/pause_watcher_12.gd` — detecta ESC mesmo com a
+  arvore pausada.
+- `assets/UI/Runtime/stage_caverna_preview.png` — thumbnail da fase
+  usada na tela de selecao.
 
 ## O que testar
 

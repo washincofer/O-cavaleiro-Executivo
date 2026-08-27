@@ -20,3 +20,18 @@
 - [ ] `GAME OVER` aparece se os 3 membros forem derrotados; `R` reinicia.
 - [ ] Chao/paredes usam a textura do Pixel Cave Tileset (sem tiles
       transparentes/quebrados nas bordas das plataformas).
+- [ ] Tela de selecao de fase abre no inicio; so a CAVERNA e clicavel,
+      os outros 7 slots mostram `?` e nao reagem a clique.
+- [ ] Clicar na CAVERNA mostra a tela de loading por ~3s antes de
+      entrar na fase.
+- [ ] Dentro da fase, `ESC` pausa o jogo e mostra objetivo + controles;
+      `ESC` de novo (ou botao CONTINUAR) volta a jogar exatamente de
+      onde parou.
+- [ ] Botao "VOLTAR A SELECAO DE FASE" no menu de pausa volta para a
+      tela de selecao (sem o jogo continuar rodando atras).
+- [ ] O interruptor (orbe brilhante) so fica no vao entre as
+      plataformas B e C; corpo a corpo nao o alcanca.
+- [ ] Acertar o interruptor com flecha/orbe remove o portao roxo e
+      libera a plataforma C.
+- [ ] A GOSMA REAL atras do portao tem HP visivelmente maior (6) que
+      um inimigo comum.
