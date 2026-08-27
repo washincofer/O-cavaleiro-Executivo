@@ -1,7 +1,8 @@
 extends Node2D
 
-const Actor = preload("res://scripts/playtest/platform_actor_11b.gd")
-const Bolt = preload("res://scripts/playtest/platform_bolt_11b.gd")
+const Actor = preload("res://scripts/playtest/platform_actor_11c.gd")
+const Bolt = preload("res://scripts/playtest/platform_bolt_11c.gd")
+const Ladder = preload("res://scripts/playtest/platform_ladder_11c.gd")
 
 const WORLD_WIDTH := 1200.0
 const DEATH_Y := 360.0
@@ -12,6 +13,9 @@ var party_slots: Array = []
 var active_actor
 var active_party_slot := 0
 var active_enemies := 0
+var active_ladder = null
+var high_platform_reached := false
+var ladder_block_confirmed := false
 
 var world_layer: Node2D
 var actor_layer: Node2D
@@ -53,9 +57,13 @@ func _process(delta: float) -> void:
 		if event_timeout <= 0.0 and is_instance_valid(event_label):
 			event_label.text = ""
 
-	if not completed and is_instance_valid(active_actor) and active_actor.alive and active_actor.global_position.x >= 1130.0:
+	if is_instance_valid(active_actor) and active_actor.alive:
+		if active_actor.global_position.x >= 500.0 and active_actor.global_position.x <= 675.0 and active_actor.global_position.y < 205.0:
+			high_platform_reached = true
+
+	if not completed and high_platform_reached and ladder_block_confirmed:
 		completed = true
-		report_event("PLAYTEST 11B.2 CONCLUIDO — pressione R para reiniciar")
+		report_event("PLAYTEST 11C CONCLUIDO — ACESSO + BLOQUEIO validados")
 
 	_update_hud()
 
@@ -114,11 +122,11 @@ func activate_actor_action(actor) -> void:
 			report_event("CAVALEIRO: ATAQUE")
 		return
 
-	if actor.role == "guard":
-		if actor.begin_guard():
-			report_event("ESPADACHIM: GUARDA 1.25s")
+	if actor.role == "ladder":
+		if actor.deploy_ladder():
+			report_event("AUXILIAR ESCADA: ESCADA POSICIONADA")
 		else:
-			report_event("ESPADACHIM: habilidade em recarga")
+			report_event("AUXILIAR ESCADA: posicao invalida/recarga")
 		return
 
 	if actor.role == "crossbow":
@@ -126,6 +134,37 @@ func activate_actor_action(actor) -> void:
 			report_event("ESTAGIARIO: DISPARO DE BESTA")
 		else:
 			report_event("ESTAGIARIO: habilidade em recarga")
+
+func place_ladder(actor) -> bool:
+	if actor != active_actor or not actor.alive or actor.role != "ladder":
+		return false
+
+	var ladder_x := clampf(actor.global_position.x + actor.facing * 22.0, 24.0, WORLD_WIDTH - 24.0)
+	var from := Vector2(ladder_x, actor.global_position.y - 28.0)
+	var to := Vector2(ladder_x, minf(DEATH_Y - 8.0, actor.global_position.y + 48.0))
+	var query := PhysicsRayQueryParameters2D.create(from, to, 1)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return false
+
+	if is_instance_valid(active_ladder):
+		active_ladder.queue_free()
+
+	active_ladder = Ladder.new()
+	world_layer.add_child(active_ladder)
+	active_ladder.setup(self, actor, Vector2(ladder_x, hit.position.y), 112.0)
+	return true
+
+func get_active_ladder():
+	return active_ladder
+
+func on_enemy_blocked_by_ladder(enemy) -> void:
+	if ladder_block_confirmed:
+		return
+	ladder_block_confirmed = true
+	report_event("ESCADA BLOQUEOU %s" % enemy.actor_name)
 
 func hero_melee_attack(source) -> bool:
 	var victim = _nearest_enemy_in_range(source.global_position, 38.0, 30.0)
@@ -164,18 +203,13 @@ func _nearest_enemy_in_range(origin: Vector2, max_x: float, max_y: float):
 	return result
 
 func closest_alive_ally(_source = null):
-	var result = null
-	var best := INF
+	# 11C: inimigos priorizam o personagem que realmente esta em risco.
+	if is_instance_valid(active_actor) and active_actor.alive:
+		return active_actor
 	for member in party_slots:
-		if not is_instance_valid(member) or not member.alive:
-			continue
-		if _source == null:
+		if is_instance_valid(member) and member.alive:
 			return member
-		var d := _source.global_position.distance_squared_to(member.global_position)
-		if d < best:
-			best = d
-			result = member
-	return result
+	return null
 
 func _check_falls() -> void:
 	for actor in actors:
@@ -282,9 +316,10 @@ func _build_world() -> void:
 	_add_platform(Rect2(415, 284, 345, 32), Color("51606c"))
 	_add_platform(Rect2(800, 284, 400, 32), Color("51606c"))
 
-	# Plataformas elevadas agora sao one-way e estao dentro da altura real de salto.
+	# 11C: uma plataforma comum segue acessivel por salto; a central e propositalmente
+	# alta demais (~108 px acima do piso) e deve exigir a escada.
 	_add_platform(Rect2(150, 250, 135, 14), Color("6b7883"), true)
-	_add_platform(Rect2(505, 248, 150, 14), Color("6b7883"), true)
+	_add_platform(Rect2(500, 176, 175, 14), Color("8a7750"), true)
 	_add_platform(Rect2(885, 250, 145, 14), Color("6b7883"), true)
 
 	_add_platform(Rect2(-12, 0, 12, 360), Color("111820"))
@@ -293,11 +328,19 @@ func _build_world() -> void:
 	_add_gap_marker(375, 415)
 	_add_gap_marker(760, 800)
 
-	var exit_flag := Label.new()
-	exit_flag.text = "SAIDA 11B"
-	exit_flag.position = Vector2(1100, 246)
-	exit_flag.add_theme_font_size_override("font_size", 9)
-	world_layer.add_child(exit_flag)
+	var high_label := Label.new()
+	high_label.text = "PLATAFORMA 11C — SALTO NORMAL NAO ALCANCA"
+	high_label.position = Vector2(505, 158)
+	high_label.add_theme_font_size_override("font_size", 7)
+	high_label.add_theme_color_override("font_color", Color("ffe26f"))
+	world_layer.add_child(high_label)
+
+	var cue := Label.new()
+	cue.text = "POSICIONE A ESCADA AQUI ->"
+	cue.position = Vector2(410, 262)
+	cue.add_theme_font_size_override("font_size", 6)
+	cue.add_theme_color_override("font_color", Color("d2a45f"))
+	world_layer.add_child(cue)
 
 	actor_layer = Node2D.new()
 	actor_layer.name = "Actors"
@@ -356,19 +399,19 @@ func _spawn_party() -> void:
 	var hero = _spawn_actor("CAVALEIRO", "ally", "hero", Vector2(80, 250), true, Color("58a6ff"), 0)
 	hero.follow_offset_x = -34.0
 
-	var guard = _spawn_actor("ESPADACHIM", "ally", "guard", Vector2(48, 250), false, Color("66d17a"), 1)
-	guard.follow_offset_x = -38.0
+	# Nome funcional/provisorio apenas para o laboratorio 11C; nao canoniza o personagem.
+	var ladder_companion = _spawn_actor("AUXILIAR ESCADA", "ally", "ladder", Vector2(48, 250), false, Color("66d17a"), 1)
+	ladder_companion.follow_offset_x = -38.0
 
 	var crossbow = _spawn_actor("ESTAGIARIO", "ally", "crossbow", Vector2(25, 250), false, Color("f0c15a"), 2)
 	crossbow.follow_offset_x = -62.0
 
-	party_slots = [hero, guard, crossbow]
+	party_slots = [hero, ladder_companion, crossbow]
 
 func _spawn_enemies() -> void:
-	# Inimigo A fica no primeiro trecho para permitir testar GUARDA sem atravessar vao.
-	_spawn_actor("INIMIGO A", "enemy", "enemy", Vector2(315, 250), false, Color("e34e48"))
-	_spawn_actor("INIMIGO B", "enemy", "enemy", Vector2(570, 250), false, Color("e34e48"))
-	_spawn_actor("INIMIGO C", "enemy", "enemy", Vector2(990, 250), false, Color("e58d3b"))
+	# O inimigo do trecho central deve caminhar contra a escada para validar o bloqueio fisico.
+	_spawn_actor("INIMIGO BLOQUEIO", "enemy", "enemy", Vector2(720, 250), false, Color("e34e48"))
+	_spawn_actor("INIMIGO FINAL", "enemy", "enemy", Vector2(990, 250), false, Color("e58d3b"))
 
 func _spawn_actor(
 	p_name: String,
@@ -427,7 +470,7 @@ func _build_hud() -> void:
 	panel.add_child(objective_label)
 
 	var help := Label.new()
-	help.text = "1/2/3 trocar | A/D mover | ESPACO pular | J acao | K correr | R restart"
+	help.text = "1/2/3 trocar | A/D mover | W/S escada | ESPACO pular | J acao | R restart"
 	help.position = Vector2(5, 157)
 	help.add_theme_font_size_override("font_size", 6)
 	canvas.add_child(help)
@@ -445,9 +488,9 @@ func _update_hud() -> void:
 	if game_over:
 		state_label.text = "GAME OVER | R reinicia"
 	elif completed:
-		state_label.text = "SPRINT 11B.2 OK | R reinicia"
+		state_label.text = "SPRINT 11C OK | R reinicia"
 	else:
-		state_label.text = "PLATAFORMA 2D | inimigos %d" % active_enemies
+		state_label.text = "11C ESCADA | inimigos %d" % active_enemies
 
 	var parts: Array[String] = []
 	for i in range(party_slots.size()):
@@ -462,11 +505,11 @@ func _update_hud() -> void:
 	if is_instance_valid(active_actor) and active_actor.alive:
 		if active_actor.is_player:
 			action_label.text = "J: ataque do Cavaleiro"
-		elif active_actor.role == "guard":
-			action_label.text = "J: GUARDA (defesa manual)"
+		elif active_actor.role == "ladder":
+			action_label.text = "J: POSICIONAR/REPOSICIONAR ESCADA"
 		else:
 			action_label.text = "J: BESTA (disparo manual)"
 	else:
 		action_label.text = "sem personagem ativo"
 
-	objective_label.text = "11B.2: followers protegidos + salto seguro + auto-resgate"
+	objective_label.text = "11C: W/S escada | alto %s | bloqueio %s" % ["OK" if high_platform_reached else "...", "OK" if ladder_block_confirmed else "..."]

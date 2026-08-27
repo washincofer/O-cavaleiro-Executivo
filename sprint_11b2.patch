@@ -1,0 +1,108 @@
+--- a/scripts/playtest/platform_actor_11b.gd
++++ b/scripts/playtest/platform_actor_11b.gd
+@@ -131,9 +131,15 @@
+ 	if absf(delta_x) > 18.0:
+ 		facing = signf(delta_x)
+ 		velocity.x = facing * speed * 0.92
+-		# Seguidor pula um vao ao acompanhar o personagem ativo, em vez de cair nele.
++
++		# 11B.2: seguidor nao salta cegamente para o vazio.
++		# Primeiro confirma se existe piso de aterrissagem depois do vao.
+ 		if is_on_floor() and not controller.has_floor_ahead(self, facing, 14.0):
+-			velocity.y = jump_velocity
++			if controller.has_floor_ahead(self, facing, 54.0):
++				velocity.x = facing * speed * 1.05
++				velocity.y = jump_velocity
++			else:
++				velocity.x = 0.0
+ 	else:
+ 		velocity.x = move_toward(velocity.x, 0.0, 20.0)
+ 
+@@ -203,6 +209,12 @@
+ func take_damage(amount: int, source = null) -> void:
+ 	if not alive:
+ 		return
++
++	# 11B.2: apenas o aliado atualmente controlado participa do risco de combate.
++	# Seguidores nao podem morrer fora da tela enquanto o jogador controla outro slot.
++	if team == "ally" and not is_controlled:
++		return
++
+ 	if guard_timer > 0.0 and team == "ally":
+ 		flash_timer = 0.16
+ 		if is_instance_valid(controller):
+--- a/scripts/playtest/platform_party_11b.gd
++++ b/scripts/playtest/platform_party_11b.gd
+@@ -55,7 +55,7 @@
+ 
+ 	if not completed and is_instance_valid(active_actor) and active_actor.alive and active_actor.global_position.x >= 1130.0:
+ 		completed = true
+-		report_event("PLAYTEST 11B.1 CONCLUIDO — pressione R para reiniciar")
++		report_event("PLAYTEST 11B.2 CONCLUIDO — pressione R para reiniciar")
+ 
+ 	_update_hud()
+ 
+@@ -179,8 +179,47 @@
+ 
+ func _check_falls() -> void:
+ 	for actor in actors:
+-		if is_instance_valid(actor) and actor.alive and actor.global_position.y > DEATH_Y:
++		if not is_instance_valid(actor) or not actor.alive or actor.global_position.y <= DEATH_Y:
++			continue
++
++		# 11B.2: queda fatal so mata quem esta assumindo o risco naquele momento.
++		# Aliados nao selecionados entram em estado protegido e sao reposicionados.
++		if actor.team == "ally" and not actor.is_controlled:
++			_rescue_inactive_ally(actor)
++		else:
+ 			actor.force_kill()
++
++func _rescue_inactive_ally(actor) -> void:
++	if not is_instance_valid(active_actor) or not active_actor.alive:
++		return
++
++	var preferred_x := clampf(active_actor.global_position.x + actor.follow_offset_x, 18.0, WORLD_WIDTH - 18.0)
++	var rescue_position := _safe_floor_position(preferred_x, active_actor.global_position.y)
++
++	# Se o offset cair exatamente sobre um vao, tenta primeiro o proprio X do lider.
++	if rescue_position == Vector2.INF:
++		rescue_position = _safe_floor_position(active_actor.global_position.x, active_actor.global_position.y)
++
++	# Fallback raro: coloca junto do personagem ativo; no frame seguinte o seguidor retoma a formacao.
++	if rescue_position == Vector2.INF:
++		rescue_position = active_actor.global_position + Vector2(-12.0 * active_actor.facing, -6.0)
++
++	actor.global_position = rescue_position
++	actor.velocity = Vector2.ZERO
++	actor.facing = active_actor.facing
++	actor.flash_timer = 0.22
++	report_event("%s: RESGATE DE FOLLOW" % actor.actor_name)
++
++func _safe_floor_position(x: float, reference_y: float) -> Vector2:
++	var from := Vector2(x, maxf(36.0, reference_y - 90.0))
++	var to := Vector2(x, minf(DEATH_Y - 8.0, reference_y + 130.0))
++	var query := PhysicsRayQueryParameters2D.create(from, to, 1)
++	query.collide_with_areas = false
++	query.collide_with_bodies = true
++	var hit := get_world_2d().direct_space_state.intersect_ray(query)
++	if hit.is_empty():
++		return Vector2.INF
++	return Vector2(x, hit.position.y - 8.0)
+ 
+ func has_floor_ahead(actor, direction: float, horizontal_distance := 14.0) -> bool:
+ 	if not is_instance_valid(actor) or absf(direction) < 0.01:
+@@ -406,7 +445,7 @@
+ 	if game_over:
+ 		state_label.text = "GAME OVER | R reinicia"
+ 	elif completed:
+-		state_label.text = "SPRINT 11B.1 OK | R reinicia"
++		state_label.text = "SPRINT 11B.2 OK | R reinicia"
+ 	else:
+ 		state_label.text = "PLATAFORMA 2D | inimigos %d" % active_enemies
+ 
+@@ -430,4 +469,4 @@
+ 	else:
+ 		action_label.text = "sem personagem ativo"
+ 
+-	objective_label.text = "11B.1: salto acessivel + guarda + besta colide + IA evita borda"
++	objective_label.text = "11B.2: followers protegidos + salto seguro + auto-resgate"

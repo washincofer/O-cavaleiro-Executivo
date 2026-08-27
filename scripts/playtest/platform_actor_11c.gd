@@ -1,4 +1,4 @@
-class_name PlatformPartyActor
+class_name PlatformPartyActor11C
 extends CharacterBody2D
 
 signal died(actor)
@@ -28,6 +28,8 @@ var flash_timer := 0.0
 var edge_turn_timer := 0.0
 var edge_turn_direction := 0.0
 var tint := Color.WHITE
+var climbing_ladder := false
+var ladder_climb_speed := 82.0
 
 func setup(
 	p_controller: Node,
@@ -57,7 +59,8 @@ func setup(
 		speed = 88.0
 
 	collision_layer = 2
-	collision_mask = 1
+	# Layer 8 e exclusiva do bloqueio fisico da escada contra inimigos.
+	collision_mask = 1 | 8 if team == "enemy" else 1
 
 	var shape := CollisionShape2D.new()
 	var capsule := CapsuleShape2D.new()
@@ -92,19 +95,63 @@ func _physics_process(delta: float) -> void:
 	flash_timer = maxf(0.0, flash_timer - delta)
 	edge_turn_timer = maxf(0.0, edge_turn_timer - delta)
 
-	if not is_on_floor():
+	var ladder_motion := false
+	if team == "ally" and is_controlled:
+		ladder_motion = _controlled_ladder_tick()
+
+	if not ladder_motion and not is_on_floor():
 		velocity.y = minf(velocity.y + gravity * delta, max_fall_speed)
 
 	if team == "ally":
 		if is_controlled:
-			_controlled_tick()
+			if not ladder_motion:
+				_controlled_tick()
 		else:
+			climbing_ladder = false
 			_follow_tick()
 	else:
 		_enemy_tick()
 
 	move_and_slide()
+
+	if team == "enemy":
+		for i in range(get_slide_collision_count()):
+			var collider = get_slide_collision(i).get_collider()
+			if is_instance_valid(collider) and collider.is_in_group("ladder_enemy_blocker"):
+				controller.on_enemy_blocked_by_ladder(self)
+				break
+
 	queue_redraw()
+
+func _controlled_ladder_tick() -> bool:
+	var ladder = controller.get_active_ladder()
+	if not is_instance_valid(ladder) or not ladder.contains_actor(self):
+		climbing_ladder = false
+		return false
+
+	var vertical := Input.get_axis("move_up", "move_down")
+	var horizontal := Input.get_axis("move_left", "move_right")
+
+	if not climbing_ladder and absf(vertical) < 0.01:
+		return false
+
+	climbing_ladder = true
+	velocity.x = move_toward(velocity.x, (ladder.global_position.x - global_position.x) * 5.0, 24.0)
+	velocity.y = vertical * ladder_climb_speed
+
+	# No topo, W coloca o personagem acima da borda para que a plataforma one-way o receba.
+	if vertical < 0.0 and global_position.y <= ladder.top_y() + 8.0:
+		global_position.y = ladder.top_y() - 5.0
+		velocity.y = 0.0
+		climbing_ladder = false
+		return false
+
+	# A/D permite abandonar a escada lateralmente.
+	if absf(horizontal) > 0.01 and absf(vertical) < 0.01:
+		climbing_ladder = false
+		return false
+
+	return true
 
 func _controlled_tick() -> void:
 	var axis := Input.get_axis("move_left", "move_right")
@@ -182,6 +229,15 @@ func _enemy_tick() -> void:
 		velocity.x = facing * speed * 0.62
 		if target.global_position.y < global_position.y - 30.0 and is_on_floor():
 			velocity.y = jump_velocity * 0.88
+
+func deploy_ladder() -> bool:
+	if not alive or role != "ladder" or ability_cooldown > 0.0 or not is_on_floor():
+		return false
+	if controller.place_ladder(self):
+		ability_cooldown = 0.40
+		flash_timer = 0.16
+		return true
+	return false
 
 func begin_guard() -> bool:
 	if not alive or role != "guard" or ability_cooldown > 0.0:
@@ -264,6 +320,10 @@ func _draw() -> void:
 
 	if role == "crossbow":
 		draw_line(Vector2(-facing * 5.0, -3.0), Vector2(facing * 5.0, 1.0), Color("d9a441"), 2.5)
+	elif role == "ladder":
+		draw_line(Vector2(-5.0, -1.0), Vector2(-5.0, 8.0), Color("d2a45f"), 2.0)
+		draw_line(Vector2(5.0, -1.0), Vector2(5.0, 8.0), Color("d2a45f"), 2.0)
+		draw_line(Vector2(-5.0, 3.0), Vector2(5.0, 3.0), Color("e8c57d"), 1.5)
 	elif role == "guard":
 		var shield_angle := 0.0 if facing > 0.0 else PI
 		draw_arc(Vector2(facing * 6.0, -1.0), 5.0, shield_angle - 1.2, shield_angle + 1.2, 12, Color("a9c6d8"), 2.0)
