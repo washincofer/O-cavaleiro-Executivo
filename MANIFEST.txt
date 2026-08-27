@@ -1,5 +1,8 @@
 ./MANIFEST.txt
-./SPRINT_11A_README.md
+./SPRINT_11B_README.md
+./SPRINT_11B_TEST_CHECKLIST.md
 ./project.godot
-./scripts/playtest/reception_actor.gd
-./scripts/playtest/reception_playtest.gd
+./scenes/playtest/platform_party_11b.tscn
+./scripts/playtest/platform_actor_11b.gd
+./scripts/playtest/platform_bolt_11b.gd
+./scripts/playtest/platform_party_11b.gd
