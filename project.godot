@@ -1,9 +1,9 @@
 ; Engine configuration file.
-; O Cavaleiro Executivo - Laboratorio Sprint 11B
+; O Cavaleiro Executivo - Laboratorio Sprint 11B.1
 config_version=5
 
 [application]
-config/name="O Cavaleiro Executivo - Laboratorio 11B"
+config/name="O Cavaleiro Executivo - Laboratorio 11B.1"
 run/main_scene="res://scenes/playtest/platform_party_11b.tscn"
 
 [display]
