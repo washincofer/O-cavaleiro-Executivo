@@ -282,12 +282,18 @@ func _set_portrait(slot: Control, speaker: String, expr: String, dim: bool) -> v
 	if ResourceLoader.exists(path):
 		var tex_rect := TextureRect.new()
 		tex_rect.texture = load(path)
-		tex_rect.position = Vector2.ZERO
-		tex_rect.size = slot.size
 		tex_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tex_rect.modulate = Color(0.55, 0.55, 0.6) if dim else Color(1, 1, 1)
 		tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# position/custom_minimum_size/size por ultimo — expand_mode antes de
+		# entrar na tree pode inflar o minimum_size pro tamanho nativo da
+		# textura (fotos de retrato sao bem maiores que os sprites do jogo),
+		# e o Control nao encolhe sozinho depois (mesma armadilha do
+		# loading_screen_12.gd).
+		tex_rect.position = Vector2.ZERO
+		tex_rect.custom_minimum_size = slot.size
+		tex_rect.size = slot.size
 		slot.add_child(tex_rect)
 	else:
 		_build_placeholder(slot, _portrait_display_name(speaker), dim)
