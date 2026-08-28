@@ -693,7 +693,7 @@ func _build_hud() -> void:
 	objective_label.add_theme_font_size_override("font_size", 6)
 	panel.add_child(objective_label)
 
-	var body_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+	var body_font: FontFile = load("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
 
 	boss_name_label = Label.new()
 	boss_name_label.text = "OGRO"
@@ -723,7 +723,7 @@ func _build_hud() -> void:
 	boss_bar_empty.color = Color("2c1a1c")
 	canvas.add_child(boss_bar_empty)
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
 
 	state_label = Label.new()
 	state_label.position = Vector2(0, 76)
@@ -822,12 +822,14 @@ func _build_pause_menu() -> void:
 	dim.color = Color(0, 0, 0, 0.72)
 	pause_layer.add_child(dim)
 
-	var panel := KenneyUI12.make_panel(Vector2(268, 170), Color(0.06, 0.065, 0.09, 0.94))
+	var panel := ColorRect.new()
 	panel.position = Vector2(26, 6)
+	panel.size = Vector2(268, 170)
+	panel.color = Color("1b2028")
 	pause_layer.add_child(panel)
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
-	var body_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
+	var body_font: FontFile = load("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
 
 	var title := Label.new()
 	title.text = "PAUSADO"
@@ -852,7 +854,7 @@ func _build_pause_menu() -> void:
 	resume_btn.text = "CONTINUAR"
 	resume_btn.focus_mode = Control.FOCUS_NONE
 	resume_btn.position = Vector2(46, 150)
-	KenneyUI12.style_button(resume_btn, true, 8, Vector2(100, 18))
+	MedievalUI12.style_button(resume_btn, false, body_font, 8, Color("2a1a0f"), Vector2(100, 18))
 	resume_btn.pressed.connect(_toggle_pause)
 	pause_layer.add_child(resume_btn)
 
@@ -860,7 +862,7 @@ func _build_pause_menu() -> void:
 	back_btn.text = "VOLTAR A SELECAO"
 	back_btn.focus_mode = Control.FOCUS_NONE
 	back_btn.position = Vector2(156, 150)
-	KenneyUI12.style_button(back_btn, false, 8, Vector2(120, 18))
+	MedievalUI12.style_button(back_btn, true, body_font, 8, Color("f4e7c9"), Vector2(120, 18))
 	back_btn.pressed.connect(_on_back_to_select_pressed)
 	pause_layer.add_child(back_btn)
 

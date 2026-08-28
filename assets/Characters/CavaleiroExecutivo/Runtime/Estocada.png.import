@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://f7a82j8whpgc"
-path="res://.godot/imported/panel_border.png-8f6297c4e06145e4b6ba4cdaa11c86e0.ctex"
+uid="uid://m3yh60x8bgq0"
+path="res://.godot/imported/Estocada.png-5874df4ace4890595930536010679e64.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/UI/Runtime/KenneyBorders/panel_border.png"
-dest_files=["res://.godot/imported/panel_border.png-8f6297c4e06145e4b6ba4cdaa11c86e0.ctex"]
+source_file="res://assets/Characters/CavaleiroExecutivo/Runtime/Estocada.png"
+dest_files=["res://.godot/imported/Estocada.png-5874df4ace4890595930536010679e64.ctex"]
 
 [params]
 

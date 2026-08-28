@@ -781,14 +781,17 @@ func _build_interlude_ui() -> void:
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	interlude_layer.add_child(dim)
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
+	var body_font: FontFile = load("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
 
 	if is_portrait:
 		interlude_portrait_left = _build_interlude_portrait_slot(Vector2(4, 30), Vector2(84, 84))
 		interlude_portrait_right = _build_interlude_portrait_slot(Vector2(92, 30), Vector2(84, 84))
 
-		var box := KenneyUI12.make_panel(Vector2(172, 150), Color(0.02, 0.02, 0.03, 0.92))
+		var box := ColorRect.new()
 		box.position = Vector2(4, 122)
+		box.size = Vector2(172, 150)
+		box.color = Color(0.02, 0.02, 0.03, 0.92)
 		interlude_layer.add_child(box)
 
 		interlude_name_label = Label.new()
@@ -801,7 +804,7 @@ func _build_interlude_ui() -> void:
 
 		interlude_text_label = Label.new()
 		interlude_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-		interlude_text_label.add_theme_font_override("font", title_font)
+		interlude_text_label.add_theme_font_override("font", body_font)
 		interlude_text_label.add_theme_font_size_override("font_size", 7)
 		interlude_text_label.add_theme_color_override("font_color", Color("f4e7c9"))
 		interlude_text_label.position = Vector2(10, 144)
@@ -814,7 +817,7 @@ func _build_interlude_ui() -> void:
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		hint.position = Vector2(0, 300)
 		hint.size = Vector2(180, 12)
-		hint.add_theme_font_override("font", title_font)
+		hint.add_theme_font_override("font", body_font)
 		hint.add_theme_font_size_override("font_size", 6)
 		hint.add_theme_color_override("font_color", Color(1, 1, 1, 0.6))
 		interlude_layer.add_child(hint)
@@ -822,8 +825,10 @@ func _build_interlude_ui() -> void:
 		interlude_portrait_left = _build_interlude_portrait_slot(Vector2(6, 20), Vector2(110, 110))
 		interlude_portrait_right = _build_interlude_portrait_slot(Vector2(204, 20), Vector2(110, 110))
 
-		var box := KenneyUI12.make_panel(Vector2(312, 44), Color(0.02, 0.02, 0.03, 0.92))
+		var box := ColorRect.new()
 		box.position = Vector2(4, 132)
+		box.size = Vector2(312, 44)
+		box.color = Color(0.02, 0.02, 0.03, 0.92)
 		interlude_layer.add_child(box)
 
 		interlude_name_label = Label.new()
@@ -836,7 +841,7 @@ func _build_interlude_ui() -> void:
 
 		interlude_text_label = Label.new()
 		interlude_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-		interlude_text_label.add_theme_font_override("font", title_font)
+		interlude_text_label.add_theme_font_override("font", body_font)
 		interlude_text_label.add_theme_font_size_override("font_size", 7)
 		interlude_text_label.add_theme_color_override("font_color", Color("f4e7c9"))
 		interlude_text_label.position = Vector2(10, 146)
@@ -848,7 +853,7 @@ func _build_interlude_ui() -> void:
 		hint.text = "clique / tecla para continuar"
 		hint.position = Vector2(4, 168)
 		hint.size = Vector2(230, 10)
-		hint.add_theme_font_override("font", title_font)
+		hint.add_theme_font_override("font", body_font)
 		hint.add_theme_font_size_override("font_size", 5)
 		hint.add_theme_color_override("font_color", Color(1, 1, 1, 0.6))
 		interlude_layer.add_child(hint)
@@ -940,7 +945,7 @@ func _build_hud() -> void:
 	objective_label.add_theme_font_size_override("font_size", 6)
 	panel.add_child(objective_label)
 
-	var body_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+	var body_font: FontFile = load("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
 
 	boss_name_label = Label.new()
 	boss_name_label.text = "NECROMANTE"
@@ -970,7 +975,7 @@ func _build_hud() -> void:
 	boss_bar_empty.color = Color("2c1a1c")
 	canvas.add_child(boss_bar_empty)
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
 
 	state_label = Label.new()
 	state_label.position = Vector2(0, 76)
@@ -1075,12 +1080,14 @@ func _build_pause_menu() -> void:
 	dim.color = Color(0, 0, 0, 0.72)
 	pause_layer.add_child(dim)
 
-	var panel := KenneyUI12.make_panel(Vector2(268, 170), Color(0.06, 0.065, 0.09, 0.94))
+	var panel := ColorRect.new()
 	panel.position = Vector2(26, 6)
+	panel.size = Vector2(268, 170)
+	panel.color = Color("1b2028")
 	pause_layer.add_child(panel)
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
-	var body_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
+	var body_font: FontFile = load("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
 
 	var title := Label.new()
 	title.text = "PAUSADO"
@@ -1105,7 +1112,7 @@ func _build_pause_menu() -> void:
 	resume_btn.text = "CONTINUAR"
 	resume_btn.focus_mode = Control.FOCUS_NONE
 	resume_btn.position = Vector2(46, 150)
-	KenneyUI12.style_button(resume_btn, true, 8, Vector2(100, 18))
+	MedievalUI12.style_button(resume_btn, false, body_font, 8, Color("2a1a0f"), Vector2(100, 18))
 	resume_btn.pressed.connect(_toggle_pause)
 	pause_layer.add_child(resume_btn)
 
@@ -1113,7 +1120,7 @@ func _build_pause_menu() -> void:
 	back_btn.text = "VOLTAR A SELECAO"
 	back_btn.focus_mode = Control.FOCUS_NONE
 	back_btn.position = Vector2(156, 150)
-	KenneyUI12.style_button(back_btn, false, 8, Vector2(120, 18))
+	MedievalUI12.style_button(back_btn, true, body_font, 8, Color("f4e7c9"), Vector2(120, 18))
 	back_btn.pressed.connect(_on_back_to_select_pressed)
 	pause_layer.add_child(back_btn)
 

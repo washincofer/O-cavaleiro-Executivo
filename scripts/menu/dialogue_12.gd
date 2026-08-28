@@ -31,8 +31,8 @@ extends Control
 ## (cetico ou chorando, varia por personagem), "grito" (boca aberta, bravo).
 
 const CHARACTER_SELECT_SCENE := "res://scenes/menu/character_select_12.tscn"
-const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf"
-const BODY_FONT_PATH := "res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf"
+const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf"
+const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
 const PORTRAIT_DIR := "res://assets/UI/Runtime/Dialogue/"
 
 const CAVALEIRO_ID := "cavaleiro"
@@ -52,12 +52,21 @@ const VILLAIN_INFO := {
 const DIALOGUE_LINES := {
 	"coordenador": [
 		{"speaker": "cavaleiro", "expr": "serio", "text": "As Ruinas do Departamento Antigo... dizem que o Coordenador nunca aprovou uma ferias sequer."},
-		{"speaker": "coordenador", "expr": "neutro", "text": "Chegou atrasado na reuniao. Isso vai constar no seu relatorio de desempenho... para sempre."},
-		{"speaker": "cavaleiro", "expr": "bravo", "text": "Prefiro ser demitido a assinar mais um dos seus 'alinhamentos as 7h'."},
-		{"speaker": "coordenador", "expr": "duvida", "text": "Recusar um convite de calendario e insubordinacao nivel 3. Sabia disso?"},
-		{"speaker": "cavaleiro", "expr": "serio", "text": "Sei que faz tres anos que ninguem tira ferias nessa divisao. Sei que voce chama hora extra nao paga de 'cultura'."},
-		{"speaker": "coordenador", "expr": "risada", "text": "Cultura e sacrificio, Cavaleiro. E sacrificio... tem um custo. Um custo que EU decido quem paga."},
-		{"speaker": "cavaleiro", "expr": "duvida", "text": "Do que voce esta falando?"},
+		{"speaker": "coordenador", "expr": "neutro", "text": "Chegou as 10h01. Um minuto de atraso. Isso vai constar no seu relatorio de desempenho... para sempre."},
+		{"speaker": "cavaleiro", "expr": "bravo", "text": "Um minuto?! Fico ate depois da meia-noite toda semana!"},
+		{"speaker": "coordenador", "expr": "serio", "text": "E por isso mesmo que precisamos falar do seu banco de horas. Vai zerar. Hoje."},
+		{"speaker": "cavaleiro", "expr": "duvida", "text": "Zerar? Tenho quase duzentas horas acumuladas!"},
+		{"speaker": "coordenador", "expr": "neutro", "text": "Exatamente. Zera. A empresa nao deve nada a ninguem — o RH ja confirmou."},
+		{"speaker": "coordenador", "expr": "bravo", "text": "Alias, vi no seu calendario um compromisso chamado 'CASAMENTO'. Vai ter que remarcar."},
+		{"speaker": "cavaleiro", "expr": "grito", "text": "E o MEU casamento!"},
+		{"speaker": "coordenador", "expr": "neutro", "text": "E a nossa Sprint Review. Prioridades, Cavaleiro."},
+		{"speaker": "coordenador", "expr": "serio", "text": "Soube tambem que anda 'estudando' pra um doutorado. Doutorado e besteira. Ninguem aqui valoriza isso."},
+		{"speaker": "cavaleiro", "expr": "tenso", "text": "Isso nao e da sua conta."},
+		{"speaker": "coordenador", "expr": "risada", "text": "Tudo e da minha conta. Alias, vou marcar uma weekly pra discutir isso. Segunda, 8h."},
+		{"speaker": "coordenador", "expr": "duvida", "text": "Ah, e eu vou faltar. Mas voces se reunem do mesmo jeito."},
+		{"speaker": "cavaleiro", "expr": "bravo", "text": "Voce marca reuniao so pra faltar?!"},
+		{"speaker": "coordenador", "expr": "neutro", "text": "E uma habilidade de gestao avancada. Alias, sabia que o Claude faz um trabalho melhor que voce? Ele pelo menos entrega no prazo."},
+		{"speaker": "cavaleiro", "expr": "grito", "text": "ISSO NEM FAZ SENTIDO NESSE MUNDO!"},
 		{"speaker": "coordenador", "expr": "serio", "text": "Acha que eu virei Subchefe Maior so preenchendo planilha? Cada relatorio de desempenho negativo que eu assino... alimenta alguma coisa aqui embaixo."},
 		{"speaker": "coordenador", "expr": "bravo", "text": "Cada '1:1' cancelado em cima da hora. Cada promocao prometida e nunca paga. Tudo isso fica aqui. E cresce."},
 		{"speaker": "cavaleiro", "expr": "tenso", "text": "Essas ruinas nao sao so um departamento abandonado, sao?"},
@@ -167,8 +176,11 @@ func _build_landscape() -> void:
 	portrait_left = _build_portrait_slot(Vector2(6, 20), Vector2(110, 110))
 	portrait_right = _build_portrait_slot(Vector2(204, 20), Vector2(110, 110))
 
-	var box := KenneyUI12.make_panel(Vector2(312, 44), Color(0.02, 0.02, 0.03, 0.92))
+	var box := ColorRect.new()
 	box.position = Vector2(4, 132)
+	box.size = Vector2(312, 44)
+	box.color = Color(0.02, 0.02, 0.03, 0.85)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(box)
 
 	name_label = Label.new()
@@ -211,8 +223,11 @@ func _build_portrait() -> void:
 	portrait_left = _build_portrait_slot(Vector2(4, 30), Vector2(84, 84))
 	portrait_right = _build_portrait_slot(Vector2(92, 30), Vector2(84, 84))
 
-	var box := KenneyUI12.make_panel(Vector2(172, 150), Color(0.02, 0.02, 0.03, 0.92))
+	var box := ColorRect.new()
 	box.position = Vector2(4, 122)
+	box.size = Vector2(172, 150)
+	box.color = Color(0.02, 0.02, 0.03, 0.85)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(box)
 
 	name_label = Label.new()
@@ -253,7 +268,7 @@ func _build_skip_button(pos: Vector2, size: Vector2) -> void:
 	skip_button.text = "PULAR >>"
 	skip_button.focus_mode = Control.FOCUS_NONE
 	skip_button.position = pos
-	KenneyUI12.style_button(skip_button, false, 6, size)
+	MedievalUI12.style_button(skip_button, true, body_font, 6, Color("f4e7c9"), size)
 	skip_button.pressed.connect(_go_to_character_select)
 	add_child(skip_button)
 

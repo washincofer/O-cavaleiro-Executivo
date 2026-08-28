@@ -9,7 +9,7 @@ extends CharacterBody2D
 signal died(actor)
 
 const HEALTH_BAR_TEX := preload("res://assets/UI/Runtime/MedievalFree/health_bar.png")
-const NAMEPLATE_FONT := preload("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+const NAMEPLATE_FONT := preload("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
 const HitEffect := preload("res://scenes/playtest/hit_effect_12.tscn")
 
 const ROLE_ANIM := {
@@ -72,18 +72,26 @@ const ROLE_ANIM := {
 		"jump": {"path": "res://assets/Characters/Wanderer/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": false},
 		"fall": {"path": "res://assets/Characters/Wanderer/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": true},
 	},
-	# Cavaleiro Executivo: arte propria do usuario (7 folhas soltas, sem
-	# grid fixo — cada quadro tem largura diferente por causa da capa/
-	# espada/escudo se estendendo alem do corpo). Sem Hurt/Death fornecidos
-	# (mesmo caso ja tratado sem problemas pelo Ogro/Cavaleiro-Knight); a
-	# "special" reaproveita Correndo (arrancada) como uma Estocada propria —
-	# mesma mecanica de "quebra entulho" do Guerreiro (ver ROLE_TAG nos
-	# controllers de fase).
+	# Cavaleiro Executivo: arte propria do usuario. Sem Hurt/Death fornecidos
+	# (mesmo caso ja tratado sem problemas pelo Ogro/Cavaleiro-Knight).
+	# Ataque.png/Estocada.png (pedido do usuario: sprites dedicados no lugar
+	# do reaproveitamento de Agachando/Correndo) vieram como folha unica
+	# 2172x724 com 6 poses num grid UNIFORME (confirmado visualmente com
+	# linhas de grade sobrepostas — cada 1/6 da largura cai exatamente nas
+	# bordas de cada pose, so a ponta da espada cruza levemente a celula
+	# vizinha em alguns quadros, aceitavel) — redimensionada pra 60px de
+	# altura (180x60 final, 30px por quadro) pra bater com a mesma altura
+	# de canvas de Parado.png/Correndo.png e usar o mesmo ROLE_BODY.scale.
 	"cavaleiro_executivo": {
 		"idle": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Parado.png", "fps": 6.0, "loop": true, "rects": [Rect2(0,0,48,60), Rect2(48,0,47,60), Rect2(95,0,45,60), Rect2(140,0,46,60), Rect2(186,0,50,60)]},
 		"move": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Andando.png", "fps": 12.0, "loop": true, "rects": [Rect2(0,0,53,57), Rect2(53,0,50,57), Rect2(103,0,51,57), Rect2(154,0,55,57), Rect2(209,0,56,57), Rect2(265,0,55,57), Rect2(320,0,56,57), Rect2(376,0,57,57), Rect2(433,0,113,57)]},
-		"attack": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Agachando.png", "fps": 12.0, "loop": false, "rects": [Rect2(0,0,64,58), Rect2(64,0,58,58), Rect2(122,0,66,58), Rect2(188,0,56,58)]},
-		"special": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Correndo.png", "fps": 14.0, "loop": false, "rects": [Rect2(0,0,68,60), Rect2(68,0,64,60), Rect2(132,0,69,60), Rect2(201,0,73,60), Rect2(274,0,68,60), Rect2(342,0,63,60), Rect2(405,0,62,60), Rect2(467,0,79,60)]},
+		"attack": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Ataque.png", "fps": 14.0, "loop": false, "rects": [Rect2(0,0,30,60), Rect2(30,0,30,60), Rect2(60,0,30,60), Rect2(90,0,30,60), Rect2(120,0,30,60), Rect2(150,0,30,60)]},
+		# fps alto de proposito: a Estocada (warrior/knight/cavaleiro_executivo)
+		# trava a animacao por so 0.22s (`_start_charge()`, mesmo tempo da
+		# arrancada em si — nao mudado aqui pra nao alterar o alcance/balance
+		# ja calibrado pros outros papeis) — 6 quadros precisam caber nesse
+		# tempo (~27fps) pra nao serem cortados no meio pelo retorno a idle/move.
+		"special": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Estocada.png", "fps": 27.0, "loop": false, "rects": [Rect2(0,0,30,60), Rect2(30,0,30,60), Rect2(60,0,30,60), Rect2(90,0,30,60), Rect2(120,0,30,60), Rect2(150,0,30,60)]},
 		"jump": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Pulo.png", "fps": 8.0, "loop": false, "rects": [Rect2(0,0,77,83), Rect2(77,0,75,83), Rect2(152,0,82,83), Rect2(234,0,74,83)]},
 		"fall": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Caindo.png", "fps": 6.0, "loop": true, "rects": [Rect2(0,0,80,75), Rect2(80,0,69,75), Rect2(149,0,80,75)]},
 	},
@@ -244,14 +252,17 @@ const DISPLAY_NAME := {
 }
 
 # A maioria dos packs desenha o personagem de frente pra DIREITA (facing=1
-# sem flip); esses 4 inimigos vieram do lado oposto (rosto/arma/cauda
+# sem flip); esses inimigos vieram do lado oposto (rosto/arma/cauda
 # apontando pra ESQUERDA no frame-fonte, confirmado visualmente comparando
-# Necromante/Satyr/Dragao lado a lado com o Morcego, que fica correto sem
-# essa lista) — sem isso eles "andam de costas" (flip_h sai invertido em
-# relacao ao sentido real do movimento).
+# lado a lado com o Morcego, que fica correto sem essa lista) — sem isso
+# eles "andam de costas" (flip_h sai invertido em relacao ao sentido real
+# do movimento). O Satyr NAO entra aqui — reportado pelo usuario andando
+# de costas (corpo virado pro lado oposto ao movimento) quando estava
+# nesta lista; o frame-fonte dele na verdade ja olha pra DIREITA por
+# padrao, confirmado visualmente (o rosto/olhos ficam do lado errado ao
+# perseguir o grupo pra esquerda com a entrada antiga).
 const ROLE_FACES_LEFT := {
 	"necromancer": true,
-	"satyr": true,
 	"ogre": true,
 	"dragon": true,
 }
@@ -705,6 +716,13 @@ func _draw() -> void:
 
 	if is_controlled and team == "ally":
 		draw_arc(Vector2(0, -3), 12.0, 0.0, TAU, 28, Color("ffe26f"), 1.5)
+
+	if team == "ally":
+		# Pedido do usuario: a barrinha flutuante em cima da cabeca ficou
+		# redundante pros personagens jogaveis depois que o grupo ganhou os
+		# medidores verticais fixos na borda esquerda (PartyHpBars12) —
+		# inimigos/bosses continuam mostrando a propria aqui.
+		return
 
 	var ratio := float(hp) / float(max_hp)
 	var bar_y: float = ROLE_BODY[role]["shape_y"] - float(ROLE_BODY[role]["height"]) * 0.5 - 8.0

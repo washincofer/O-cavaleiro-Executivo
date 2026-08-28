@@ -6,7 +6,7 @@ extends Control
 ##
 ## Sprint 16: `_build_landscape()`/`_build_portrait()` (320x180/180x320,
 ## escolhida uma vez em `_ready()` via DeviceLayout12.is_portrait) — o botao
-## PULAR usa o skin Kenney (KenneyUI12) nos dois modos.
+## PULAR usa o skin Medieval Free (MedievalUI12) nos dois modos.
 ##
 ## Pos-16 (pedido do usuario: "o video ainda esta dando zoom e ficando
 ## bugado, era literalmente so rodar o video como um youtube da vida"):
@@ -33,7 +33,7 @@ const VIDEO_PATH := "res://assets/Video/Runtime/company_intro.ogv"
 const WEB_VIDEO_URL_WEBM := "company_intro.webm"
 const WEB_VIDEO_URL_MP4 := "company_intro.mp4"
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
-const BODY_FONT_PATH := "res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf"
+const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
 const VIDEO_ASPECT := 320.0 / 180.0
 
 var player: VideoStreamPlayer
@@ -131,7 +131,7 @@ func _build_skip_button(pos: Vector2, size: Vector2) -> void:
 	skip_button.text = "PULAR >>"
 	skip_button.focus_mode = Control.FOCUS_NONE
 	skip_button.position = pos
-	KenneyUI12.style_button(skip_button, false, 7, size)
+	MedievalUI12.style_button(skip_button, true, load(BODY_FONT_PATH), 7, Color("f4e7c9"), size)
 	skip_button.pressed.connect(_go_to_stage_select)
 	add_child(skip_button)
 
@@ -171,11 +171,32 @@ func _start_web_video() -> void:
 		v.style.objectFit = 'contain';
 		v.style.background = '#000000';
 		v.style.zIndex = '99999';
+		// pointer-events:none deixa clique/toque atravessar direto pro
+		// canvas por baixo — sem isso a tag <video> (por cima de tudo, pra
+		// ficar visivel) rouba o clique antes dele virar um InputEvent do
+		// Godot, quebrando o "clique pra pular" (so o teclado funcionava).
+		v.style.pointerEvents = 'none';
 		document.body.appendChild(v);
 		window.__godot_intro_video_el = v;
 		var finish = function() { window.__godot_intro_video_ended(); };
 		v.addEventListener('ended', finish);
 		v.addEventListener('error', finish);
+		// Pula em qualquer clique/toque/tecla direto no listener JS, sem
+		// depender do clique virar um InputEvent do Godot (o canvas do
+		// Godot as vezes nao recebe o evento de forma confiavel enquanto a
+		// tag <video> esta por cima, mesmo com pointer-events:none) — o
+		// mesmo comportamento de "clique ou aperte qualquer tecla pra
+		// pular" pedido pelo usuario, so que resolvido no lado do navegador.
+		var skipHandler = function() {
+			document.removeEventListener('mousedown', skipHandler);
+			document.removeEventListener('touchstart', skipHandler);
+			document.removeEventListener('keydown', skipHandler);
+			finish();
+		};
+		document.addEventListener('mousedown', skipHandler);
+		document.addEventListener('touchstart', skipHandler);
+		document.addEventListener('keydown', skipHandler);
+		window.__godot_intro_skip_handler = skipHandler;
 		v.load();
 		var playPromise = v.play();
 		if (playPromise !== undefined) {
@@ -202,6 +223,12 @@ func _stop_web_video() -> void:
 	(function() {
 		var v = window.__godot_intro_video_el;
 		if (v) { v.pause(); v.remove(); window.__godot_intro_video_el = null; }
+		if (window.__godot_intro_skip_handler) {
+			document.removeEventListener('mousedown', window.__godot_intro_skip_handler);
+			document.removeEventListener('touchstart', window.__godot_intro_skip_handler);
+			document.removeEventListener('keydown', window.__godot_intro_skip_handler);
+			window.__godot_intro_skip_handler = null;
+		}
 	})();
 	""", true)
 
