@@ -4,7 +4,10 @@ config_version=5
 
 [application]
 config/name="O Cavaleiro Executivo - Laboratorio 12"
-run/main_scene="res://scenes/menu/stage_select_12.tscn"
+run/main_scene="res://scenes/menu/company_intro_12.tscn"
+
+[autoload]
+PartySelection12="*res://scripts/globals/party_selection_12.gd"
 
 [display]
 window/size/viewport_width=320
@@ -12,7 +15,7 @@ window/size/viewport_height=180
 window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
-window/handheld/orientation=1
+window/handheld/orientation=0
 
 [audio]
 driver/enable_input=false

@@ -15,6 +15,9 @@ seguidores validada nas sprints 11B/11C.
 | Medieval Warrior Pack 3 | Guerreiro (slot 1) | CC0 |
 | Monsters Creatures Fantasy 2 | Inimigos Rato e Gosma (Slime) | Mesmo autor/estilo dos packs acima; sem `License.txt` no zip — trate como os demais ate confirmacao explicita antes de uso comercial fora deste prototipo |
 | Pixel Cave Tileset (NamiPixels) | Piso/parede da caverna (`cave_tileset.png`) | Uso comercial/nao comercial permitido; **nao pode ser revendido/redistribuido como asset pack** |
+| Wizard Free (Fire Mage/Lightning Mage/Wanderer) | 3 magos alternativos selecionaveis | Mesmo autor/estilo dos demais packs de personagem; sem `License.txt` no zip — mesma cautela do Monsters Creatures Fantasy 2 |
+| MedievalSharp | Fonte de UI/paragrafos | SIL Open Font License 1.1 (permissiva, embutivel) |
+| Medieval Scroll of Wisdom | Fonte de titulos | Sem arquivo de licenca no zip enviado — mesma cautela dos assets sem `License.txt` acima |
 
 Os arquivos usados ficam em `assets/Characters/<Nome>/Runtime/`,
 `assets/Enemies/<Nome>/Runtime/` e `assets/Environment/Cave/Runtime/`,
@@ -36,6 +39,10 @@ foram copiados para Runtime.
 Os tres agora sao simetricos: qualquer um, quando controlado (`1`/`2`/`3`),
 pode atacar com `J`. Isso substitui o desenho antigo em que so o Cavaleiro
 lutava e os demais eram companions utilitarios.
+
+(Esses tres continuam sendo a opcao "classica" de cada categoria — veja
+"Elenco expandido, selecao estilo Smash Bros e tipografia" mais abaixo
+para as 3 alternativas adicionadas depois e como a escolha funciona.)
 
 ## Inimigos (Monsters Creatures Fantasy 2)
 
@@ -152,6 +159,45 @@ foram escritos com `Array[Tipo]` e anotacoes de tipo explicitas para evitar
 a mesma armadilha; os arquivos antigos das sprints 11B/11C nao foram
 tocados (permanecem como registro historico).
 
+## Elenco expandido, selecao estilo Smash Bros e tipografia
+
+Alem do trio original (Guerreiro/Arqueira/Maga), o elenco ganhou 3 magos da
+pack Wizard Free (Fire Mage, Lightning Mage e Wanderer), cada um com seu
+proprio conjunto de animacoes (`Idle`/`Run`/ataque a distancia/`special`/
+`Hurt`/`Dead`/`Jump`) e uma habilidade na tecla H equivalente a de um dos 3
+originais:
+
+| Categoria (mecanica do puzzle) | Opcao classica | Opcao alternativa |
+| --- | --- | --- |
+| Quebra o ENTULHO (Estocada / Rajada) | GUERREIRO | MAGO DE FOGO |
+| Atravessa a BARREIRA (Tiro Perfurante) | ARQUEIRA | MAGO DO RAIO |
+| Cruza o VAO largo (Teleporte) | MAGA | MAGO ANDARILHO |
+
+Antes de carregar a fase, `scenes/menu/character_select_12.tscn` mostra uma
+tela de selecao no estilo Super Smash Bros: 3 colunas (uma por categoria),
+cada uma com as 2 opcoes daquela categoria, borda colorida indicando a
+escolha atual e uma pratilha "SEU GRUPO" com preview ao vivo dos 3
+personagens escolhidos antes de clicar em COMECAR. A escolha e sempre
+"uma opcao por categoria" (nunca livre entre os 6) porque o puzzle da
+Provacao do Trio exige exatamente uma mecanica de cada tipo — isso garante
+que qualquer combinacao final ainda consegue terminar a fase.
+
+A escolha e guardada no autoload `PartySelection12`
+(`scripts/globals/party_selection_12.gd`, registrado em `project.godot`),
+lido por `_spawn_party()` em `platform_party_12.gd` — o roster fixo virou
+`PartySelection12.get_party_roles()`. O menu de pausa (instrucoes) tambem
+passou a gerar o texto do objetivo dinamicamente a partir dos personagens
+realmente selecionados, em vez do texto fixo Guerreiro/Arqueira/Maga.
+
+Duas fontes reais substituiram o `SystemFont` (Arial Black/Impact) usado
+ate a sprint anterior: **Medieval Scroll of Wisdom** para titulos (nome do
+jogo, nome da fase, "PAUSADO", "CARREGANDO...") e **MedievalSharp** (SIL
+Open Font License 1.1) para paragrafos/UI (subtitulos, botoes, instrucoes,
+HUD). Arquivos em `assets/Fonts/Runtime/`. A fonte decorativa tem
+ascendentes bem altos — titulos perto do topo da tela (y < ~8px) cortam
+contra a borda do viewport; por isso os titulos de `stage_select_12.gd` e
+`character_select_12.gd` ficam a partir de y=9, nunca y=0-2.
+
 ## Arquivos
 
 - `project.godot` — `run/main_scene` aponta para `scenes/menu/stage_select_12.tscn`.
@@ -169,6 +215,16 @@ tocados (permanecem como registro historico).
 - `scripts/playtest/platform_projectile_12.gd` — flecha (sprite real) e
   orbe magico (desenhado).
 - `scripts/playtest/platform_switch_12.gd` — interruptor do puzzle.
+- `scenes/menu/character_select_12.tscn` + `scripts/menu/character_select_12.gd`
+  — selecao de personagens estilo Super Smash Bros (uma opcao por categoria).
+- `scripts/globals/party_selection_12.gd` — autoload `PartySelection12` que
+  guarda a escolha de personagem por categoria entre as telas.
+- `assets/Characters/FireMage/Runtime/`, `assets/Characters/LightningMage/Runtime/`,
+  `assets/Characters/Wanderer/Runtime/` — os 3 magos alternativos (Wizard Free).
+- `assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf` (titulos),
+  `assets/Fonts/Runtime/MedievalSharp-Book.ttf` (paragrafos/UI).
+- `assets/UI/Runtime/Portraits/*.png` — retrato (frame 0 do Idle, recortado)
+  de cada um dos 6 personagens jogaveis, usado na selecao.
 - `assets/Characters/Warrior/Runtime/Attack2.png`,
   `assets/Characters/Mage/Runtime/Attack2.png` — animacao da habilidade
   especial de Guerreiro e Maga (Arqueira reusa a pose de ataque comum,

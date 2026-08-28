@@ -1,9 +1,11 @@
 class_name PlatformPartyProjectile12
 extends Area2D
 
-## Sprint 12: projetil de longo alcance do trio.
-## "arrow" usa o sprite real da flecha (Huntress 2); "orb" e um projetil
-## magico desenhado (a Wizard Pack nao inclui um sprite de feitico solto).
+## Sprint 12: projetil de longo alcance do elenco.
+## "arrow"/"pierce_arrow" usam o sprite real da flecha (Huntress 2); "orb",
+## "fire_orb", "lightning_orb" e "arcane_orb" sao projeteis magicos desenhados
+## (nenhum dos packs de mago inclui um sprite de feitico solto), um por
+## personagem arcano, so variando a cor.
 
 const ARROW_TEXTURE := preload("res://assets/Characters/Archer/Runtime/Arrow/Move.png")
 const PIERCE_TEXTURE := preload("res://assets/Characters/Archer/Runtime/Arrow/Static.png")
@@ -62,6 +64,8 @@ func setup(p_controller: Node, p_owner, p_direction: Vector2, p_kind: String) ->
 		sprite.scale = Vector2(1.4, 1.4)
 		sprite.modulate = Color(0.6, 1.0, 1.0)
 		add_child(sprite)
+	elif kind == "fire_orb" or kind == "lightning_orb" or kind == "arcane_orb":
+		speed = 240.0
 	else:
 		speed = 220.0
 
@@ -95,8 +99,20 @@ func _hits_world(next_position: Vector2) -> bool:
 	return not hit.is_empty()
 
 func _draw() -> void:
-	if kind != "orb":
-		return
-	draw_circle(Vector2.ZERO, 4.0, Color(0.55, 0.35, 0.95, 0.35))
-	draw_circle(Vector2.ZERO, 2.4, Color(0.8, 0.65, 1.0))
-	draw_circle(Vector2.ZERO, 1.1, Color(1.0, 1.0, 1.0))
+	match kind:
+		"orb":
+			draw_circle(Vector2.ZERO, 4.0, Color(0.55, 0.35, 0.95, 0.35))
+			draw_circle(Vector2.ZERO, 2.4, Color(0.8, 0.65, 1.0))
+			draw_circle(Vector2.ZERO, 1.1, Color(1.0, 1.0, 1.0))
+		"fire_orb":
+			draw_circle(Vector2.ZERO, 4.0, Color(1.0, 0.4, 0.1, 0.35))
+			draw_circle(Vector2.ZERO, 2.4, Color(1.0, 0.65, 0.2))
+			draw_circle(Vector2.ZERO, 1.1, Color(1.0, 0.95, 0.6))
+		"lightning_orb":
+			draw_circle(Vector2.ZERO, 4.0, Color(1.0, 0.95, 0.3, 0.35))
+			draw_circle(Vector2.ZERO, 2.4, Color(1.0, 1.0, 0.6))
+			draw_circle(Vector2.ZERO, 1.1, Color(1.0, 1.0, 1.0))
+		"arcane_orb":
+			draw_circle(Vector2.ZERO, 4.0, Color(0.2, 0.85, 0.8, 0.35))
+			draw_circle(Vector2.ZERO, 2.4, Color(0.55, 1.0, 0.95))
+			draw_circle(Vector2.ZERO, 1.1, Color(1.0, 1.0, 1.0))

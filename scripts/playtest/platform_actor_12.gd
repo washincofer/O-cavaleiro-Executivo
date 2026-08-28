@@ -8,6 +8,10 @@ extends CharacterBody2D
 
 signal died(actor)
 
+const HEALTH_BAR_TEX := preload("res://assets/UI/Runtime/MedievalFree/health_bar.png")
+const NAMEPLATE_FONT := preload("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
+const HitEffect := preload("res://scenes/playtest/hit_effect_12.tscn")
+
 const ROLE_ANIM := {
 	"warrior": {
 		"idle": {"path": "res://assets/Characters/Warrior/Runtime/Idle.png", "fw": 135, "fh": 135, "count": 10, "fps": 8.0, "loop": true},
@@ -38,6 +42,69 @@ const ROLE_ANIM := {
 		"jump": {"path": "res://assets/Characters/Mage/Runtime/Jump.png", "fw": 231, "fh": 190, "count": 2, "fps": 6.0, "loop": false},
 		"fall": {"path": "res://assets/Characters/Mage/Runtime/Fall.png", "fw": 231, "fh": 190, "count": 2, "fps": 6.0, "loop": true},
 	},
+	"fire_mage": {
+		"idle": {"path": "res://assets/Characters/FireMage/Runtime/Idle.png", "fw": 128, "fh": 128, "count": 7, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Characters/FireMage/Runtime/Run.png", "fw": 128, "fh": 128, "count": 8, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/FireMage/Runtime/Fireball.png", "fw": 128, "fh": 128, "count": 8, "fps": 12.0, "loop": false},
+		"special": {"path": "res://assets/Characters/FireMage/Runtime/FlameJet.png", "fw": 128, "fh": 128, "count": 14, "fps": 18.0, "loop": false},
+		"hurt": {"path": "res://assets/Characters/FireMage/Runtime/Hurt.png", "fw": 128, "fh": 128, "count": 3, "fps": 12.0, "loop": false},
+		"death": {"path": "res://assets/Characters/FireMage/Runtime/Dead.png", "fw": 128, "fh": 128, "count": 6, "fps": 10.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/FireMage/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 9, "fps": 8.0, "loop": false},
+		"fall": {"path": "res://assets/Characters/FireMage/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 9, "fps": 8.0, "loop": true},
+	},
+	"lightning_mage": {
+		"idle": {"path": "res://assets/Characters/LightningMage/Runtime/Idle.png", "fw": 128, "fh": 128, "count": 7, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Characters/LightningMage/Runtime/Run.png", "fw": 128, "fh": 128, "count": 8, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/LightningMage/Runtime/LightBall.png", "fw": 128, "fh": 128, "count": 7, "fps": 12.0, "loop": false},
+		"special": {"path": "res://assets/Characters/LightningMage/Runtime/LightCharge.png", "fw": 128, "fh": 128, "count": 13, "fps": 18.0, "loop": false},
+		"hurt": {"path": "res://assets/Characters/LightningMage/Runtime/Hurt.png", "fw": 128, "fh": 128, "count": 3, "fps": 12.0, "loop": false},
+		"death": {"path": "res://assets/Characters/LightningMage/Runtime/Dead.png", "fw": 128, "fh": 128, "count": 5, "fps": 10.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/LightningMage/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": false},
+		"fall": {"path": "res://assets/Characters/LightningMage/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": true},
+	},
+	"wanderer": {
+		"idle": {"path": "res://assets/Characters/Wanderer/Runtime/Idle.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Characters/Wanderer/Runtime/Run.png", "fw": 128, "fh": 128, "count": 8, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/Wanderer/Runtime/MagicArrow.png", "fw": 128, "fh": 128, "count": 6, "fps": 12.0, "loop": false},
+		"special": {"path": "res://assets/Characters/Wanderer/Runtime/Attack2.png", "fw": 128, "fh": 128, "count": 9, "fps": 14.0, "loop": false},
+		"hurt": {"path": "res://assets/Characters/Wanderer/Runtime/Hurt.png", "fw": 128, "fh": 128, "count": 4, "fps": 12.0, "loop": false},
+		"death": {"path": "res://assets/Characters/Wanderer/Runtime/Dead.png", "fw": 128, "fh": 128, "count": 4, "fps": 10.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/Wanderer/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": false},
+		"fall": {"path": "res://assets/Characters/Wanderer/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": true},
+	},
+	# Paladino e Cavaleiro sao personagens livres (selecionaveis so nas fases
+	# de boss, fora do sistema de categorias da Caverna) — cada um reaproveita
+	# uma mecanica ja existente (Rajada/Estocada) na tecla especial, sem
+	# depender de logica nova no boss.
+	"paladin": {
+		"idle": {"path": "res://assets/Characters/Paladin/Runtime/Idle.png", "fw": 128, "fh": 128, "count": 27, "fps": 10.0, "loop": true},
+		"move": {"path": "res://assets/Characters/Paladin/Runtime/Walk.png", "fw": 128, "fh": 128, "count": 10, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/Paladin/Runtime/Attack.png", "fw": 128, "fh": 128, "count": 30, "fps": 16.0, "loop": false},
+		"special": {"path": "res://assets/Characters/Paladin/Runtime/Attack2.png", "fw": 160, "fh": 128, "count": 24, "fps": 10.0, "loop": false},
+		"hurt": {"path": "res://assets/Characters/Paladin/Runtime/Hurt.png", "fw": 128, "fh": 128, "count": 12, "fps": 14.0, "loop": false},
+		"death": {"path": "res://assets/Characters/Paladin/Runtime/Death.png", "fw": 128, "fh": 128, "count": 30, "fps": 8.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/Paladin/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 13, "fps": 10.0, "loop": false},
+		"fall": {"path": "res://assets/Characters/Paladin/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 13, "fps": 10.0, "loop": true},
+	},
+	# Bridge Heroine (Gothicvania, Legacy Collection): so trouxe Idle/Run/
+	# Attack/Jump (sem Hurt/Death, mesmo caso ja tratado sem problemas pelo
+	# Cavaleiro/Ogro). Sem "special" propria — reaproveita o proprio ataque
+	# (ver ROLE_TAG/activate_special no controller de cada fase de boss).
+	"bridge_heroine": {
+		"idle": {"path": "res://assets/Characters/BridgeHeroine/Runtime/Idle.png", "fw": 128, "fh": 64, "count": 4, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Characters/BridgeHeroine/Runtime/Run.png", "fw": 128, "fh": 64, "count": 7, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/BridgeHeroine/Runtime/Attack.png", "fw": 128, "fh": 64, "count": 5, "fps": 14.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/BridgeHeroine/Runtime/Jump.png", "fw": 128, "fh": 64, "count": 4, "fps": 8.0, "loop": false},
+	},
+	"knight": {
+		"idle": {"path": "res://assets/Characters/Knight/Runtime/Idle.png", "fw": 64, "fh": 64, "count": 15, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Characters/Knight/Runtime/Run.png", "fw": 96, "fh": 64, "count": 8, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/Knight/Runtime/Attack.png", "fw": 144, "fh": 64, "count": 22, "fps": 18.0, "loop": false},
+		"special": {"path": "res://assets/Characters/Knight/Runtime/Shield.png", "fw": 96, "fh": 64, "count": 7, "fps": 10.0, "loop": false},
+		"death": {"path": "res://assets/Characters/Knight/Runtime/Death.png", "fw": 96, "fh": 64, "count": 15, "fps": 10.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/Knight/Runtime/Jump.png", "fw": 144, "fh": 64, "count": 15, "fps": 10.0, "loop": false},
+		"fall": {"path": "res://assets/Characters/Knight/Runtime/Jump.png", "fw": 144, "fh": 64, "count": 15, "fps": 10.0, "loop": true},
+	},
 	"slime": {
 		"idle": {"path": "res://assets/Enemies/Slime/Runtime/Idle.png", "fw": 156, "fh": 156, "count": 14, "fps": 8.0, "loop": true},
 		"move": {"path": "res://assets/Enemies/Slime/Runtime/Walk.png", "fw": 156, "fh": 156, "count": 6, "fps": 8.0, "loop": true},
@@ -45,12 +112,55 @@ const ROLE_ANIM := {
 		"hurt": {"path": "res://assets/Enemies/Slime/Runtime/Hurt.png", "fw": 156, "fh": 156, "count": 3, "fps": 12.0, "loop": false},
 		"death": {"path": "res://assets/Enemies/Slime/Runtime/Death.png", "fw": 156, "fh": 156, "count": 11, "fps": 10.0, "loop": false},
 	},
+	"necromancer": {
+		"idle": {"path": "res://assets/Enemies/Necromancer/Runtime/Idle.png", "fw": 96, "fh": 96, "count": 40, "fps": 10.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Necromancer/Runtime/Walk.png", "fw": 96, "fh": 96, "count": 10, "fps": 10.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Necromancer/Runtime/Attack.png", "fw": 128, "fh": 128, "count": 30, "fps": 15.0, "loop": false},
+		"hurt": {"path": "res://assets/Enemies/Necromancer/Runtime/Hurt.png", "fw": 96, "fh": 96, "count": 9, "fps": 14.0, "loop": false},
+		"death": {"path": "res://assets/Enemies/Necromancer/Runtime/Death.png", "fw": 96, "fh": 96, "count": 40, "fps": 12.0, "loop": false},
+	},
 	"rat": {
 		"idle": {"path": "res://assets/Enemies/Rat/Runtime/Idle.png", "fw": 70, "fh": 70, "count": 10, "fps": 8.0, "loop": true},
 		"move": {"path": "res://assets/Enemies/Rat/Runtime/Run.png", "fw": 70, "fh": 70, "count": 8, "fps": 12.0, "loop": true},
 		"attack": {"path": "res://assets/Enemies/Rat/Runtime/Attack.png", "fw": 70, "fh": 70, "count": 12, "fps": 14.0, "loop": false},
 		"hurt": {"path": "res://assets/Enemies/Rat/Runtime/Hurt.png", "fw": 70, "fh": 70, "count": 3, "fps": 12.0, "loop": false},
 		"death": {"path": "res://assets/Enemies/Rat/Runtime/Death.png", "fw": 70, "fh": 70, "count": 6, "fps": 10.0, "loop": false},
+	},
+	"satyr": {
+		"idle": {"path": "res://assets/Enemies/Satyr/Runtime/Idle.png", "fw": 32, "fh": 32, "count": 6, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Satyr/Runtime/Walk.png", "fw": 32, "fh": 32, "count": 8, "fps": 10.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Satyr/Runtime/Attack.png", "fw": 32, "fh": 32, "count": 7, "fps": 12.0, "loop": false},
+		"hurt": {"path": "res://assets/Enemies/Satyr/Runtime/Hurt.png", "fw": 32, "fh": 32, "count": 4, "fps": 14.0, "loop": false},
+		"death": {"path": "res://assets/Enemies/Satyr/Runtime/Death.png", "fw": 32, "fh": 32, "count": 10, "fps": 10.0, "loop": false},
+	},
+	# Pack Gothicvania (Legacy Collection) so trouxe Idle/Walk/Attack para o
+	# Ogro (sem Hurt/Death) — o mesmo caso ja tratado sem problemas pelo
+	# Cavaleiro (sem "hurt") e por `_die()` (sem "death" ele so fica invisivel).
+	"ogre": {
+		"idle": {"path": "res://assets/Enemies/Ogre/Runtime/Idle.png", "fw": 144, "fh": 80, "count": 4, "fps": 6.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Ogre/Runtime/Walk.png", "fw": 144, "fh": 80, "count": 6, "fps": 8.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Ogre/Runtime/Attack.png", "fw": 144, "fh": 80, "count": 7, "fps": 10.0, "loop": false},
+	},
+	# Morcego (Monsters Creatures Fantasy 2): nao anda, so voa — "idle" e
+	# "move" reaproveitam a mesma folha (Fly.png), e o offset visual (ver
+	# ROLE_BODY) flutua o sprite bem acima da origem fisica, na mesma tecnica
+	# ja usada pelos magos do grupo (offset negativo grande) para dar a
+	# ilusao de estar no ar mesmo com a origem "presa" ao chao.
+	"bat": {
+		"idle": {"path": "res://assets/Enemies/Bat/Runtime/Fly.png", "fw": 87, "fh": 87, "count": 11, "fps": 14.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Bat/Runtime/Fly.png", "fw": 87, "fh": 87, "count": 11, "fps": 14.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Bat/Runtime/Attack.png", "fw": 87, "fh": 87, "count": 11, "fps": 16.0, "loop": false},
+		"hurt": {"path": "res://assets/Enemies/Bat/Runtime/Hurt.png", "fw": 87, "fh": 87, "count": 3, "fps": 14.0, "loop": false},
+		"death": {"path": "res://assets/Enemies/Bat/Runtime/Death.png", "fw": 87, "fh": 87, "count": 4, "fps": 10.0, "loop": false},
+	},
+	# Pack Gothicvania "Grotto-escape-2-boss-dragon" (Legacy Collection) so
+	# trouxe Idle e Breath (sopro de fogo, usado como "attack") — sem Walk/
+	# Hurt/Death, mesmo caso ja tratado sem problemas pelo Ogro/`_die()`; o
+	# Dragao guarda o tesouro parado, entao nem precisaria de "move" mesmo.
+	"dragon": {
+		"idle": {"path": "res://assets/Enemies/Dragon/Runtime/Idle.png", "fw": 144, "fh": 64, "count": 6, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Dragon/Runtime/Idle.png", "fw": 144, "fh": 64, "count": 6, "fps": 8.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Dragon/Runtime/Breath.png", "fw": 144, "fh": 64, "count": 7, "fps": 10.0, "loop": false},
 	},
 }
 
@@ -61,16 +171,52 @@ const ROLE_BODY := {
 	"warrior": {"scale": 0.842, "offset": Vector2(0.5, -18.5), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 92.0, "max_hp": 5, "ranged": false},
 	"archer": {"scale": 0.889, "offset": Vector2(-1.0, -17.0), "radius": 5.0, "height": 26.0, "shape_y": -15.0, "speed": 96.0, "max_hp": 4, "ranged": true},
 	"mage": {"scale": 0.372, "offset": Vector2(5.0, -46.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
+	"fire_mage": {"scale": 0.485, "offset": Vector2(14.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
+	"lightning_mage": {"scale": 0.390, "offset": Vector2(26.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
+	"wanderer": {"scale": 0.485, "offset": Vector2(0.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
+	"paladin": {"scale": 1.3, "offset": Vector2(2.5, 0.0), "radius": 7.0, "height": 28.0, "shape_y": -16.0, "speed": 90.0, "max_hp": 6, "ranged": false},
+	"knight": {"scale": 1.4, "offset": Vector2(-3.0, -12.0), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 90.0, "max_hp": 5, "ranged": false},
+	"bridge_heroine": {"scale": 1.25, "offset": Vector2(0.0, -32.0), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 94.0, "max_hp": 5, "ranged": false},
 	"slime": {"scale": 1.0, "offset": Vector2(0.0, -9.0), "radius": 7.0, "height": 14.0, "shape_y": -8.0, "speed": 46.0, "max_hp": 3, "ranged": false},
 	"rat": {"scale": 0.9, "offset": Vector2(0.0, -10.0), "radius": 6.0, "height": 16.0, "shape_y": -9.0, "speed": 58.0, "max_hp": 3, "ranged": false},
+	"necromancer": {"scale": 1.75, "offset": Vector2(-4.0, -16.0), "radius": 10.0, "height": 48.0, "shape_y": -28.0, "speed": 26.0, "max_hp": 60, "ranged": false},
+	"satyr": {"scale": 4.5, "offset": Vector2(2.0, -11.0), "radius": 9.0, "height": 44.0, "shape_y": -26.0, "speed": 34.0, "max_hp": 55, "ranged": false},
+	"ogre": {"scale": 1.5, "offset": Vector2(10.0, -40.0), "radius": 11.0, "height": 44.0, "shape_y": -25.0, "speed": 22.0, "max_hp": 58, "ranged": false},
+	"bat": {"scale": 2.4, "offset": Vector2(-3.5, -25.0), "radius": 10.0, "height": 30.0, "shape_y": -16.0, "speed": 50.0, "max_hp": 50, "ranged": false},
+	"dragon": {"scale": 2.2, "offset": Vector2(-23.5, -32.0), "radius": 14.0, "height": 46.0, "shape_y": -26.0, "speed": 0.0, "max_hp": 65, "ranged": false},
 }
+
+# Tinta permanente do sprite por role (multiplicada sobre a textura); a
+# maioria fica branca (sem alterar as cores originais do pack) — so entra
+# aqui quando um role reaproveita a arte de outro e precisa de diferenciacao
+# visual (ex.: um inimigo comum reaproveitado em escala maior como boss).
+const ROLE_MODULATE := {}
 
 const DISPLAY_NAME := {
 	"warrior": "GUERREIRO",
 	"archer": "ARQUEIRA",
 	"mage": "MAGA",
+	"fire_mage": "MAGO DE FOGO",
+	"lightning_mage": "MAGO DO RAIO",
+	"wanderer": "MAGO ANDARILHO",
+	"paladin": "PALADINO",
+	"knight": "CAVALEIRO",
+	"bridge_heroine": "HEROINA DA PONTE",
 	"slime": "GOSMA",
 	"rat": "RATO",
+	"necromancer": "NECROMANTE",
+	"satyr": "SATYR",
+	"ogre": "OGRO",
+	"bat": "MORCEGO",
+	"dragon": "DRAGAO",
+}
+
+const RANGED_PROJECTILE_KIND := {
+	"archer": "arrow",
+	"mage": "orb",
+	"fire_mage": "fire_orb",
+	"lightning_mage": "lightning_orb",
+	"wanderer": "arcane_orb",
 }
 
 var controller: Node
@@ -112,6 +258,7 @@ var charge_direction := 1.0
 
 var sprite: AnimatedSprite2D
 var nameplate: Label
+var base_modulate := Color(1, 1, 1)
 
 func setup(
 	p_controller: Node,
@@ -155,6 +302,8 @@ func setup(
 	var body_scale: float = body_cfg["scale"]
 	sprite.scale = Vector2(body_scale, body_scale)
 	sprite.offset = body_cfg["offset"]
+	base_modulate = ROLE_MODULATE.get(role, Color(1, 1, 1))
+	sprite.modulate = base_modulate
 	sprite.animation = "idle"
 	sprite.play("idle")
 	sprite.animation_finished.connect(_on_animation_finished)
@@ -163,8 +312,13 @@ func setup(
 	nameplate = Label.new()
 	nameplate.text = actor_name
 	nameplate.position = Vector2(-25, body_shape_y - body_height * 0.5 - 16.0)
+	nameplate.size = Vector2(50, 8)
+	nameplate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nameplate.add_theme_font_override("font", NAMEPLATE_FONT)
 	nameplate.add_theme_font_size_override("font_size", 6)
 	nameplate.add_theme_color_override("font_color", p_tint)
+	nameplate.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	nameplate.add_theme_constant_override("outline_size", 2)
 	add_child(nameplate)
 	queue_redraw()
 
@@ -314,7 +468,7 @@ func activate_ranged_attack() -> bool:
 		return false
 	attack_cooldown = attack_cooldown_max
 	_play_attack()
-	var kind := "arrow" if role == "archer" else "orb"
+	var kind: String = RANGED_PROJECTILE_KIND.get(role, "orb")
 	controller.spawn_party_projectile(self, Vector2(facing, 0.0), kind)
 	return true
 
@@ -329,13 +483,30 @@ func activate_special() -> bool:
 	if not alive or special_cooldown > 0.0 or charge_timer > 0.0:
 		return false
 	match role:
-		"warrior":
+		"warrior", "knight":
 			return _start_charge()
-		"archer":
+		"fire_mage", "paladin":
+			return _cast_fire_burst()
+		"archer", "lightning_mage":
 			return _fire_piercing_shot()
-		"mage":
+		"mage", "wanderer":
 			return _cast_teleport()
+		"bridge_heroine":
+			return _summon_bridge()
 	return false
+
+func _summon_bridge() -> bool:
+	# Mecanica exclusiva da Heroina da Ponte (Sprint 15): invoca uma
+	# plataforma temporaria a frente dela. So o Covil do Tesouro (unica fase
+	# com um vao real para isso) implementa `summon_bridge_from` de verdade;
+	# as demais fases o tem como no-op inofensivo (mesmo padrao usado por
+	# `try_break_rubble` nas fases de boss sem entulho).
+	special_cooldown = special_cooldown_max
+	attack_lock_timer = 0.4
+	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("special"):
+		sprite.play("special")
+	controller.summon_bridge_from(self)
+	return true
 
 func _start_charge() -> bool:
 	special_cooldown = special_cooldown_max
@@ -346,11 +517,22 @@ func _start_charge() -> bool:
 		sprite.play("special")
 	return true
 
+func _cast_fire_burst() -> bool:
+	special_cooldown = special_cooldown_max
+	attack_lock_timer = 0.55
+	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("special"):
+		sprite.play("special")
+	controller.fire_burst_from(self)
+	return true
+
 func _fire_piercing_shot() -> bool:
 	special_cooldown = special_cooldown_max
 	attack_lock_timer = 0.2
-	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("attack"):
-		sprite.play("attack")
+	var anim_name := "attack"
+	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("special"):
+		anim_name = "special"
+	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation(anim_name):
+		sprite.play(anim_name)
 	controller.spawn_party_projectile(self, Vector2(facing, 0.0), "pierce_arrow")
 	return true
 
@@ -383,9 +565,19 @@ func take_damage(amount: int, source = null) -> void:
 	if is_instance_valid(sprite):
 		if sprite.sprite_frames.has_animation("hurt"):
 			sprite.play("hurt")
-		sprite.modulate = Color(1.0, 0.45, 0.45)
+		sprite.modulate = base_modulate * Color(1.0, 0.45, 0.45)
+	_spawn_hit_effect()
 	if hp <= 0:
 		_die()
+
+func _spawn_hit_effect() -> void:
+	var parent := get_parent()
+	if not is_instance_valid(parent):
+		return
+	var fx := HitEffect.instantiate()
+	parent.add_child(fx)
+	var shape_y: float = ROLE_BODY.get(role, {}).get("shape_y", -15.0)
+	fx.global_position = global_position + Vector2(0.0, shape_y)
 
 func force_kill() -> void:
 	if not alive:
@@ -402,7 +594,7 @@ func _die() -> void:
 	set_physics_process(false)
 	queue_redraw()
 	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("death"):
-		sprite.modulate = Color(1, 1, 1)
+		sprite.modulate = base_modulate
 		sprite.play("death")
 	else:
 		visible = false
@@ -416,7 +608,7 @@ func _on_animation_finished() -> void:
 			visible = false
 		return
 	if sprite.animation == "hurt":
-		sprite.modulate = Color(1, 1, 1)
+		sprite.modulate = base_modulate
 
 func _update_animation() -> void:
 	if not is_instance_valid(sprite) or not alive:
@@ -451,9 +643,23 @@ func _draw() -> void:
 		draw_arc(Vector2(0, -3), 12.0, 0.0, TAU, 28, Color("ffe26f"), 1.5)
 
 	var ratio := float(hp) / float(max_hp)
-	var bar_y: float = ROLE_BODY[role]["shape_y"] - float(ROLE_BODY[role]["height"]) * 0.5 - 6.0
-	draw_rect(Rect2(-10, bar_y, 20, 3), Color(0.12, 0.12, 0.12))
-	draw_rect(
-		Rect2(-10, bar_y, 20 * ratio, 3),
-		Color(0.3, 0.9, 0.4) if team == "ally" else Color(0.95, 0.25, 0.2)
-	)
+	var bar_y: float = ROLE_BODY[role]["shape_y"] - float(ROLE_BODY[role]["height"]) * 0.5 - 8.0
+	var bar_w := 24.0
+	var bar_h := 5.0
+	var bar_rect := Rect2(-bar_w * 0.5, bar_y, bar_w, bar_h)
+	draw_texture_rect(HEALTH_BAR_TEX, bar_rect, false)
+
+	# health_bar.png ja vem 100% cheia (sem variante vazia no pack) — em vez
+	# de recortar o preenchimento, cobrimos a fatia NAO preenchida com a
+	# mesma cor escura do fundo do proprio sprite, "esvaziando" da direita
+	# para a esquerda conforme o HP cai.
+	var inset_x := bar_w * 0.09
+	var inset_y := bar_h * 0.143
+	var interior_w: float = bar_w - inset_x * 2.0
+	var interior_h: float = bar_h - inset_y * 2.0
+	var empty_w: float = interior_w * (1.0 - ratio)
+	if empty_w > 0.0:
+		draw_rect(
+			Rect2(bar_rect.position.x + inset_x + (interior_w - empty_w), bar_rect.position.y + inset_y, empty_w, interior_h),
+			Color("2c1a1c")
+		)

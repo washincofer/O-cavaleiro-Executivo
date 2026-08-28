@@ -6,8 +6,10 @@ extends Control
 ## outros 7 slots sao placeholders "?" — as proximas fases entram aqui aos
 ## poucos.
 
-const PREVIEW_PATH := "res://assets/UI/Runtime/stage_caverna_preview.png"
-const LOADING_SCENE := "res://scenes/menu/loading_screen_12.tscn"
+const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
+const CHARACTER_SELECT_SCENE := "res://scenes/menu/character_select_12.tscn"
+const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf"
+const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
 
 const TILE_COLORS := [
 	Color("ffd23f"),
@@ -21,28 +23,75 @@ const TILE_COLORS := [
 ]
 
 const STAGES := [
-	{"name": "CAVERNA", "unlocked": true},
-	{"name": "?", "unlocked": false},
-	{"name": "?", "unlocked": false},
-	{"name": "?", "unlocked": false},
-	{"name": "?", "unlocked": false},
-	{"name": "?", "unlocked": false},
+	{
+		"name": "CAVERNA",
+		"unlocked": true,
+		"preview": "res://assets/UI/Runtime/stage_caverna_preview.png",
+		"target_scene": "res://scenes/playtest/platform_party_12.tscn",
+		"loading_title": "CARREGANDO A CAVERNA...",
+		"selection_mode": "categorized",
+	},
+	{
+		"name": "RUINAS",
+		"unlocked": true,
+		"preview": "res://assets/Environment/Ruins/Runtime/ruins_bg.png",
+		"target_scene": "res://scenes/playtest/platform_boss_12.tscn",
+		"loading_title": "CARREGANDO AS RUINAS...",
+		"selection_mode": "free",
+	},
+	{
+		"name": "FLORESTA",
+		"unlocked": true,
+		"preview": "res://assets/Environment/Forest/Runtime/forest_bg.png",
+		"target_scene": "res://scenes/playtest/platform_boss_forest_12.tscn",
+		"loading_title": "CARREGANDO A FLORESTA...",
+		"selection_mode": "free",
+		"reward_role": "paladin",
+	},
+	{
+		"name": "CEMITERIO",
+		"unlocked": true,
+		"preview": "res://assets/Environment/Cemetery/Runtime/cemetery_bg.png",
+		"target_scene": "res://scenes/playtest/platform_boss_cemetery_12.tscn",
+		"loading_title": "CARREGANDO O CEMITERIO...",
+		"selection_mode": "free",
+		"reward_role": "knight",
+	},
+	{
+		"name": "NOITE ESTRELADA",
+		"unlocked": true,
+		"preview": "res://assets/Environment/StarryNight/Runtime/starry_night_bg.png",
+		"target_scene": "res://scenes/playtest/platform_boss_starrynight_12.tscn",
+		"loading_title": "CARREGANDO A NOITE ESTRELADA...",
+		"selection_mode": "free",
+		"reward_role": "bridge_heroine",
+	},
+	{
+		"name": "COVIL DO TESOURO",
+		"unlocked": true,
+		"preview": "res://assets/Environment/TreasureHoard/Runtime/treasure_bg.png",
+		"target_scene": "res://scenes/playtest/platform_boss_treasurehoard_12.tscn",
+		"loading_title": "CARREGANDO O COVIL DO TESOURO...",
+		"selection_mode": "gated",
+		"required_role": "bridge_heroine",
+	},
 	{"name": "?", "unlocked": false},
 	{"name": "?", "unlocked": false},
 ]
 
 var preview_rect: TextureRect
 var preview_label: Label
-var preview_tex: Texture2D
-var display_font: SystemFont
-var glow_border: ColorRect
+var title_font: FontFile
+var body_font: FontFile
+var glow_borders: Array[ColorRect] = []
+var glow_colors: Array[Color] = []
 var glow_t := 0.0
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(320, 180)
 
-	display_font = SystemFont.new()
-	display_font.font_names = PackedStringArray(["Arial Black", "Segoe UI", "Impact", "sans-serif"])
+	title_font = load(TITLE_FONT_PATH)
+	body_font = load(BODY_FONT_PATH)
 
 	var bg := ColorRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -53,11 +102,11 @@ func _ready() -> void:
 
 	var title := Label.new()
 	title.text = "O CAVALEIRO EXECUTIVO"
-	title.position = Vector2(0, 2)
+	title.position = Vector2(0, 9)
 	title.size = Vector2(320, 14)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_override("font", display_font)
-	title.add_theme_font_size_override("font_size", 13)
+	title.add_theme_font_override("font", title_font)
+	title.add_theme_font_size_override("font_size", 11)
 	title.add_theme_color_override("font_color", Color("ffe26f"))
 	title.add_theme_color_override("font_outline_color", Color("241a05"))
 	title.add_theme_constant_override("outline_size", 3)
@@ -65,14 +114,14 @@ func _ready() -> void:
 
 	var subtitle := Label.new()
 	subtitle.text = "S E L E C A O   D E   F A S E"
-	subtitle.position = Vector2(0, 16)
+	subtitle.position = Vector2(0, 22)
 	subtitle.size = Vector2(320, 10)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_override("font", body_font)
 	subtitle.add_theme_font_size_override("font_size", 6)
 	subtitle.add_theme_color_override("font_color", Color("8fa6c9"))
 	add_child(subtitle)
 
-	preview_tex = load(PREVIEW_PATH)
 	_build_preview_panel()
 
 	var cols := 2
@@ -98,11 +147,14 @@ func _ready() -> void:
 	_show_preview(0)
 
 func _process(delta: float) -> void:
-	if not is_instance_valid(glow_border):
+	if glow_borders.is_empty():
 		return
 	glow_t += delta * 3.0
 	var pulse: float = 0.7 + 0.3 * sin(glow_t)
-	glow_border.color = Color(TILE_COLORS[0].r, TILE_COLORS[0].g, TILE_COLORS[0].b) * pulse
+	for i in range(glow_borders.size()):
+		var border: ColorRect = glow_borders[i]
+		if is_instance_valid(border):
+			border.color = glow_colors[i] * pulse
 
 func _add_angled_panel() -> void:
 	var cut := 10.0
@@ -158,7 +210,7 @@ func _build_preview_panel() -> void:
 	preview_label.position = Vector2(8, 128)
 	preview_label.size = Vector2(156, 12)
 	preview_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	preview_label.add_theme_font_override("font", display_font)
+	preview_label.add_theme_font_override("font", body_font)
 	preview_label.add_theme_font_size_override("font_size", 10)
 	preview_label.add_theme_color_override("font_color", Color("ffe26f"))
 	add_child(preview_label)
@@ -176,41 +228,69 @@ func _add_bolt(pos: Vector2) -> void:
 	hl.color = Color("5a6478")
 	add_child(hl)
 
+func _is_stage_gated(stage: Dictionary) -> bool:
+	var required_role: String = stage.get("required_role", "")
+	return required_role != "" and not PartySelection12.is_unlocked(required_role)
+
 func _build_tile(stage: Dictionary, index: int, pos: Vector2, size: Vector2) -> void:
-	var unlocked: bool = stage["unlocked"]
+	var exists: bool = stage["unlocked"]
+	var gated: bool = exists and _is_stage_gated(stage)
+	var playable: bool = exists and not gated
 	var accent: Color = TILE_COLORS[index % TILE_COLORS.size()]
 
 	var border := ColorRect.new()
 	border.position = pos
 	border.size = size
-	border.color = accent if unlocked else Color("2a2f3a")
+	border.color = accent if playable else Color("2a2f3a")
 	add_child(border)
 
 	var inner := ColorRect.new()
 	inner.position = pos + Vector2(2, 2)
 	inner.size = size - Vector2(4, 4)
-	inner.color = Color("11141c") if unlocked else Color("15171d")
+	inner.color = Color("11141c") if playable else Color("15171d")
 	add_child(inner)
 
 	var button := Button.new()
 	button.position = pos + Vector2(2, 2)
 	button.size = size - Vector2(4, 4)
-	button.disabled = not unlocked
+	button.disabled = not playable
 	button.focus_mode = Control.FOCUS_NONE
 	button.flat = true
-	button.add_theme_font_override("font", display_font)
+	button.add_theme_font_override("font", body_font)
 	button.add_theme_font_size_override("font_size", 11)
 
-	if unlocked:
+	if exists:
 		var icon := TextureRect.new()
 		icon.set_anchors_preset(Control.PRESET_FULL_RECT)
-		icon.texture = preview_tex
+		icon.texture = load(stage["preview"])
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_SCALE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if gated:
+			icon.modulate = Color(0.32, 0.32, 0.38, 0.65)
 		button.add_child(icon)
-		button.pressed.connect(_on_stage_pressed)
-		glow_border = border
+
+	if playable:
+		button.pressed.connect(_on_stage_pressed.bind(index))
+		glow_borders.append(border)
+		glow_colors.append(accent)
+	elif gated:
+		# Fase existe mas exige um personagem ainda bloqueado (Sprint 15:
+		# Covil do Tesouro exige a Heroina da Ponte, dona da mecanica de
+		# ponte usada no vao da sala) — mostra a arte escurecida com um
+		# aviso curto, em vez do "?" generico das fases ainda inexistentes.
+		var lock_label := Label.new()
+		lock_label.text = "TRANCADA"
+		lock_label.position = Vector2(2, size.y * 0.5 - 6)
+		lock_label.size = Vector2(size.x - 4, 12)
+		lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lock_label.add_theme_font_override("font", body_font)
+		lock_label.add_theme_font_size_override("font_size", 7)
+		lock_label.add_theme_color_override("font_color", Color("d9c9a8"))
+		lock_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		lock_label.add_theme_constant_override("outline_size", 2)
+		lock_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(lock_label)
 	else:
 		button.text = "?"
 		button.add_theme_color_override("font_color", Color("454b58"))
@@ -221,12 +301,27 @@ func _build_tile(stage: Dictionary, index: int, pos: Vector2, size: Vector2) -> 
 
 func _show_preview(index: int) -> void:
 	var stage: Dictionary = STAGES[index]
-	if stage["unlocked"]:
-		preview_rect.texture = preview_tex
-		preview_label.text = stage["name"]
-	else:
+	if not stage["unlocked"]:
 		preview_rect.texture = null
 		preview_label.text = "EM BREVE"
+		return
+	preview_rect.texture = load(stage["preview"])
+	if _is_stage_gated(stage):
+		var required_role: String = stage["required_role"]
+		preview_label.text = "REQUER: %s" % Actor.DISPLAY_NAME.get(required_role, required_role.to_upper())
+	else:
+		preview_label.text = stage["name"]
 
-func _on_stage_pressed() -> void:
-	get_tree().change_scene_to_file(LOADING_SCENE)
+func _on_stage_pressed(index: int) -> void:
+	var stage: Dictionary = STAGES[index]
+	PartySelection12.target_scene = stage["target_scene"]
+	PartySelection12.loading_title = stage["loading_title"]
+	PartySelection12.selection_mode = stage.get("selection_mode", PartySelection12.MODE_CATEGORIZED)
+	PartySelection12.stage_reward_role = stage.get("reward_role", "")
+	PartySelection12.required_role = stage.get("required_role", "")
+	if PartySelection12.selection_mode == PartySelection12.MODE_GATED:
+		# Garante que o personagem exigido sempre entre no grupo — sem isso
+		# o vao da sala nao teria como ser cruzado se o jogador escalasse
+		# outros 3 quaisquer no lugar dela.
+		PartySelection12.free_roles = [PartySelection12.required_role] as Array[String]
+	get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
