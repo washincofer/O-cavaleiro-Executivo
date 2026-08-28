@@ -54,8 +54,16 @@ const DIALOGUE_LINES := {
 		{"speaker": "cavaleiro", "expr": "serio", "text": "As Ruinas do Departamento Antigo... dizem que o Coordenador nunca aprovou uma ferias sequer."},
 		{"speaker": "coordenador", "expr": "neutro", "text": "Chegou atrasado na reuniao. Isso vai constar no seu relatorio de desempenho... para sempre."},
 		{"speaker": "cavaleiro", "expr": "bravo", "text": "Prefiro ser demitido a assinar mais um dos seus 'alinhamentos as 7h'."},
-		{"speaker": "coordenador", "expr": "bravo", "text": "Entao vou precisar... REALOCAR seus recursos."},
-		{"speaker": "cavaleiro", "expr": "grito", "text": "Vamos ver quem sai desta sala com o cargo!"},
+		{"speaker": "coordenador", "expr": "duvida", "text": "Recusar um convite de calendario e insubordinacao nivel 3. Sabia disso?"},
+		{"speaker": "cavaleiro", "expr": "serio", "text": "Sei que faz tres anos que ninguem tira ferias nessa divisao. Sei que voce chama hora extra nao paga de 'cultura'."},
+		{"speaker": "coordenador", "expr": "risada", "text": "Cultura e sacrificio, Cavaleiro. E sacrificio... tem um custo. Um custo que EU decido quem paga."},
+		{"speaker": "cavaleiro", "expr": "duvida", "text": "Do que voce esta falando?"},
+		{"speaker": "coordenador", "expr": "serio", "text": "Acha que eu virei Subchefe Maior so preenchendo planilha? Cada relatorio de desempenho negativo que eu assino... alimenta alguma coisa aqui embaixo."},
+		{"speaker": "coordenador", "expr": "bravo", "text": "Cada '1:1' cancelado em cima da hora. Cada promocao prometida e nunca paga. Tudo isso fica aqui. E cresce."},
+		{"speaker": "cavaleiro", "expr": "tenso", "text": "Essas ruinas nao sao so um departamento abandonado, sao?"},
+		{"speaker": "coordenador", "expr": "grito", "text": "E UM CEMITERIO DE CARREIRAS! E eu sou o zelador que nunca larga o cargo!", "fx": "transform"},
+		{"speaker": "coordenador", "expr": "grito", "text": "SINTAM O PESO DE CADA META NAO BATIDA... ACORDEM, EX-COLABORADORES! TEMOS UMA SPRINT PRA FECHAR!"},
+		{"speaker": "cavaleiro", "expr": "grito", "text": "Ele nao esta gerenciando... ele esta INVOCANDO! Vou fechar essa sprint eu mesmo!"},
 	],
 	"gerente": [
 		{"speaker": "cavaleiro", "expr": "neutro", "text": "Entao e aqui que o Gerente guarda o orcamento do trimestre inteiro..."},
@@ -325,6 +333,32 @@ func _show_line() -> void:
 
 	name_label.text = _portrait_display_name(speaker)
 	text_label.text = line["text"]
+
+	if line.get("fx", "") == "transform":
+		_play_transform_fx()
+
+## Efeito especial pedido pelo usuario pro momento em que o vilao se revela
+## como o monstro da luta (ex.: Coordenador -> Necromante): flash roxo
+## rapido (a "energia" da transformacao) + tremor de tela curto, sem travar
+## o avanco do dialogo (o jogador ainda pode clicar durante a animacao).
+func _play_transform_fx() -> void:
+	var flash := ColorRect.new()
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flash.color = Color(0.55, 0.1, 0.75, 0.0)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(flash)
+
+	var flash_tween := create_tween()
+	flash_tween.tween_property(flash, "color:a", 0.8, 0.06)
+	flash_tween.tween_property(flash, "color:a", 0.0, 0.55)
+	flash_tween.tween_callback(flash.queue_free)
+
+	var base_pos: Vector2 = position
+	var shake_tween := create_tween()
+	for i in range(8):
+		var offset := Vector2(randf_range(-5.0, 5.0), randf_range(-4.0, 4.0))
+		shake_tween.tween_property(self, "position", base_pos + offset, 0.03)
+	shake_tween.tween_property(self, "position", base_pos, 0.03)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if changed_scene:

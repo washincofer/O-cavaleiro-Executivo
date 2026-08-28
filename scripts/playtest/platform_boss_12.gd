@@ -41,10 +41,14 @@ extends Node2D
 const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
 const Projectile = preload("res://scripts/playtest/platform_projectile_12.gd")
 const PauseWatcher = preload("res://scripts/playtest/pause_watcher_12.gd")
+const InterludeWatcher = preload("res://scripts/playtest/interlude_watcher_12.gd")
 const HEALTH_BAR_TEX := preload("res://assets/UI/Runtime/MedievalFree/health_bar.png")
 const TouchControls = preload("res://scenes/playtest/touch_controls_12.tscn")
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 const VICTORY_CUTSCENE_SCENE := "res://scenes/menu/victory_cutscene_12.tscn"
+const PORTRAIT_DIR := "res://assets/UI/Runtime/Dialogue/"
+const CAVALEIRO_ID := "cavaleiro"
+const COORDENADOR_ID := "coordenador"
 
 const WORLD_WIDTH_LANDSCAPE := 320.0
 const WORLD_WIDTH_PORTRAIT := 180.0
@@ -111,6 +115,54 @@ var slam_radius := SLAM_RADIUS_LANDSCAPE
 var slam_timer := 3.0
 var slam_windup := 0.0
 
+# Pedido do usuario: o NECROMANTE tem a vida dividida em 3 partes — ao
+# esgotar cada uma (menos a ultima), a luta pausa, o cenario de fundo troca
+# (o "escopo"/prioridade mudou) e um dialogo estilo visual novel interrompe
+# o combate antes de continuar. PHASE_HP_RATIOS[0] = limiar pra sair da fase
+# 1 (100%-66%) pra fase 2; [1] = limiar da fase 2 (66%-33%) pra fase 3
+# (33%-0%, sem mais interludios depois).
+var bg_sprite: Sprite2D
+var current_phase := 1
+var phase_interlude_active := false
+const PHASE_HP_RATIOS := [2.0 / 3.0, 1.0 / 3.0]
+const PHASE_BACKGROUNDS := [
+	RUINS_BG_PATH,
+	"res://assets/Environment/Cemetery/Runtime/cemetery_bg.png",
+	"res://assets/Environment/StarryNight/Runtime/starry_night_bg.png",
+]
+
+# Piada pedida pelo usuario: o Coordenador "vibe codou" um app num fim de
+# semana e agora empurra a manutencao pro time de Sistemas, terminando numa
+# risada maligna — isso acontece assim que a PRIMEIRA parte da barra de vida
+# esgota. A segunda troca de fase e outra "mudanca de escopo" corporativa,
+# sem relacao com a primeira (nao e uma continuacao da mesma piada).
+const PHASE_INTERLUDES := [
+	[
+		{"speaker": "coordenador", "expr": "risada", "text": "Espera, espera, pausa a luta. Lembra daquele app que eu 'vibe codei' num fim de semana inteiro so no papo com a IA?"},
+		{"speaker": "coordenador", "expr": "neutro", "text": "Subiu pra producao numa sexta as 18h. Ninguem revisou o codigo. Ninguem escreveu um teste sequer."},
+		{"speaker": "cavaleiro", "expr": "duvida", "text": "E quem ficou de manter aquilo depois que quebrasse?"},
+		{"speaker": "coordenador", "expr": "bravo", "text": "OTIMA pergunta. Resposta: NAO EU. ISSO AGORA E PROBLEMA DO TIME DE SISTEMAS!"},
+		{"speaker": "coordenador", "expr": "grito", "text": "MUAHAHAHAHA! Que eles se virem com o meu 'MVP' em producao! Prioridade mudou, Cavaleiro — agora e a vez deles sofrerem."},
+		{"speaker": "coordenador", "expr": "serio", "text": "Alias, falando em prioridade: a SUA tambem mudou de escopo. Nova sprint, mesmo Necromante. De volta ao combate."},
+	],
+	[
+		{"speaker": "coordenador", "expr": "tenso", "text": "Ainda de pe? Impressionante. Bem, mais novidade fresca: reorganizaram o organograma DE NOVO."},
+		{"speaker": "coordenador", "expr": "duvida", "text": "Meu cargo agora e 'Coordenador de Transformacao Digital'. Ninguem sabe o que isso significa. Nem eu."},
+		{"speaker": "cavaleiro", "expr": "serio", "text": "Isso muda alguma coisa nesta luta?"},
+		{"speaker": "coordenador", "expr": "bravo", "text": "Muda o ESCOPO! Sua nova prioridade e sobreviver a REUNIAO DE ALINHAMENTO que eu vou convocar AGORA MESMO."},
+		{"speaker": "coordenador", "expr": "grito", "text": "SEM PAUTA. SEM HORARIO PRA ACABAR. TODOS OS STAKEHOLDERS. VAMOS."},
+		{"speaker": "cavaleiro", "expr": "bravo", "text": "Prefiro apanhar de zumbi corporativo a entrar numa reuniao sem pauta. Vamos terminar isso."},
+	],
+]
+
+var interlude_layer: CanvasLayer
+var interlude_lines: Array = []
+var interlude_line_index := 0
+var interlude_portrait_left: Control
+var interlude_portrait_right: Control
+var interlude_name_label: Label
+var interlude_text_label: Label
+
 func _ready() -> void:
 	is_portrait = DeviceLayout12.is_portrait
 	if is_portrait:
@@ -147,6 +199,7 @@ func _process(delta: float) -> void:
 
 	if is_instance_valid(boss_actor) and boss_actor.alive:
 		_update_boss_slam(delta)
+		_check_boss_phase_transition()
 
 	if event_timeout > 0.0:
 		event_timeout -= delta
@@ -490,13 +543,16 @@ func _add_background() -> void:
 	if is_portrait:
 		# Recorta a fatia central de 180px do fundo original (320x180) em
 		# vez de espremer/distorcer — a sala em retrato so mostra uma faixa
-		# horizontal mais estreita da mesma arte, sem reescalar.
+		# horizontal mais estreita da mesma arte, sem reescalar. Todos os
+		# fundos de PHASE_BACKGROUNDS tem as mesmas dimensoes (320x180),
+		# entao o mesmo recorte serve pras trocas de fase.
 		bg.region_enabled = true
 		bg.region_rect = Rect2(70, 0, WORLD_WIDTH_PORTRAIT, 180)
 		bg.position = Vector2(0, 0)
 	else:
 		bg.position = Vector2(0, 0)
 	world_layer.add_child(bg)
+	bg_sprite = bg
 
 func _add_sky_fill_portrait() -> void:
 	# Com content_scale_size 180x320 a camera mostra 320 unidades de mundo
@@ -682,6 +738,171 @@ func _try_interrupt_slam(actor: Actor) -> void:
 	boss_actor.take_damage(INTERRUPT_BONUS_DAMAGE, actor)
 	report_event("%s INTERROMPEU O NECROMANTE! (+%d de dano)" % [actor.actor_name, INTERRUPT_BONUS_DAMAGE])
 
+# --- Interludios de troca de fase (pedido do usuario) -------------------------
+
+func _check_boss_phase_transition() -> void:
+	if phase_interlude_active or current_phase > PHASE_HP_RATIOS.size():
+		return
+	var idx: int = current_phase - 1
+	var ratio: float = float(boss_actor.hp) / float(maxi(boss_actor.max_hp, 1))
+	if ratio <= PHASE_HP_RATIOS[idx]:
+		current_phase += 1
+		_start_phase_interlude(current_phase)
+
+func _start_phase_interlude(phase: int) -> void:
+	phase_interlude_active = true
+	get_tree().paused = true
+	boss_actor.sprite.modulate = boss_actor.base_modulate
+	slam_windup = 0.0
+	if is_instance_valid(bg_sprite) and phase - 1 < PHASE_BACKGROUNDS.size():
+		bg_sprite.texture = load(PHASE_BACKGROUNDS[phase - 1])
+	interlude_lines = PHASE_INTERLUDES[phase - 2]
+	interlude_line_index = 0
+	_build_interlude_ui()
+	_show_interlude_line()
+
+func _build_interlude_ui() -> void:
+	interlude_layer = CanvasLayer.new()
+	interlude_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	interlude_layer.layer = 15
+	add_child(interlude_layer)
+
+	var watcher := InterludeWatcher.new()
+	watcher.advance_requested.connect(_on_interlude_advance)
+	interlude_layer.add_child(watcher)
+
+	var w: float = WORLD_WIDTH_PORTRAIT if is_portrait else WORLD_WIDTH_LANDSCAPE
+	var h: float = 320.0 if is_portrait else 180.0
+
+	var dim := ColorRect.new()
+	dim.position = Vector2.ZERO
+	dim.size = Vector2(w, h)
+	dim.color = Color(0, 0, 0, 0.6)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	interlude_layer.add_child(dim)
+
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+
+	if is_portrait:
+		interlude_portrait_left = _build_interlude_portrait_slot(Vector2(4, 30), Vector2(84, 84))
+		interlude_portrait_right = _build_interlude_portrait_slot(Vector2(92, 30), Vector2(84, 84))
+
+		var box := KenneyUI12.make_panel(Vector2(172, 150), Color(0.02, 0.02, 0.03, 0.92))
+		box.position = Vector2(4, 122)
+		interlude_layer.add_child(box)
+
+		interlude_name_label = Label.new()
+		interlude_name_label.position = Vector2(10, 128)
+		interlude_name_label.size = Vector2(160, 12)
+		interlude_name_label.add_theme_font_override("font", title_font)
+		interlude_name_label.add_theme_font_size_override("font_size", 10)
+		interlude_name_label.add_theme_color_override("font_color", Color("ffe26f"))
+		interlude_layer.add_child(interlude_name_label)
+
+		interlude_text_label = Label.new()
+		interlude_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+		interlude_text_label.add_theme_font_override("font", title_font)
+		interlude_text_label.add_theme_font_size_override("font_size", 7)
+		interlude_text_label.add_theme_color_override("font_color", Color("f4e7c9"))
+		interlude_text_label.position = Vector2(10, 144)
+		interlude_text_label.custom_minimum_size = Vector2(160, 110)
+		interlude_text_label.size = Vector2(160, 110)
+		interlude_layer.add_child(interlude_text_label)
+
+		var hint := Label.new()
+		hint.text = "toque para continuar"
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hint.position = Vector2(0, 300)
+		hint.size = Vector2(180, 12)
+		hint.add_theme_font_override("font", title_font)
+		hint.add_theme_font_size_override("font_size", 6)
+		hint.add_theme_color_override("font_color", Color(1, 1, 1, 0.6))
+		interlude_layer.add_child(hint)
+	else:
+		interlude_portrait_left = _build_interlude_portrait_slot(Vector2(6, 20), Vector2(110, 110))
+		interlude_portrait_right = _build_interlude_portrait_slot(Vector2(204, 20), Vector2(110, 110))
+
+		var box := KenneyUI12.make_panel(Vector2(312, 44), Color(0.02, 0.02, 0.03, 0.92))
+		box.position = Vector2(4, 132)
+		interlude_layer.add_child(box)
+
+		interlude_name_label = Label.new()
+		interlude_name_label.position = Vector2(10, 135)
+		interlude_name_label.size = Vector2(300, 10)
+		interlude_name_label.add_theme_font_override("font", title_font)
+		interlude_name_label.add_theme_font_size_override("font_size", 9)
+		interlude_name_label.add_theme_color_override("font_color", Color("ffe26f"))
+		interlude_layer.add_child(interlude_name_label)
+
+		interlude_text_label = Label.new()
+		interlude_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+		interlude_text_label.add_theme_font_override("font", title_font)
+		interlude_text_label.add_theme_font_size_override("font_size", 7)
+		interlude_text_label.add_theme_color_override("font_color", Color("f4e7c9"))
+		interlude_text_label.position = Vector2(10, 146)
+		interlude_text_label.custom_minimum_size = Vector2(300, 28)
+		interlude_text_label.size = Vector2(300, 28)
+		interlude_layer.add_child(interlude_text_label)
+
+		var hint := Label.new()
+		hint.text = "clique / tecla para continuar"
+		hint.position = Vector2(4, 168)
+		hint.size = Vector2(230, 10)
+		hint.add_theme_font_override("font", title_font)
+		hint.add_theme_font_size_override("font_size", 5)
+		hint.add_theme_color_override("font_color", Color(1, 1, 1, 0.6))
+		interlude_layer.add_child(hint)
+
+func _build_interlude_portrait_slot(pos: Vector2, size: Vector2) -> Control:
+	var holder := Control.new()
+	holder.position = pos
+	holder.size = size
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	interlude_layer.add_child(holder)
+	return holder
+
+func _set_interlude_portrait(slot: Control, character_id: String, expr: String, dim: bool) -> void:
+	for child in slot.get_children():
+		child.queue_free()
+	var path := "%s%s/%s.png" % [PORTRAIT_DIR, character_id, expr]
+	var tex_rect := TextureRect.new()
+	if ResourceLoader.exists(path):
+		tex_rect.texture = load(path)
+	tex_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tex_rect.modulate = Color(0.55, 0.55, 0.6) if dim else Color(1, 1, 1)
+	tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# position/size por ultimo — mesma armadilha de sempre (expand_mode antes
+	# de entrar na tree infla o minimum_size pro tamanho nativo da textura).
+	tex_rect.position = Vector2.ZERO
+	tex_rect.custom_minimum_size = slot.size
+	tex_rect.size = slot.size
+	slot.add_child(tex_rect)
+
+func _show_interlude_line() -> void:
+	var line: Dictionary = interlude_lines[interlude_line_index]
+	var speaker: String = line["speaker"]
+	var expr: String = line["expr"]
+	var is_cavaleiro: bool = speaker == CAVALEIRO_ID
+	_set_interlude_portrait(interlude_portrait_left, CAVALEIRO_ID, "neutro" if not is_cavaleiro else expr, not is_cavaleiro)
+	_set_interlude_portrait(interlude_portrait_right, COORDENADOR_ID, "neutro" if is_cavaleiro else expr, is_cavaleiro)
+	interlude_name_label.text = "CAVALEIRO EXECUTIVO" if is_cavaleiro else "O COORDENADOR"
+	interlude_text_label.text = line["text"]
+
+func _on_interlude_advance() -> void:
+	interlude_line_index += 1
+	if interlude_line_index >= interlude_lines.size():
+		_finish_interlude()
+	else:
+		_show_interlude_line()
+
+func _finish_interlude() -> void:
+	if is_instance_valid(interlude_layer):
+		interlude_layer.queue_free()
+	get_tree().paused = false
+	phase_interlude_active = false
+	report_event("O NECROMANTE RETOMA O COMBATE")
+
 # --- HUD ---------------------------------------------------------------------
 
 func _build_hud() -> void:
@@ -825,6 +1046,12 @@ func _build_pause_watcher() -> void:
 	add_child(watcher)
 
 func _toggle_pause() -> void:
+	# ESC nao deve abrir/fechar o menu de pausa normal por cima de um
+	# interludio de troca de fase (ver _start_phase_interlude) — senao um
+	# segundo ESC destravaria a SceneTree com o dialogo do interludio ainda
+	# na tela, retomando a luta escondida atras dele.
+	if phase_interlude_active:
+		return
 	is_paused = not is_paused
 	get_tree().paused = is_paused
 	pause_layer.visible = is_paused
