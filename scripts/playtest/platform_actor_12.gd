@@ -72,6 +72,21 @@ const ROLE_ANIM := {
 		"jump": {"path": "res://assets/Characters/Wanderer/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": false},
 		"fall": {"path": "res://assets/Characters/Wanderer/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": true},
 	},
+	# Cavaleiro Executivo: arte propria do usuario (7 folhas soltas, sem
+	# grid fixo — cada quadro tem largura diferente por causa da capa/
+	# espada/escudo se estendendo alem do corpo). Sem Hurt/Death fornecidos
+	# (mesmo caso ja tratado sem problemas pelo Ogro/Cavaleiro-Knight); a
+	# "special" reaproveita Correndo (arrancada) como uma Estocada propria —
+	# mesma mecanica de "quebra entulho" do Guerreiro (ver ROLE_TAG nos
+	# controllers de fase).
+	"cavaleiro_executivo": {
+		"idle": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Parado.png", "fps": 6.0, "loop": true, "rects": [Rect2(0,0,48,60), Rect2(48,0,47,60), Rect2(95,0,45,60), Rect2(140,0,46,60), Rect2(186,0,50,60)]},
+		"move": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Andando.png", "fps": 12.0, "loop": true, "rects": [Rect2(0,0,53,57), Rect2(53,0,50,57), Rect2(103,0,51,57), Rect2(154,0,55,57), Rect2(209,0,56,57), Rect2(265,0,55,57), Rect2(320,0,56,57), Rect2(376,0,57,57), Rect2(433,0,113,57)]},
+		"attack": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Agachando.png", "fps": 12.0, "loop": false, "rects": [Rect2(0,0,64,58), Rect2(64,0,58,58), Rect2(122,0,66,58), Rect2(188,0,56,58)]},
+		"special": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Correndo.png", "fps": 14.0, "loop": false, "rects": [Rect2(0,0,68,60), Rect2(68,0,64,60), Rect2(132,0,69,60), Rect2(201,0,73,60), Rect2(274,0,68,60), Rect2(342,0,63,60), Rect2(405,0,62,60), Rect2(467,0,79,60)]},
+		"jump": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Pulo.png", "fps": 8.0, "loop": false, "rects": [Rect2(0,0,77,83), Rect2(77,0,75,83), Rect2(152,0,82,83), Rect2(234,0,74,83)]},
+		"fall": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Caindo.png", "fps": 6.0, "loop": true, "rects": [Rect2(0,0,80,75), Rect2(80,0,69,75), Rect2(149,0,80,75)]},
+	},
 	# Paladino e Cavaleiro sao personagens livres (selecionaveis so nas fases
 	# de boss, fora do sistema de categorias da Caverna) — cada um reaproveita
 	# uma mecanica ja existente (Rajada/Estocada) na tecla especial, sem
@@ -169,18 +184,34 @@ const ROLE_ANIM := {
 # so every role's feet line up with the CharacterBody2D origin (y = 0).
 const ROLE_BODY := {
 	"warrior": {"scale": 0.842, "offset": Vector2(0.5, -18.5), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 92.0, "max_hp": 5, "ranged": false},
+	# Altura visual alvo ~32px (mesmo padrao do trio base) medida via bbox
+	# alfa das folhas idle/move/attack/special (57-60px de altura antes da
+	# escala) — capsula de colisao igual a do Guerreiro (mesmo porte).
+	"cavaleiro_executivo": {"scale": 0.552, "offset": Vector2(0.0, -29.4), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 92.0, "max_hp": 6, "ranged": false},
 	"archer": {"scale": 0.889, "offset": Vector2(-1.0, -17.0), "radius": 5.0, "height": 26.0, "shape_y": -15.0, "speed": 96.0, "max_hp": 4, "ranged": true},
 	"mage": {"scale": 0.372, "offset": Vector2(5.0, -46.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
 	"fire_mage": {"scale": 0.485, "offset": Vector2(14.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
 	"lightning_mage": {"scale": 0.390, "offset": Vector2(26.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
 	"wanderer": {"scale": 0.485, "offset": Vector2(0.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
-	"paladin": {"scale": 1.3, "offset": Vector2(2.5, 0.0), "radius": 7.0, "height": 28.0, "shape_y": -16.0, "speed": 90.0, "max_hp": 6, "ranged": false},
-	"knight": {"scale": 1.4, "offset": Vector2(-3.0, -12.0), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 90.0, "max_hp": 5, "ranged": false},
-	"bridge_heroine": {"scale": 1.25, "offset": Vector2(0.0, -32.0), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 94.0, "max_hp": 5, "ranged": false},
+	# scale de paladin/knight/bridge_heroine media original (1.3/1.4/1.25)
+	# renderizava 42-51px de altura real (bbox alfa medido), bem maior que
+	# os ~32px de warrior/archer/mage — corrigido pra bater no mesmo alvo
+	# visual. offset.y NAO muda: o alinhamento dos pes ao chao (y=0) e
+	# resultado de offset+(pixel-frame/2)=0, que e independente da escala
+	# (0 * qualquer_escala = 0), entao continua correto nos 3 casos.
+	"paladin": {"scale": 0.865, "offset": Vector2(2.5, 0.0), "radius": 7.0, "height": 28.0, "shape_y": -16.0, "speed": 90.0, "max_hp": 6, "ranged": false},
+	"knight": {"scale": 1.067, "offset": Vector2(-3.0, -12.0), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 90.0, "max_hp": 5, "ranged": false},
+	"bridge_heroine": {"scale": 0.8, "offset": Vector2(0.0, -32.0), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 94.0, "max_hp": 5, "ranged": false},
 	"slime": {"scale": 1.0, "offset": Vector2(0.0, -9.0), "radius": 7.0, "height": 14.0, "shape_y": -8.0, "speed": 46.0, "max_hp": 3, "ranged": false},
 	"rat": {"scale": 0.9, "offset": Vector2(0.0, -10.0), "radius": 6.0, "height": 16.0, "shape_y": -9.0, "speed": 58.0, "max_hp": 3, "ranged": false},
 	"necromancer": {"scale": 1.75, "offset": Vector2(-4.0, -16.0), "radius": 10.0, "height": 48.0, "shape_y": -28.0, "speed": 26.0, "max_hp": 60, "ranged": false},
-	"satyr": {"scale": 4.5, "offset": Vector2(2.0, -11.0), "radius": 9.0, "height": 44.0, "shape_y": -26.0, "speed": 34.0, "max_hp": 55, "ranged": false},
+	# Pedido do usuario: Satyr precisa ficar MENOR que os personagens
+	# jogaveis (~32px de altura visual), nao maior — visual reduzido de
+	# ~90px (scale 4.5, bbox alfa ~20px * 4.5) para ~24px (scale 1.2). O
+	# raio de acerto de magia (`try_projectile_hit`, 15.0 fixo a partir do
+	# centro do inimigo) NAO depende do tamanho visual/capsula, entao
+	# continua acertando normalmente — nao precisa de ajuste a parte.
+	"satyr": {"scale": 1.2, "offset": Vector2(2.0, -11.0), "radius": 7.0, "height": 22.0, "shape_y": -13.0, "speed": 34.0, "max_hp": 55, "ranged": false},
 	"ogre": {"scale": 1.5, "offset": Vector2(10.0, -40.0), "radius": 11.0, "height": 44.0, "shape_y": -25.0, "speed": 22.0, "max_hp": 58, "ranged": false},
 	"bat": {"scale": 2.4, "offset": Vector2(-3.5, -25.0), "radius": 10.0, "height": 30.0, "shape_y": -16.0, "speed": 50.0, "max_hp": 50, "ranged": false},
 	"dragon": {"scale": 2.2, "offset": Vector2(-23.5, -32.0), "radius": 14.0, "height": 46.0, "shape_y": -26.0, "speed": 0.0, "max_hp": 65, "ranged": false},
@@ -193,6 +224,7 @@ const ROLE_BODY := {
 const ROLE_MODULATE := {}
 
 const DISPLAY_NAME := {
+	"cavaleiro_executivo": "CAVALEIRO EXECUTIVO",
 	"warrior": "GUERREIRO",
 	"archer": "ARQUEIRA",
 	"mage": "MAGA",
@@ -209,6 +241,19 @@ const DISPLAY_NAME := {
 	"ogre": "OGRO",
 	"bat": "MORCEGO",
 	"dragon": "DRAGAO",
+}
+
+# A maioria dos packs desenha o personagem de frente pra DIREITA (facing=1
+# sem flip); esses 4 inimigos vieram do lado oposto (rosto/arma/cauda
+# apontando pra ESQUERDA no frame-fonte, confirmado visualmente comparando
+# Necromante/Satyr/Dragao lado a lado com o Morcego, que fica correto sem
+# essa lista) — sem isso eles "andam de costas" (flip_h sai invertido em
+# relacao ao sentido real do movimento).
+const ROLE_FACES_LEFT := {
+	"necromancer": true,
+	"satyr": true,
+	"ogre": true,
+	"dragon": true,
 }
 
 const RANGED_PROJECTILE_KIND := {
@@ -237,6 +282,11 @@ var gravity := 760.0
 var max_fall_speed := 420.0
 var facing := 1.0
 var follow_offset_x := -30.0
+# Deixa o controller da fase tomar o controle total do movimento (ex.: o
+# Satyr durante a investida em platform_boss_forest_12.gd) sem brigar com
+# `_enemy_tick()` sobrescrevendo velocity.x na perseguicao padrao a cada
+# tick de fisica.
+var ai_suspended := false
 var is_ranged := false
 
 var attack_cooldown := 0.0
@@ -329,19 +379,29 @@ static func _build_sprite_frames(p_role: String) -> SpriteFrames:
 	for anim_name in anim_cfg.keys():
 		var a: Dictionary = anim_cfg[anim_name]
 		var tex: Texture2D = load(a["path"])
-		var fw: int = a["fw"]
-		var fh: int = a["fh"]
-		var count: int = a["count"]
 		var fps: float = a["fps"]
 		var loop: bool = a["loop"]
 		frames.add_animation(anim_name)
 		frames.set_animation_loop(anim_name, loop)
 		frames.set_animation_speed(anim_name, fps)
-		for i in range(count):
-			var atlas := AtlasTexture.new()
-			atlas.atlas = tex
-			atlas.region = Rect2(i * fw, 0, fw, fh)
-			frames.add_frame(anim_name, atlas)
+		if a.has("rects"):
+			# Folhas com largura de quadro irregular (ex.: Cavaleiro
+			# Executivo, arte propria sem grid fixo) — cada quadro usa seu
+			# proprio Rect2 exato em vez de um grid fw*count uniforme.
+			for rect in a["rects"]:
+				var atlas := AtlasTexture.new()
+				atlas.atlas = tex
+				atlas.region = rect
+				frames.add_frame(anim_name, atlas)
+		else:
+			var fw: int = a["fw"]
+			var fh: int = a["fh"]
+			var count: int = a["count"]
+			for i in range(count):
+				var atlas := AtlasTexture.new()
+				atlas.atlas = tex
+				atlas.region = Rect2(i * fw, 0, fw, fh)
+				frames.add_frame(anim_name, atlas)
 	return frames
 
 func set_controlled(value: bool) -> void:
@@ -432,6 +492,9 @@ func _follow_tick() -> void:
 		velocity.y = jump_velocity
 
 func _enemy_tick() -> void:
+	if ai_suspended:
+		velocity.x = 0.0
+		return
 	if edge_turn_timer > 0.0:
 		facing = edge_turn_direction
 		velocity.x = facing * speed * 0.50
@@ -483,7 +546,7 @@ func activate_special() -> bool:
 	if not alive or special_cooldown > 0.0 or charge_timer > 0.0:
 		return false
 	match role:
-		"warrior", "knight":
+		"warrior", "knight", "cavaleiro_executivo":
 			return _start_charge()
 		"fire_mage", "paladin":
 			return _cast_fire_burst()
@@ -613,7 +676,8 @@ func _on_animation_finished() -> void:
 func _update_animation() -> void:
 	if not is_instance_valid(sprite) or not alive:
 		return
-	sprite.flip_h = facing < 0.0
+	var faces_left: bool = ROLE_FACES_LEFT.get(role, false)
+	sprite.flip_h = (facing < 0.0) != faces_left
 
 	if attack_lock_timer > 0.0 or hurt_lock_timer > 0.0:
 		return

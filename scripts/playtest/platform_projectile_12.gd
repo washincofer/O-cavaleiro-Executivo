@@ -89,9 +89,12 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 func _hits_world(next_position: Vector2) -> bool:
-	# Barreiras magicas (layer 2, bit valor 2) bloqueiam flecha/orbe comuns
+	# Barreiras magicas (layer 3, bit valor 4) bloqueiam flecha/orbe comuns
 	# mas nao o tiro perfurante — ele so enxerga terreno solido (layer 1).
-	var mask := 1 if kind == "pierce_arrow" else 3
+	# Layer 2 (Actors) fica de fora da mask de proposito: projeteis nao
+	# devem colidir com personagens (aliados ou nao) via raycast de mundo —
+	# acerto em inimigo e resolvido a parte por try_projectile_hit/distancia.
+	var mask := 1 if kind == "pierce_arrow" else 5
 	var query := PhysicsRayQueryParameters2D.create(global_position, next_position, mask)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true

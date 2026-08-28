@@ -21,6 +21,13 @@ extends Node2D
 ## Arquivo proprio (convencao das sprints anteriores: cada fase mantem seu
 ## controller independente), copiado de platform_boss_cemetery_12.gd com o
 ## boss e o cenario trocados.
+##
+## Sprint 16: convertida pro padrao retrato/paisagem seguindo exatamente o
+## padrao validado em platform_boss_12.gd (Ruinas, a sala-piloto) — mundo
+## encolhe de verdade em retrato (world_width vira var), camera fixa sem
+## pan horizontal revelando ceu extra acima da sala, e HUD/pausa em retrato
+## via o helper compartilhado `BossHudPortrait12`. Ver o comentario extenso
+## em platform_boss_12.gd pra detalhes do raciocinio.
 
 const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
 const Projectile = preload("res://scripts/playtest/platform_projectile_12.gd")
@@ -30,10 +37,16 @@ const TouchControls = preload("res://scenes/playtest/touch_controls_12.tscn")
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 const VICTORY_CUTSCENE_SCENE := "res://scenes/menu/victory_cutscene_12.tscn"
 
-const WORLD_WIDTH := 320.0
+const WORLD_WIDTH_LANDSCAPE := 320.0
+const WORLD_WIDTH_PORTRAIT := 180.0
 const DEATH_Y := 210.0
 const GROUND_TOP := 150.0
 const STARRYNIGHT_BG_PATH := "res://assets/Environment/StarryNight/Runtime/starry_night_bg.png"
+
+var world_width := WORLD_WIDTH_LANDSCAPE
+var is_portrait := false
+var camera_half_width := 160.0
+var camera_y := 90.0
 
 var actors: Array[Actor] = []
 var enemies: Array[Actor] = []
@@ -76,12 +89,28 @@ var boss_bar_size := Vector2(180, 8)
 const SLAM_INTERVAL := 3.8
 const SLAM_WINDUP_TIME := 0.9
 const SLAM_STAGGER_TIME := 2.0
-const SLAM_RADIUS := 60.0
+const SLAM_RADIUS_LANDSCAPE := 60.0
+# Mesma logica de platform_boss_12.gd: sala em retrato encolhe pra 180 de
+# largura (boss centralizado em x=90) — raio reduzido preserva a opcao de
+# recuar em vez de so interromper com H.
+const SLAM_RADIUS_PORTRAIT := 48.0
 const INTERRUPT_BONUS_DAMAGE := 6
+var slam_radius := SLAM_RADIUS_LANDSCAPE
 var slam_timer := 2.2
 var slam_windup := 0.0
 
 func _ready() -> void:
+	is_portrait = DeviceLayout12.is_portrait
+	if is_portrait:
+		world_width = WORLD_WIDTH_PORTRAIT
+		camera_half_width = world_width / 2.0
+		camera_y = DEATH_Y - 160.0
+		slam_radius = SLAM_RADIUS_PORTRAIT
+	else:
+		world_width = WORLD_WIDTH_LANDSCAPE
+		camera_half_width = 160.0
+		camera_y = 90.0
+		slam_radius = SLAM_RADIUS_LANDSCAPE
 	_build_world()
 	_spawn_party()
 	_spawn_enemies()
@@ -197,7 +226,7 @@ func activate_actor_special(actor: Actor) -> void:
 		report_event("%s: habilidade em recarga" % actor.actor_name)
 		return
 	match actor.role:
-		"warrior", "knight":
+		"warrior", "knight", "cavaleiro_executivo":
 			report_event("%s: ESTOCADA" % actor.actor_name)
 		"archer", "lightning_mage":
 			report_event("%s: TIRO PERFURANTE" % actor.actor_name)
@@ -267,7 +296,7 @@ func _rescue_inactive_ally(actor: Actor) -> void:
 	if not is_instance_valid(active_actor) or not active_actor.alive:
 		return
 
-	var preferred_x: float = clampf(active_actor.global_position.x + actor.follow_offset_x, 18.0, WORLD_WIDTH - 18.0)
+	var preferred_x: float = clampf(active_actor.global_position.x + actor.follow_offset_x, 18.0, world_width - 18.0)
 	var rescue_position: Vector2 = _safe_floor_position(preferred_x, active_actor.global_position.y)
 
 	if rescue_position == Vector2.INF:
@@ -331,8 +360,8 @@ func _alive_party_count() -> int:
 func _update_camera() -> void:
 	if not is_instance_valid(camera) or not is_instance_valid(active_actor):
 		return
-	var target_x: float = clampf(active_actor.global_position.x, 160.0, WORLD_WIDTH - 160.0)
-	camera.global_position = Vector2(target_x, 90.0)
+	var target_x: float = clampf(active_actor.global_position.x, camera_half_width, world_width - camera_half_width)
+	camera.global_position = Vector2(target_x, camera_y)
 
 func try_break_rubble(_actor: Actor) -> void:
 	# Nao ha entulho nesta fase; mantido apenas porque platform_actor_12.gd
@@ -402,11 +431,16 @@ func _build_world() -> void:
 
 	_add_background()
 	_add_ground()
-	_add_ledge(Rect2(6, 116, 50, 14))
-	_add_ledge(Rect2(264, 116, 50, 14))
+	if is_portrait:
+		_add_sky_fill_portrait()
+		_add_ledge(Rect2(6, 116, 44, 14))
+		_add_ledge(Rect2(130, 116, 44, 14))
+	else:
+		_add_ledge(Rect2(6, 116, 50, 14))
+		_add_ledge(Rect2(264, 116, 50, 14))
 
 	_add_wall_collision(Rect2(-12, 0, 12, DEATH_Y))
-	_add_wall_collision(Rect2(WORLD_WIDTH, 0, 12, DEATH_Y))
+	_add_wall_collision(Rect2(world_width, 0, 12, DEATH_Y))
 
 	actor_layer = Node2D.new()
 	actor_layer.name = "Actors"
@@ -419,25 +453,49 @@ func _build_world() -> void:
 
 	camera = Camera2D.new()
 	camera.limit_left = 0
-	camera.limit_top = 0
-	camera.limit_right = int(WORLD_WIDTH)
-	camera.limit_bottom = int(DEATH_Y)
+	camera.limit_right = int(world_width)
+	if is_portrait:
+		camera.limit_top = int(camera_y - 160.0)
+		camera.limit_bottom = int(camera_y + 160.0)
+	else:
+		camera.limit_top = 0
+		camera.limit_bottom = int(DEATH_Y)
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 8.0
 	camera.enabled = true
-	camera.global_position = Vector2(160, 90)
+	camera.global_position = Vector2(camera_half_width, camera_y)
 	add_child(camera)
 
 func _add_background() -> void:
 	var bg := Sprite2D.new()
 	bg.texture = load(STARRYNIGHT_BG_PATH)
 	bg.centered = false
-	bg.position = Vector2(0, 0)
 	bg.z_index = -10
+	if is_portrait:
+		bg.region_enabled = true
+		bg.region_rect = Rect2(70, 0, WORLD_WIDTH_PORTRAIT, 180)
+	bg.position = Vector2(0, 0)
 	world_layer.add_child(bg)
 
+func _add_sky_fill_portrait() -> void:
+	# Mesma tecnica de platform_boss_12.gd — degrade solido extraido do
+	# topo do fundo da Noite Estrelada preenche o espaco extra revelado
+	# acima da sala quando content_scale_size passa a ser 180x320.
+	var top_color := Color("2b0f54")
+	var deep_color := Color("0f0620")
+	var fill_top: float = camera_y - 160.0
+	var band_count := 4
+	var band_h: float = (0.0 - fill_top) / band_count
+	for i in range(band_count):
+		var band := ColorRect.new()
+		band.position = Vector2(0, fill_top + i * band_h)
+		band.size = Vector2(world_width, band_h + 1.0)
+		band.color = deep_color.lerp(top_color, float(i) / float(band_count - 1))
+		band.z_index = -11
+		world_layer.add_child(band)
+
 func _add_ground() -> void:
-	var rect := Rect2(0, GROUND_TOP, WORLD_WIDTH, DEATH_Y - GROUND_TOP)
+	var rect := Rect2(0, GROUND_TOP, world_width, DEATH_Y - GROUND_TOP)
 	var body := StaticBody2D.new()
 	body.collision_layer = 1
 	body.collision_mask = 0
@@ -532,25 +590,31 @@ const ROLE_TINT := {
 	"paladin": Color("ffe08a"),
 	"knight": Color("aac4e8"),
 	"bridge_heroine": Color("ffb3d1"),
+	"cavaleiro_executivo": Color("d4af37"),
 }
 
-const SLOT_SPAWN_X := [64.0, 46.0, 28.0]
+const SLOT_SPAWN_X_LANDSCAPE := [64.0, 46.0, 28.0]
+const SLOT_SPAWN_X_PORTRAIT := [48.0, 30.0, 12.0]
 const SLOT_FOLLOW_OFFSET := [-18.0, -18.0, -36.0]
 const ACTOR_GROUND_Y := GROUND_TOP - 34.0
+const BOSS_SPAWN_X_LANDSCAPE := 210.0
+const BOSS_SPAWN_X_PORTRAIT := 90.0
 
 func _spawn_party() -> void:
 	var roles: Array[String] = PartySelection12.get_party_roles()
+	var slot_spawn_x: Array = SLOT_SPAWN_X_PORTRAIT if is_portrait else SLOT_SPAWN_X_LANDSCAPE
 	party_slots = []
 	for i in range(roles.size()):
 		var role: String = roles[i]
 		var display_name: String = Actor.DISPLAY_NAME.get(role, role.to_upper())
 		var tint: Color = ROLE_TINT.get(role, Color.WHITE)
-		var actor := _spawn_actor(display_name, "ally", role, Vector2(SLOT_SPAWN_X[i], ACTOR_GROUND_Y), tint, i)
+		var actor := _spawn_actor(display_name, "ally", role, Vector2(slot_spawn_x[i], ACTOR_GROUND_Y), tint, i)
 		actor.follow_offset_x = SLOT_FOLLOW_OFFSET[i]
 		party_slots.append(actor)
 
 func _spawn_enemies() -> void:
-	boss_actor = _spawn_actor("MORCEGO", "enemy", "bat", Vector2(210, ACTOR_GROUND_Y), Color("c98fd9"))
+	var boss_x: float = BOSS_SPAWN_X_PORTRAIT if is_portrait else BOSS_SPAWN_X_LANDSCAPE
+	boss_actor = _spawn_actor("MORCEGO", "enemy", "bat", Vector2(boss_x, ACTOR_GROUND_Y), Color("c98fd9"))
 	# Morcego e agil e imprevisivel: golpes corpo a corpo mais frequentes,
 	# com um mergulho de aviso curto mas dificil de escapar (ver SLAM_* acima).
 	boss_actor.attack_cooldown_max = 0.9
@@ -576,7 +640,7 @@ func _resolve_slam() -> void:
 	report_event("MORCEGO: MERGULHO CERTEIRO")
 	for member in party_slots:
 		if is_instance_valid(member) and member.alive:
-			if member.global_position.distance_to(boss_actor.global_position) <= SLAM_RADIUS:
+			if member.global_position.distance_to(boss_actor.global_position) <= slam_radius:
 				member.take_damage(1, boss_actor)
 				var dir: float = signf(member.global_position.x - boss_actor.global_position.x)
 				if dir == 0.0:
@@ -598,6 +662,19 @@ func _try_interrupt_slam(actor: Actor) -> void:
 func _build_hud() -> void:
 	var canvas := CanvasLayer.new()
 	add_child(canvas)
+
+	if is_portrait:
+		var refs := BossHudPortrait12.build_hud(canvas, "MORCEGO")
+		party_label = refs["party_label"]
+		objective_label = refs["objective_label"]
+		boss_name_label = refs["boss_name_label"]
+		boss_bar_bg = refs["boss_bar_bg"]
+		boss_bar_empty = refs["boss_bar_empty"]
+		state_label = refs["state_label"]
+		event_label = refs["event_label"]
+		boss_bar_pos = refs["boss_bar_pos"]
+		boss_bar_size = refs["boss_bar_size"]
+		return
 
 	var panel := ColorRect.new()
 	panel.position = Vector2(0, 0)
@@ -723,7 +800,14 @@ func _toggle_pause() -> void:
 	get_tree().paused = is_paused
 	pause_layer.visible = is_paused
 
+const PAUSE_INSTRUCTIONS := "OBJETIVO\nDerrote o MORCEGO, um chefe unico com muita vida.\nDe tempos em tempos ele sobe no ceu para um MERGULHO rapido\n(aviso na tela) — use a habilidade especial (H) de QUALQUER\npersonagem do seu grupo durante o aviso para INTERROMPER o\ngolpe e causar dano bonus. Se o mergulho acontecer, quem\nestiver perto leva dano e e arremessado para tras.\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
+
 func _build_pause_menu() -> void:
+	if is_portrait:
+		pause_layer = BossHudPortrait12.build_pause_menu(PAUSE_INSTRUCTIONS, _toggle_pause, _on_back_to_select_pressed)
+		add_child(pause_layer)
+		return
+
 	pause_layer = CanvasLayer.new()
 	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	pause_layer.layer = 10
@@ -755,7 +839,7 @@ func _build_pause_menu() -> void:
 	pause_layer.add_child(title)
 
 	var instructions := Label.new()
-	instructions.text = "OBJETIVO\nDerrote o MORCEGO, um chefe unico com muita vida.\nDe tempos em tempos ele sobe no ceu para um MERGULHO rapido\n(aviso na tela) — use a habilidade especial (H) de QUALQUER\npersonagem do seu grupo durante o aviso para INTERROMPER o\ngolpe e causar dano bonus. Se o mergulho acontecer, quem\nestiver perto leva dano e e arremessado para tras.\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
+	instructions.text = PAUSE_INSTRUCTIONS
 	instructions.position = Vector2(38, 24)
 	instructions.size = Vector2(244, 120)
 	instructions.add_theme_font_override("font", body_font)
@@ -765,21 +849,17 @@ func _build_pause_menu() -> void:
 
 	var resume_btn := Button.new()
 	resume_btn.text = "CONTINUAR"
-	resume_btn.position = Vector2(46, 150)
-	resume_btn.size = Vector2(100, 18)
 	resume_btn.focus_mode = Control.FOCUS_NONE
-	resume_btn.add_theme_font_override("font", body_font)
-	resume_btn.add_theme_font_size_override("font_size", 8)
+	resume_btn.position = Vector2(46, 150)
+	MedievalUI12.style_button(resume_btn, false, body_font, 8, Color("2a1a0f"), Vector2(100, 18))
 	resume_btn.pressed.connect(_toggle_pause)
 	pause_layer.add_child(resume_btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "VOLTAR A SELECAO"
-	back_btn.position = Vector2(156, 150)
-	back_btn.size = Vector2(120, 18)
 	back_btn.focus_mode = Control.FOCUS_NONE
-	back_btn.add_theme_font_override("font", body_font)
-	back_btn.add_theme_font_size_override("font_size", 8)
+	back_btn.position = Vector2(156, 150)
+	MedievalUI12.style_button(back_btn, true, body_font, 8, Color("f4e7c9"), Vector2(120, 18))
 	back_btn.pressed.connect(_on_back_to_select_pressed)
 	pause_layer.add_child(back_btn)
 
