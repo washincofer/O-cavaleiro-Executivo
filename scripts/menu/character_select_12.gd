@@ -19,8 +19,8 @@ extends Control
 ## Botoes COMECAR/VOLTAR ganham o skin Medieval Free nos dois modos.
 
 const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
-const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf"
-const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
+const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf"
+const BODY_FONT_PATH := "res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf"
 const LOADING_SCENE := "res://scenes/menu/loading_screen_12.tscn"
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 
@@ -533,7 +533,7 @@ func _build_buttons() -> void:
 	start_button.text = "COMECAR"
 	start_button.focus_mode = Control.FOCUS_NONE
 	start_button.position = Vector2(184, 104)
-	MedievalUI12.style_button(start_button, false, title_font, 11, Color("2a1a0f"), Vector2(128, 28))
+	KenneyUI12.style_button(start_button, true, 11, Vector2(128, 28))
 	start_button.pressed.connect(_on_start_pressed)
 	add_child(start_button)
 
@@ -541,7 +541,7 @@ func _build_buttons() -> void:
 	back_button.text = "VOLTAR"
 	back_button.focus_mode = Control.FOCUS_NONE
 	back_button.position = Vector2(184, 136)
-	MedievalUI12.style_button(back_button, true, body_font, 7, Color("f4e7c9"), Vector2(128, 16))
+	KenneyUI12.style_button(back_button, false, 7, Vector2(128, 16))
 	back_button.pressed.connect(_on_back_pressed)
 	add_child(back_button)
 
@@ -550,7 +550,7 @@ func _build_buttons_portrait(y: float) -> void:
 	start_button.text = "COMECAR"
 	start_button.focus_mode = Control.FOCUS_NONE
 	start_button.position = Vector2(20, y)
-	MedievalUI12.style_button(start_button, false, title_font, 11, Color("2a1a0f"), Vector2(140, 28))
+	KenneyUI12.style_button(start_button, true, 11, Vector2(140, 28))
 	start_button.pressed.connect(_on_start_pressed)
 	add_child(start_button)
 
@@ -558,7 +558,7 @@ func _build_buttons_portrait(y: float) -> void:
 	back_button.text = "VOLTAR"
 	back_button.focus_mode = Control.FOCUS_NONE
 	back_button.position = Vector2(20, y + 34)
-	MedievalUI12.style_button(back_button, true, body_font, 7, Color("f4e7c9"), Vector2(140, 18))
+	KenneyUI12.style_button(back_button, false, 7, Vector2(140, 18))
 	back_button.pressed.connect(_on_back_pressed)
 	add_child(back_button)
 

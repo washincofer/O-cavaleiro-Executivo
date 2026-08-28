@@ -2,15 +2,23 @@ extends Control
 
 ## Sprint 12: tela de selecao de fase, no estilo do grid de robos-mestres da
 ## saga Mega Man — painel anguloso, portais com moldura colorida e parafusos,
-## tela de preview central. So a Caverna (Sprint 12) esta liberada; os
-## outros 7 slots sao placeholders "?" — as proximas fases entram aqui aos
-## poucos.
+## tela de preview central.
+##
+## Reskin pos-16 (pedido do usuario, pack Kenney "Fantasy UI Borders"): o
+## nameplate/preview e a barra de titulo usam agora KenneyUI12 (paineis
+## escuros com moldura em colchetes brancos + Aoboshi One) no lugar do
+## MedievalUI12 anterior. Aproveitado tambem pra fechar uma lacuna real: esta
+## tela nunca tinha ganhado a irma `_build_portrait()` que as outras 4 telas
+## de menu ja tem desde a Sprint 16 — em retrato ela renderizava o layout de
+## 320 de largura inteiro (grade de fases cortada fora da tela de 180px).
+## `_build_landscape()` mantem a geometria original (320x180); `_build_tile()`
+## e `_build_preview_panel()` recebem posicao/tamanho como parametro pra
+## servir aos dois layouts sem duplicar a logica de estado (glow, gated,
+## hover-preview).
 
 const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
 const CHARACTER_SELECT_SCENE := "res://scenes/menu/character_select_12.tscn"
 const DIALOGUE_SCENE := "res://scenes/menu/dialogue_12.tscn"
-const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf"
-const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
 
 const TILE_COLORS := [
 	Color("ffd23f"),
@@ -87,35 +95,44 @@ const STAGES := [
 
 var preview_rect: TextureRect
 var preview_label: Label
-var title_font: FontFile
-var body_font: FontFile
 var glow_borders: Array[ColorRect] = []
 var glow_colors: Array[Color] = []
 var glow_t := 0.0
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(320, 180)
-
-	title_font = load(TITLE_FONT_PATH)
-	body_font = load(BODY_FONT_PATH)
-
 	var bg := ColorRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.color = Color("0a0e16")
 	add_child(bg)
 
-	_add_angled_panel()
+	if DeviceLayout12.is_portrait:
+		custom_minimum_size = Vector2(180, 320)
+		_build_portrait()
+	else:
+		custom_minimum_size = Vector2(320, 180)
+		_build_landscape()
+
+	_show_preview(0)
+
+func _process(delta: float) -> void:
+	if glow_borders.is_empty():
+		return
+	glow_t += delta * 3.0
+	var pulse: float = 0.7 + 0.3 * sin(glow_t)
+	for i in range(glow_borders.size()):
+		var border: ColorRect = glow_borders[i]
+		if is_instance_valid(border):
+			border.color = glow_colors[i] * pulse
+
+func _build_landscape() -> void:
+	_add_angled_panel(Vector2(4, 3), Vector2(312, 174))
 
 	var title := Label.new()
 	title.text = "O CAVALEIRO EXECUTIVO"
 	title.position = Vector2(0, 9)
 	title.size = Vector2(320, 14)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_override("font", title_font)
-	title.add_theme_font_size_override("font_size", 11)
-	title.add_theme_color_override("font_color", Color("ffe26f"))
-	title.add_theme_color_override("font_outline_color", Color("241a05"))
-	title.add_theme_constant_override("outline_size", 3)
+	KenneyUI12.style_label(title, 11, Color("ffe26f"))
 	add_child(title)
 
 	var subtitle := Label.new()
@@ -123,12 +140,10 @@ func _ready() -> void:
 	subtitle.position = Vector2(0, 22)
 	subtitle.size = Vector2(320, 10)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_override("font", body_font)
-	subtitle.add_theme_font_size_override("font_size", 6)
-	subtitle.add_theme_color_override("font_color", Color("8fa6c9"))
+	KenneyUI12.style_label(subtitle, 6, Color("8fa6c9"))
 	add_child(subtitle)
 
-	_build_preview_panel()
+	_build_preview_panel(Vector2(8, 30), Vector2(156, 116))
 
 	var cols := 2
 	var tile_size := Vector2(68, 30)
@@ -146,28 +161,60 @@ func _ready() -> void:
 	hint.position = Vector2(0, 169)
 	hint.size = Vector2(320, 10)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 6)
-	hint.add_theme_color_override("font_color", Color("8fa6c9"))
+	KenneyUI12.style_label(hint, 6, Color("8fa6c9"))
 	add_child(hint)
 
-	_show_preview(0)
+func _build_portrait() -> void:
+	_add_angled_panel(Vector2(3, 3), Vector2(174, 314))
 
-func _process(delta: float) -> void:
-	if glow_borders.is_empty():
-		return
-	glow_t += delta * 3.0
-	var pulse: float = 0.7 + 0.3 * sin(glow_t)
-	for i in range(glow_borders.size()):
-		var border: ColorRect = glow_borders[i]
-		if is_instance_valid(border):
-			border.color = glow_colors[i] * pulse
+	var title := Label.new()
+	title.text = "O CAVALEIRO EXECUTIVO"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	KenneyUI12.style_label(title, 9, Color("ffe26f"))
+	title.position = Vector2(4, 8)
+	title.custom_minimum_size = Vector2(172, 20)
+	title.size = Vector2(172, 20)
+	add_child(title)
 
-func _add_angled_panel() -> void:
+	var subtitle := Label.new()
+	subtitle.text = "SELECAO DE FASE"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	KenneyUI12.style_label(subtitle, 6, Color("8fa6c9"))
+	subtitle.position = Vector2(4, 28)
+	subtitle.custom_minimum_size = Vector2(172, 10)
+	subtitle.size = Vector2(172, 10)
+	add_child(subtitle)
+
+	_build_preview_panel(Vector2(10, 40), Vector2(160, 96))
+
+	var cols := 2
+	var tile_size := Vector2(78, 26)
+	var gap := 4.0
+	var grid_pos := Vector2(10, 144)
+
+	for i in range(STAGES.size()):
+		var col: int = i % cols
+		var row: int = i / cols
+		var pos := grid_pos + Vector2(col * (tile_size.x + gap), row * (tile_size.y + gap))
+		_build_tile(STAGES[i], i, pos, tile_size)
+
+	var hint := Label.new()
+	hint.text = "TOQUE NA FASE DISPONIVEL PARA COMECAR"
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	KenneyUI12.style_label(hint, 6, Color("8fa6c9"))
+	hint.position = Vector2(10, 296)
+	hint.custom_minimum_size = Vector2(160, 20)
+	hint.size = Vector2(160, 20)
+	add_child(hint)
+
+func _add_angled_panel(offset: Vector2, size: Vector2) -> void:
 	var cut := 10.0
-	var ox := 4.0
-	var oy := 3.0
-	var w := 312.0
-	var h := 174.0
+	var ox := offset.x
+	var oy := offset.y
+	var w := size.x
+	var h := size.y
 	var panel := Polygon2D.new()
 	panel.polygon = PackedVector2Array([
 		Vector2(ox + cut, oy), Vector2(ox + w - cut, oy),
@@ -189,49 +236,45 @@ func _add_angled_panel() -> void:
 	inner.color = Color("11141d")
 	add_child(inner)
 
-func _build_preview_panel() -> void:
+func _build_preview_panel(pos: Vector2, size: Vector2) -> void:
 	var outer := ColorRect.new()
-	outer.position = Vector2(8, 30)
-	outer.size = Vector2(156, 116)
+	outer.position = pos
+	outer.size = size
 	outer.color = Color("3a4258")
 	add_child(outer)
 
+	var bezel_inset := Vector2(4, 4)
+	var nameplate_h := 12.0
 	var bezel := ColorRect.new()
-	bezel.position = Vector2(12, 34)
-	bezel.size = Vector2(148, 92)
+	bezel.position = pos + bezel_inset
+	bezel.size = size - bezel_inset * 2.0 - Vector2(0, nameplate_h)
 	bezel.color = Color("0d1015")
 	add_child(bezel)
 
 	preview_rect = TextureRect.new()
-	preview_rect.position = Vector2(15, 37)
-	preview_rect.size = Vector2(142, 86)
 	preview_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	preview_rect.stretch_mode = TextureRect.STRETCH_SCALE
+	preview_rect.position = bezel.position + Vector2(3, 3)
+	preview_rect.size = bezel.size - Vector2(6, 6)
 	add_child(preview_rect)
 
-	for corner in [Vector2(12, 34), Vector2(160, 34), Vector2(12, 126), Vector2(160, 126)]:
+	for corner in [bezel.position, bezel.position + Vector2(bezel.size.x, 0), bezel.position + Vector2(0, bezel.size.y), bezel.position + bezel.size]:
 		_add_bolt(corner)
 
-	# Sprint 16: nameplate com o botao Medieval Free (MedievalUI12) no lugar
-	# do texto flutuante sem fundo — primeira aplicacao real do helper de
-	# skin fora do probe de dev.
-	var label_bg := Panel.new()
-	label_bg.position = Vector2(8, 128)
-	label_bg.size = Vector2(156, 12)
-	label_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label_bg.add_theme_stylebox_override("panel", MedievalUI12.button_stylebox(true))
+	# Nameplate com o painel do Kenney (moldura branca em colchetes sobre
+	# fundo escuro) no lugar do StyleBoxTexture Medieval Free anterior.
+	var nameplate_pos := pos + Vector2(0, size.y - nameplate_h)
+	var nameplate_size := Vector2(size.x, nameplate_h)
+	var label_bg := KenneyUI12.make_panel(nameplate_size, Color(0.05, 0.05, 0.08, 0.92))
+	label_bg.position = nameplate_pos
 	add_child(label_bg)
 
 	preview_label = Label.new()
-	preview_label.position = Vector2(8, 128)
-	preview_label.size = Vector2(156, 12)
+	preview_label.position = nameplate_pos
+	preview_label.size = nameplate_size
 	preview_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	preview_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	preview_label.add_theme_font_override("font", body_font)
-	preview_label.add_theme_font_size_override("font_size", 10)
-	preview_label.add_theme_color_override("font_color", Color("ffe26f"))
-	preview_label.add_theme_color_override("font_outline_color", Color("241a05"))
-	preview_label.add_theme_constant_override("outline_size", 2)
+	KenneyUI12.style_label(preview_label, 10, Color("ffe26f"))
 	add_child(preview_label)
 
 func _add_bolt(pos: Vector2) -> void:
@@ -275,7 +318,7 @@ func _build_tile(stage: Dictionary, index: int, pos: Vector2, size: Vector2) -> 
 	button.disabled = not playable
 	button.focus_mode = Control.FOCUS_NONE
 	button.flat = true
-	button.add_theme_font_override("font", body_font)
+	button.add_theme_font_override("font", KenneyUI12.font())
 	button.add_theme_font_size_override("font_size", 11)
 
 	if exists:
@@ -303,7 +346,7 @@ func _build_tile(stage: Dictionary, index: int, pos: Vector2, size: Vector2) -> 
 		lock_label.position = Vector2(2, size.y * 0.5 - 6)
 		lock_label.size = Vector2(size.x - 4, 12)
 		lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lock_label.add_theme_font_override("font", body_font)
+		lock_label.add_theme_font_override("font", KenneyUI12.font())
 		lock_label.add_theme_font_size_override("font_size", 7)
 		lock_label.add_theme_color_override("font_color", Color("d9c9a8"))
 		lock_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))

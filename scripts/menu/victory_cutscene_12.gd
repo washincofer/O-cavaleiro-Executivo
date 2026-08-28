@@ -15,8 +15,8 @@ extends Control
 ## CONTINUAR ganha o skin Medieval Free (MedievalUI12) nos dois modos.
 
 const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
-const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf"
-const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
+const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf"
+const BODY_FONT_PATH := "res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf"
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 
 const PORTRAIT_PATH := {
@@ -106,7 +106,7 @@ func _build_landscape() -> void:
 	continue_button.text = "CONTINUAR"
 	continue_button.focus_mode = Control.FOCUS_NONE
 	continue_button.position = Vector2(120, 156)
-	MedievalUI12.style_button(continue_button, true, body_font, 8, Color("f4e7c9"), Vector2(80, 18))
+	KenneyUI12.style_button(continue_button, false, 8, Vector2(80, 18))
 	continue_button.pressed.connect(_go_to_stage_select)
 	add_child(continue_button)
 
@@ -193,7 +193,7 @@ func _build_portrait() -> void:
 	continue_button.text = "CONTINUAR"
 	continue_button.focus_mode = Control.FOCUS_NONE
 	continue_button.position = Vector2(50, 268)
-	MedievalUI12.style_button(continue_button, true, body_font, 8, Color("f4e7c9"), Vector2(80, 24))
+	KenneyUI12.style_button(continue_button, false, 8, Vector2(80, 24))
 	continue_button.pressed.connect(_go_to_stage_select)
 	add_child(continue_button)
 

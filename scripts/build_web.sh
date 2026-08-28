@@ -42,8 +42,20 @@ echo "Exportando a versao Web para dist/..."
 # Sprint-specific basename, bypassing packages cached by older builds.
 mv dist/cavaleiro-sprint12-v01.html dist/index.html
 
+# Video de abertura: servido como arquivo estatico solto (fora do .pck) pra
+# company_intro_12.gd tocar com a tag <video> nativa do navegador em vez do
+# VideoStreamPlayer do Godot — o player nativo do Godot decodifica Theora via
+# software no thread principal do WASM e, sob a carga do proprio jogo, ficava
+# visivelmente corrompido (zoom/blur progressivo, pedido do usuario pra
+# consertar). <video src> com H.264 usa o decoder de hardware do navegador,
+# a mesma tecnologia de qualquer video tocado num site.
+cp assets/Video/Runtime/company_intro.mp4 dist/company_intro.mp4
+cp assets/Video/Runtime/company_intro.webm dist/company_intro.webm
+
 test -f dist/index.html
 test -f dist/cavaleiro-sprint12-v01.js
 test -f dist/cavaleiro-sprint12-v01.wasm
 test -f dist/cavaleiro-sprint12-v01.pck
+test -f dist/company_intro.mp4
+test -f dist/company_intro.webm
 echo "Exportacao Web concluida."

@@ -55,7 +55,7 @@ static func build_hud(canvas: CanvasLayer, boss_display_name: String) -> Diction
 	panel.add_child(objective_label)
 	refs["objective_label"] = objective_label
 
-	var body_font: FontFile = load("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
+	var body_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
 
 	var boss_name_label := Label.new()
 	boss_name_label.text = boss_display_name
@@ -84,7 +84,7 @@ static func build_hud(canvas: CanvasLayer, boss_display_name: String) -> Diction
 	canvas.add_child(boss_bar_empty)
 	refs["boss_bar_empty"] = boss_bar_empty
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
 
 	var state_label := Label.new()
 	state_label.position = Vector2(0, 150)
@@ -136,14 +136,12 @@ static func build_pause_menu(instructions_text: String, on_resume: Callable, on_
 	dim.color = Color(0, 0, 0, 0.72)
 	pause_layer.add_child(dim)
 
-	var panel := ColorRect.new()
+	var panel := KenneyUI12.make_panel(Vector2(168, 300), Color(0.06, 0.065, 0.09, 0.94))
 	panel.position = Vector2(6, 10)
-	panel.size = Vector2(168, 300)
-	panel.color = Color("1b2028")
 	pause_layer.add_child(panel)
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
-	var body_font: FontFile = load("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+	var body_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
 
 	var title := Label.new()
 	title.text = "PAUSADO"
@@ -174,7 +172,7 @@ static func build_pause_menu(instructions_text: String, on_resume: Callable, on_
 	resume_btn.text = "CONTINUAR"
 	resume_btn.focus_mode = Control.FOCUS_NONE
 	resume_btn.position = Vector2(24, 258)
-	MedievalUI12.style_button(resume_btn, false, body_font, 8, Color("2a1a0f"), Vector2(132, 20))
+	KenneyUI12.style_button(resume_btn, true, 8, Vector2(132, 20))
 	resume_btn.pressed.connect(on_resume)
 	pause_layer.add_child(resume_btn)
 
@@ -182,7 +180,7 @@ static func build_pause_menu(instructions_text: String, on_resume: Callable, on_
 	back_btn.text = "VOLTAR A SELECAO"
 	back_btn.focus_mode = Control.FOCUS_NONE
 	back_btn.position = Vector2(24, 284)
-	MedievalUI12.style_button(back_btn, true, body_font, 7, Color("f4e7c9"), Vector2(132, 18))
+	KenneyUI12.style_button(back_btn, false, 7, Vector2(132, 18))
 	back_btn.pressed.connect(on_back)
 	pause_layer.add_child(back_btn)
 
