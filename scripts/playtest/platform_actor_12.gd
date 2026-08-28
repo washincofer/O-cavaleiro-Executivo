@@ -75,6 +75,16 @@ const ROLE_ANIM := {
 		"hurt": {"path": "res://assets/Enemies/Slime/Runtime/Hurt.png", "fw": 156, "fh": 156, "count": 3, "fps": 12.0, "loop": false},
 		"death": {"path": "res://assets/Enemies/Slime/Runtime/Death.png", "fw": 156, "fh": 156, "count": 11, "fps": 10.0, "loop": false},
 	},
+	# Nao ha sprite proprio de Golem disponivel; o boss da fase de Ruinas
+	# reaproveita a Gosma (Slime) em escala bem maior + modulate acinzentado
+	# (ver ROLE_MODULATE) como stand-in ate uma arte definitiva chegar.
+	"golem": {
+		"idle": {"path": "res://assets/Enemies/Slime/Runtime/Idle.png", "fw": 156, "fh": 156, "count": 14, "fps": 6.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Slime/Runtime/Walk.png", "fw": 156, "fh": 156, "count": 6, "fps": 6.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Slime/Runtime/Attack.png", "fw": 156, "fh": 156, "count": 19, "fps": 12.0, "loop": false},
+		"hurt": {"path": "res://assets/Enemies/Slime/Runtime/Hurt.png", "fw": 156, "fh": 156, "count": 3, "fps": 10.0, "loop": false},
+		"death": {"path": "res://assets/Enemies/Slime/Runtime/Death.png", "fw": 156, "fh": 156, "count": 11, "fps": 8.0, "loop": false},
+	},
 	"rat": {
 		"idle": {"path": "res://assets/Enemies/Rat/Runtime/Idle.png", "fw": 70, "fh": 70, "count": 10, "fps": 8.0, "loop": true},
 		"move": {"path": "res://assets/Enemies/Rat/Runtime/Run.png", "fw": 70, "fh": 70, "count": 8, "fps": 12.0, "loop": true},
@@ -96,6 +106,15 @@ const ROLE_BODY := {
 	"wanderer": {"scale": 0.485, "offset": Vector2(0.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
 	"slime": {"scale": 1.0, "offset": Vector2(0.0, -9.0), "radius": 7.0, "height": 14.0, "shape_y": -8.0, "speed": 46.0, "max_hp": 3, "ranged": false},
 	"rat": {"scale": 0.9, "offset": Vector2(0.0, -10.0), "radius": 6.0, "height": 16.0, "shape_y": -9.0, "speed": 58.0, "max_hp": 3, "ranged": false},
+	"golem": {"scale": 3.2, "offset": Vector2(0.0, -9.0), "radius": 22.0, "height": 45.0, "shape_y": -26.0, "speed": 26.0, "max_hp": 60, "ranged": false},
+}
+
+# Tinta permanente do sprite por role (multiplicada sobre a textura); a
+# maioria fica branca (sem alterar as cores originais do pack). Usada pelo
+# Golem para diferenciar visualmente da Gosma comum sem precisar de um
+# sprite proprio.
+const ROLE_MODULATE := {
+	"golem": Color("8f8a80"),
 }
 
 const DISPLAY_NAME := {
@@ -107,6 +126,7 @@ const DISPLAY_NAME := {
 	"wanderer": "MAGO ANDARILHO",
 	"slime": "GOSMA",
 	"rat": "RATO",
+	"golem": "GOLEM DE PEDRA",
 }
 
 const RANGED_PROJECTILE_KIND := {
@@ -156,6 +176,7 @@ var charge_direction := 1.0
 
 var sprite: AnimatedSprite2D
 var nameplate: Label
+var base_modulate := Color(1, 1, 1)
 
 func setup(
 	p_controller: Node,
@@ -199,6 +220,8 @@ func setup(
 	var body_scale: float = body_cfg["scale"]
 	sprite.scale = Vector2(body_scale, body_scale)
 	sprite.offset = body_cfg["offset"]
+	base_modulate = ROLE_MODULATE.get(role, Color(1, 1, 1))
+	sprite.modulate = base_modulate
 	sprite.animation = "idle"
 	sprite.play("idle")
 	sprite.animation_finished.connect(_on_animation_finished)
@@ -440,7 +463,7 @@ func take_damage(amount: int, source = null) -> void:
 	if is_instance_valid(sprite):
 		if sprite.sprite_frames.has_animation("hurt"):
 			sprite.play("hurt")
-		sprite.modulate = Color(1.0, 0.45, 0.45)
+		sprite.modulate = base_modulate * Color(1.0, 0.45, 0.45)
 	if hp <= 0:
 		_die()
 
@@ -459,7 +482,7 @@ func _die() -> void:
 	set_physics_process(false)
 	queue_redraw()
 	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("death"):
-		sprite.modulate = Color(1, 1, 1)
+		sprite.modulate = base_modulate
 		sprite.play("death")
 	else:
 		visible = false
@@ -473,7 +496,7 @@ func _on_animation_finished() -> void:
 			visible = false
 		return
 	if sprite.animation == "hurt":
-		sprite.modulate = Color(1, 1, 1)
+		sprite.modulate = base_modulate
 
 func _update_animation() -> void:
 	if not is_instance_valid(sprite) or not alive:

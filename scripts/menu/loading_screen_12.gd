@@ -4,7 +4,6 @@ extends Control
 ## carregamento real da cena, no espirito das telas de loading classicas —
 ## mesmo a fase sendo leve o suficiente para carregar quase instantaneamente.
 
-const NEXT_SCENE := "res://scenes/playtest/platform_party_12.tscn"
 const LOAD_SECONDS := 3.0
 const BAR_WIDTH := 160.0
 
@@ -23,7 +22,7 @@ func _ready() -> void:
 	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
 
 	var title := Label.new()
-	title.text = "CARREGANDO A CAVERNA..."
+	title.text = PartySelection12.loading_title
 	title.position = Vector2(0, 76)
 	title.size = Vector2(320, 14)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -52,4 +51,4 @@ func _process(delta: float) -> void:
 	bar_fill.size = Vector2(BAR_WIDTH * ratio, 8.0)
 	if elapsed >= LOAD_SECONDS:
 		changed_scene = true
-		get_tree().change_scene_to_file(NEXT_SCENE)
+		get_tree().change_scene_to_file(PartySelection12.target_scene)

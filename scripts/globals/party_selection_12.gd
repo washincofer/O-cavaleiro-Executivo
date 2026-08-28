@@ -26,7 +26,15 @@ const DEFAULT_SELECTION := {
 	CATEGORY_TELEPORTER: "mage",
 }
 
+const DEFAULT_TARGET_SCENE := "res://scenes/playtest/platform_party_12.tscn"
+const DEFAULT_LOADING_TITLE := "CARREGANDO A CAVERNA..."
+
 var selection: Dictionary = DEFAULT_SELECTION.duplicate()
+# Fase escolhida na tela de selecao, lida pela tela de loading para saber
+# qual cena carregar de fato (cada fase mantem seu proprio controller) e
+# qual texto mostrar na barra de progresso.
+var target_scene: String = DEFAULT_TARGET_SCENE
+var loading_title: String = DEFAULT_LOADING_TITLE
 
 func get_role(category: String) -> String:
 	return selection.get(category, DEFAULT_SELECTION[category])

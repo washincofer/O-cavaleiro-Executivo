@@ -6,7 +6,6 @@ extends Control
 ## outros 7 slots sao placeholders "?" — as proximas fases entram aqui aos
 ## poucos.
 
-const PREVIEW_PATH := "res://assets/UI/Runtime/stage_caverna_preview.png"
 const CHARACTER_SELECT_SCENE := "res://scenes/menu/character_select_12.tscn"
 const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf"
 const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
@@ -23,8 +22,20 @@ const TILE_COLORS := [
 ]
 
 const STAGES := [
-	{"name": "CAVERNA", "unlocked": true},
-	{"name": "?", "unlocked": false},
+	{
+		"name": "CAVERNA",
+		"unlocked": true,
+		"preview": "res://assets/UI/Runtime/stage_caverna_preview.png",
+		"target_scene": "res://scenes/playtest/platform_party_12.tscn",
+		"loading_title": "CARREGANDO A CAVERNA...",
+	},
+	{
+		"name": "RUINAS",
+		"unlocked": true,
+		"preview": "res://assets/Environment/Ruins/Runtime/ruins_bg.png",
+		"target_scene": "res://scenes/playtest/platform_boss_12.tscn",
+		"loading_title": "CARREGANDO AS RUINAS...",
+	},
 	{"name": "?", "unlocked": false},
 	{"name": "?", "unlocked": false},
 	{"name": "?", "unlocked": false},
@@ -35,10 +46,10 @@ const STAGES := [
 
 var preview_rect: TextureRect
 var preview_label: Label
-var preview_tex: Texture2D
 var title_font: FontFile
 var body_font: FontFile
-var glow_border: ColorRect
+var glow_borders: Array[ColorRect] = []
+var glow_colors: Array[Color] = []
 var glow_t := 0.0
 
 func _ready() -> void:
@@ -76,7 +87,6 @@ func _ready() -> void:
 	subtitle.add_theme_color_override("font_color", Color("8fa6c9"))
 	add_child(subtitle)
 
-	preview_tex = load(PREVIEW_PATH)
 	_build_preview_panel()
 
 	var cols := 2
@@ -102,11 +112,14 @@ func _ready() -> void:
 	_show_preview(0)
 
 func _process(delta: float) -> void:
-	if not is_instance_valid(glow_border):
+	if glow_borders.is_empty():
 		return
 	glow_t += delta * 3.0
 	var pulse: float = 0.7 + 0.3 * sin(glow_t)
-	glow_border.color = Color(TILE_COLORS[0].r, TILE_COLORS[0].g, TILE_COLORS[0].b) * pulse
+	for i in range(glow_borders.size()):
+		var border: ColorRect = glow_borders[i]
+		if is_instance_valid(border):
+			border.color = glow_colors[i] * pulse
 
 func _add_angled_panel() -> void:
 	var cut := 10.0
@@ -208,13 +221,14 @@ func _build_tile(stage: Dictionary, index: int, pos: Vector2, size: Vector2) -> 
 	if unlocked:
 		var icon := TextureRect.new()
 		icon.set_anchors_preset(Control.PRESET_FULL_RECT)
-		icon.texture = preview_tex
+		icon.texture = load(stage["preview"])
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_SCALE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(icon)
-		button.pressed.connect(_on_stage_pressed)
-		glow_border = border
+		button.pressed.connect(_on_stage_pressed.bind(index))
+		glow_borders.append(border)
+		glow_colors.append(accent)
 	else:
 		button.text = "?"
 		button.add_theme_color_override("font_color", Color("454b58"))
@@ -226,11 +240,14 @@ func _build_tile(stage: Dictionary, index: int, pos: Vector2, size: Vector2) -> 
 func _show_preview(index: int) -> void:
 	var stage: Dictionary = STAGES[index]
 	if stage["unlocked"]:
-		preview_rect.texture = preview_tex
+		preview_rect.texture = load(stage["preview"])
 		preview_label.text = stage["name"]
 	else:
 		preview_rect.texture = null
 		preview_label.text = "EM BREVE"
 
-func _on_stage_pressed() -> void:
+func _on_stage_pressed(index: int) -> void:
+	var stage: Dictionary = STAGES[index]
+	PartySelection12.target_scene = stage["target_scene"]
+	PartySelection12.loading_title = stage["loading_title"]
 	get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
