@@ -1,20 +1,22 @@
 extends Node2D
 
-## Sprint 13/14: fase da boss fight (fundo craftpix post-apocaliptico), estilo
-## Super Kirby Clash — uma sala unica (sem scroll) onde o trio selecionado
-## enfrenta um unico inimigo gigante, o NECROMANTE (pack "Necromancer").
+## Sprint 15: 4a fase de boss fight (cemiterio gotico noturno, fundo
+## desenhado com o mesmo estilo procedural da Floresta), mesmo formato "sala
+## unica" das Ruinas — o trio selecionado enfrenta um unico inimigo gigante,
+## o OGRO (pack Gothicvania, Legacy Collection), cujas folhas Idle (4
+## frames), Walk (6) e Attack (7, 144x80) vieram prontas do pack — sem Hurt
+## nem Death (mesmo caso ja tratado sem problemas pelo Cavaleiro/`_die()`).
 ##
-## Mecanica do boss: a cada poucos segundos o boss entra em "windup" (aviso
-## visual + textual) antes de um impacto em area. Ativar a habilidade
-## especial (H) de QUALQUER personagem do grupo durante o windup interrompe
-## o golpe e causa dano bonus — reaproveita a mesma tecla/mecanica unica de
-## cada categoria (Estocada/Rajada, Tiro Perfurante, Teleporte) sem precisar
-## de logica especifica por personagem.
+## Mecanica identica a Ruinas/Floresta (pisao em area com aviso/interrupcao)
+## — apenas reskinada com textos do Ogro, mais lento e telegrafado (windup
+## mais longo, raio maior) por ser um golpe pesado — e recompensa: vencer
+## libera o CAVALEIRO (`PartySelection12.stage_reward_role`, setado por
+## `stage_select_12.gd`), anunciado pela cutscene de vitoria antes de voltar
+## a selecao de fase.
 ##
-## Deriva da estrutura de platform_party_12.gd (party/camera/seguidores/
-## HUD/pausa), mas e um arquivo proprio (convencao das sprints anteriores:
-## cada fase mantem seu controller independente) com um mundo bem menor
-## (sala unica) e sem o puzzle de portao/interruptor.
+## Arquivo proprio (convencao das sprints anteriores: cada fase mantem seu
+## controller independente), copiado de platform_boss_forest_12.gd com o
+## boss e o cenario trocados.
 
 const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
 const Projectile = preload("res://scripts/playtest/platform_projectile_12.gd")
@@ -27,7 +29,7 @@ const VICTORY_CUTSCENE_SCENE := "res://scenes/menu/victory_cutscene_12.tscn"
 const WORLD_WIDTH := 320.0
 const DEATH_Y := 210.0
 const GROUND_TOP := 150.0
-const RUINS_BG_PATH := "res://assets/Environment/Ruins/Runtime/ruins_bg.png"
+const CEMETERY_BG_PATH := "res://assets/Environment/Cemetery/Runtime/cemetery_bg.png"
 
 var actors: Array[Actor] = []
 var enemies: Array[Actor] = []
@@ -67,12 +69,12 @@ var boss_bar_empty: ColorRect
 var boss_bar_pos := Vector2(70, 21)
 var boss_bar_size := Vector2(180, 8)
 
-const SLAM_INTERVAL := 5.0
-const SLAM_WINDUP_TIME := 1.3
-const SLAM_STAGGER_TIME := 2.5
-const SLAM_RADIUS := 74.0
+const SLAM_INTERVAL := 5.6
+const SLAM_WINDUP_TIME := 1.6
+const SLAM_STAGGER_TIME := 2.8
+const SLAM_RADIUS := 82.0
 const INTERRUPT_BONUS_DAMAGE := 6
-var slam_timer := 3.0
+var slam_timer := 3.2
 var slam_windup := 0.0
 
 func _ready() -> void:
@@ -108,16 +110,12 @@ func _process(delta: float) -> void:
 
 	if not completed and active_enemies <= 0 and total_enemies > 0:
 		completed = true
-		report_event("VITORIA — O NECROMANTE FOI DESTRUIDO")
+		report_event("VITORIA — O OGRO FOI DERROTADO")
 		_handle_victory_reward()
 
 	_update_hud()
 
 func _handle_victory_reward() -> void:
-	# Sprint 15: fases sem `stage_reward_role` (Ruinas incluida — Paladino/
-	# Cavaleiro ja sao liberados pelas fases novas) mantem o fluxo antigo,
-	# sem cutscene automatica: o jogador sai pelo ESC/"VOLTAR A SELECAO" ou
-	# reinicia com R, como antes desta sprint.
 	var reward: String = PartySelection12.stage_reward_role
 	if reward == "" or not PartySelection12.unlock_role(reward):
 		return
@@ -391,7 +389,7 @@ func report_event(message: String) -> void:
 		event_label.text = message
 	event_timeout = 3.0
 
-# --- Mundo: sala unica com fundo craftpix (post-apocaliptico) ---------------
+# --- Mundo: sala unica com fundo do cemiterio gotico noturno -----------------
 
 func _build_world() -> void:
 	world_layer = Node2D.new()
@@ -428,7 +426,7 @@ func _build_world() -> void:
 
 func _add_background() -> void:
 	var bg := Sprite2D.new()
-	bg.texture = load(RUINS_BG_PATH)
+	bg.texture = load(CEMETERY_BG_PATH)
 	bg.centered = false
 	bg.position = Vector2(0, 0)
 	bg.z_index = -10
@@ -450,14 +448,14 @@ func _add_ground() -> void:
 	var rim := ColorRect.new()
 	rim.position = rect.position
 	rim.size = Vector2(rect.size.x, 4.0)
-	rim.color = Color("6b5744")
+	rim.color = Color("3a4050")
 	rim.z_index = -1
 	world_layer.add_child(rim)
 
 	var fill := ColorRect.new()
 	fill.position = rect.position + Vector2(0, 4.0)
 	fill.size = Vector2(rect.size.x, rect.size.y - 4.0)
-	fill.color = Color("241c17")
+	fill.color = Color("16181f")
 	fill.z_index = -1
 	world_layer.add_child(fill)
 
@@ -475,8 +473,8 @@ func _add_ledge(rect: Rect2) -> void:
 	body.add_child(collision)
 	world_layer.add_child(body)
 
-	# Pilar de apoio ate o chao, para a plataforma nao parecer flutuando
-	# sem explicacao — um monte de entulho tosco, coerente com o cenario.
+	# Plataforma de laje de pedra apoiada num pilar de mausoleu, coerente
+	# com o cemiterio (em vez do pilar de entulho das Ruinas).
 	var pillar_w: float = rect.size.x * 0.4
 	var pillar := Polygon2D.new()
 	var cx: float = rect.get_center().x
@@ -486,21 +484,21 @@ func _add_ledge(rect: Rect2) -> void:
 		Vector2(cx + pillar_w * 0.35, GROUND_TOP),
 		Vector2(cx - pillar_w * 0.35, GROUND_TOP),
 	])
-	pillar.color = Color("352a22")
+	pillar.color = Color("2c2f3a")
 	pillar.z_index = -2
 	world_layer.add_child(pillar)
 
 	var rim := ColorRect.new()
 	rim.position = rect.position
 	rim.size = Vector2(rect.size.x, 4.0)
-	rim.color = Color("6b5744")
+	rim.color = Color("565c6e")
 	rim.z_index = -1
 	world_layer.add_child(rim)
 
 	var fill := ColorRect.new()
 	fill.position = rect.position + Vector2(0, 4.0)
 	fill.size = Vector2(rect.size.x, rect.size.y - 4.0)
-	fill.color = Color("4a3d33")
+	fill.color = Color("383c48")
 	fill.z_index = -1
 	world_layer.add_child(fill)
 
@@ -547,11 +545,10 @@ func _spawn_party() -> void:
 		party_slots.append(actor)
 
 func _spawn_enemies() -> void:
-	boss_actor = _spawn_actor("NECROMANTE", "enemy", "necromancer", Vector2(210, ACTOR_GROUND_Y), Color("8a6fd1"))
-	# Ataque de contato mais espacado que o padrao: o boss se apoia
-	# principalmente no impacto em area (windup/slam) como ameaca central,
-	# nao em dano constante corpo a corpo.
-	boss_actor.attack_cooldown_max = 1.3
+	boss_actor = _spawn_actor("OGRO", "enemy", "ogre", Vector2(210, ACTOR_GROUND_Y), Color("a8c9a0"))
+	# Ogro e lento e pesado: golpes corpo a corpo mais espacados, compensados
+	# por um pisao de area com aviso mais longo e raio maior (ver SLAM_* acima).
+	boss_actor.attack_cooldown_max = 1.6
 
 func _update_boss_slam(delta: float) -> void:
 	if slam_windup > 0.0:
@@ -567,11 +564,11 @@ func _update_boss_slam(delta: float) -> void:
 
 func _start_slam_windup() -> void:
 	slam_windup = SLAM_WINDUP_TIME
-	report_event("O NECROMANTE SE PREPARA PARA UM IMPACTO — INTERROMPA COM H!")
+	report_event("O OGRO ERGUE O MACO PARA UM PISAO — INTERROMPA COM H!")
 
 func _resolve_slam() -> void:
 	boss_actor.sprite.modulate = boss_actor.base_modulate
-	report_event("NECROMANTE: IMPACTO DEVASTADOR")
+	report_event("OGRO: PISAO DEVASTADOR")
 	for member in party_slots:
 		if is_instance_valid(member) and member.alive:
 			if member.global_position.distance_to(boss_actor.global_position) <= SLAM_RADIUS:
@@ -589,7 +586,7 @@ func _try_interrupt_slam(actor: Actor) -> void:
 	slam_timer = SLAM_INTERVAL + SLAM_STAGGER_TIME
 	boss_actor.sprite.modulate = boss_actor.base_modulate
 	boss_actor.take_damage(INTERRUPT_BONUS_DAMAGE, actor)
-	report_event("%s INTERROMPEU O NECROMANTE! (+%d de dano)" % [actor.actor_name, INTERRUPT_BONUS_DAMAGE])
+	report_event("%s INTERROMPEU O OGRO! (+%d de dano)" % [actor.actor_name, INTERRUPT_BONUS_DAMAGE])
 
 # --- HUD ---------------------------------------------------------------------
 
@@ -617,13 +614,13 @@ func _build_hud() -> void:
 	var body_font: FontFile = load("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
 
 	boss_name_label = Label.new()
-	boss_name_label.text = "NECROMANTE"
+	boss_name_label.text = "OGRO"
 	boss_name_label.position = Vector2(boss_bar_pos.x, boss_bar_pos.y - 8.0)
 	boss_name_label.size = Vector2(boss_bar_size.x, 8)
 	boss_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	boss_name_label.add_theme_font_override("font", body_font)
 	boss_name_label.add_theme_font_size_override("font_size", 6)
-	boss_name_label.add_theme_color_override("font_color", Color("e8b3a0"))
+	boss_name_label.add_theme_color_override("font_color", Color("e8d3a0"))
 	canvas.add_child(boss_name_label)
 
 	# health_bar.png (pack Medieval Free) ja vem 100% cheia (sem variante
@@ -693,7 +690,7 @@ func _update_hud() -> void:
 	party_label.text = " | ".join(parts)
 
 	if is_instance_valid(boss_actor) and boss_actor.alive:
-		objective_label.text = "derrote o Necromante — H interrompe o impacto"
+		objective_label.text = "derrote o Ogro — H interrompe o pisao"
 		var ratio: float = clampf(float(boss_actor.hp) / float(maxi(boss_actor.max_hp, 1)), 0.0, 1.0)
 		var inset_x: float = boss_bar_size.x * 0.09
 		var inset_y: float = boss_bar_size.y * 0.143
@@ -753,7 +750,7 @@ func _build_pause_menu() -> void:
 	pause_layer.add_child(title)
 
 	var instructions := Label.new()
-	instructions.text = "OBJETIVO\nDerrote o NECROMANTE, um chefe unico com muita vida.\nDe tempos em tempos ele se prepara para um IMPACTO em area\n(aviso na tela) — use a habilidade especial (H) de QUALQUER\npersonagem do seu grupo durante o aviso para INTERROMPER o\ngolpe e causar dano bonus. Se o impacto acontecer, quem\nestiver perto leva dano e e arremessado para tras.\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
+	instructions.text = "OBJETIVO\nDerrote o OGRO, um chefe unico com muita vida.\nDe tempos em tempos ele ergue o maco para um PISAO em area\n(aviso na tela) — use a habilidade especial (H) de QUALQUER\npersonagem do seu grupo durante o aviso para INTERROMPER o\ngolpe e causar dano bonus. Se o pisao acontecer, quem\nestiver perto leva dano e e arremessado para tras.\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
 	instructions.position = Vector2(38, 24)
 	instructions.size = Vector2(244, 120)
 	instructions.add_theme_font_override("font", body_font)

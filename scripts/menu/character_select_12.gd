@@ -23,18 +23,23 @@ const PORTRAIT_PATH := {
 	"wanderer": "res://assets/UI/Runtime/Portraits/wanderer.png",
 	"paladin": "res://assets/UI/Runtime/Portraits/paladin.png",
 	"knight": "res://assets/UI/Runtime/Portraits/knight.png",
+	"bridge_heroine": "res://assets/UI/Runtime/Portraits/bridge_heroine.png",
 }
 
-# Elenco livre (fases de boss): qualquer 3, sem categorias — Paladino e
-# Cavaleiro so aparecem aqui, nunca na selecao por categoria da Caverna.
+# Elenco livre (fases de boss): qualquer 3, sem categorias — Paladino,
+# Cavaleiro e Heroina da Ponte so aparecem aqui, nunca na selecao por
+# categoria da Caverna (e comecam bloqueados ate vencer a fase que libera
+# cada um — ver `PartySelection12.is_unlocked`). 3x3 para caber exatamente
+# os 9 personagens do elenco completo sem sobrepor a faixa "SEU GRUPO".
 const FREE_GRID_ROLES := [
-	"warrior", "archer", "mage", "fire_mage", "lightning_mage", "wanderer", "paladin", "knight",
+	"warrior", "archer", "mage", "fire_mage", "lightning_mage", "wanderer",
+	"paladin", "knight", "bridge_heroine",
 ]
-const FREE_COLS := 4
-const FREE_TILE_W := 74.0
-const FREE_TILE_H := 29.0
-const FREE_TILE_GAP := 3.0
-const FREE_GRID_X := 5.0
+const FREE_COLS := 3
+const FREE_TILE_W := 100.0
+const FREE_TILE_H := 18.0
+const FREE_TILE_GAP := 2.0
+const FREE_GRID_X := 6.0
 const FREE_GRID_Y := 34.0
 const FREE_ACCENT := Color("ffd23f")
 
@@ -96,10 +101,16 @@ func _ready() -> void:
 	title.add_theme_constant_override("outline_size", 3)
 	add_child(title)
 
-	var is_free: bool = PartySelection12.selection_mode == PartySelection12.MODE_FREE
+	var is_free: bool = _uses_free_grid()
+	var is_gated: bool = PartySelection12.selection_mode == PartySelection12.MODE_GATED
 
 	var subtitle := Label.new()
-	subtitle.text = "ESCOLHA 3 PERSONAGENS DO ELENCO" if is_free else "ESCOLHA UM PERSONAGEM DE CADA CATEGORIA"
+	if is_gated:
+		subtitle.text = "ESCOLHA MAIS 2 — %s JA ESTA NO GRUPO" % Actor.DISPLAY_NAME.get(PartySelection12.required_role, "")
+	elif is_free:
+		subtitle.text = "ESCOLHA 3 PERSONAGENS DO ELENCO"
+	else:
+		subtitle.text = "ESCOLHA UM PERSONAGEM DE CADA CATEGORIA"
 	subtitle.position = Vector2(0, 22)
 	subtitle.size = Vector2(320, 8)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -223,6 +234,11 @@ func _build_free_grid() -> void:
 		_build_free_tile(role, pos)
 
 func _build_free_tile(role: String, pos: Vector2) -> void:
+	# Sprint 15: personagens ainda nao desbloqueados aparecem na mesma grade,
+	# mas escurecidos e sem botao — "so mostra/permite os desbloqueados" sem
+	# reorganizar o layout fixo a cada novo heroi liberado.
+	var locked: bool = not PartySelection12.is_unlocked(role)
+
 	var border := ColorRect.new()
 	border.position = pos
 	border.size = Vector2(FREE_TILE_W, FREE_TILE_H)
@@ -233,7 +249,7 @@ func _build_free_tile(role: String, pos: Vector2) -> void:
 	var inner := ColorRect.new()
 	inner.position = pos + Vector2(1, 1)
 	inner.size = Vector2(FREE_TILE_W, FREE_TILE_H) - Vector2(2, 2)
-	inner.color = Color("11141c")
+	inner.color = Color("0a0c11") if locked else Color("11141c")
 	add_child(inner)
 
 	var portrait := TextureRect.new()
@@ -243,21 +259,26 @@ func _build_free_tile(role: String, pos: Vector2) -> void:
 	portrait.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if locked:
+		portrait.modulate = Color(0.3, 0.3, 0.35, 0.75)
 	add_child(portrait)
 
 	var name_label := Label.new()
-	name_label.text = Actor.DISPLAY_NAME.get(role, role.to_upper())
+	name_label.text = "BLOQUEADO" if locked else Actor.DISPLAY_NAME.get(role, role.to_upper())
 	name_label.position = pos + Vector2(25, 0)
 	name_label.size = Vector2(FREE_TILE_W - 27.0, FREE_TILE_H)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_override("font", body_font)
 	name_label.add_theme_font_size_override("font_size", 5)
-	name_label.add_theme_color_override("font_color", Color("e8e2d0"))
+	name_label.add_theme_color_override("font_color", Color("50545f") if locked else Color("e8e2d0"))
 	name_label.clip_text = true
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(name_label)
+
+	if locked:
+		return
 
 	var button := Button.new()
 	button.position = pos
@@ -273,8 +294,12 @@ func _on_free_tile_pressed(role: String) -> void:
 	_refresh_selection_visuals()
 	_refresh_preview_strip()
 
+func _uses_free_grid() -> bool:
+	return PartySelection12.selection_mode == PartySelection12.MODE_FREE \
+		or PartySelection12.selection_mode == PartySelection12.MODE_GATED
+
 func _refresh_selection_visuals() -> void:
-	if PartySelection12.selection_mode == PartySelection12.MODE_FREE:
+	if _uses_free_grid():
 		for key in tile_border_by_key.keys():
 			var role: String = key.split(":")[1]
 			var border: ColorRect = tile_border_by_key[key]
@@ -326,7 +351,7 @@ func _build_preview_strip() -> void:
 		preview_name.append(name_label)
 
 func _refresh_preview_strip() -> void:
-	if PartySelection12.selection_mode == PartySelection12.MODE_FREE:
+	if _uses_free_grid():
 		var roles: Array[String] = PartySelection12.free_roles
 		for i in range(3):
 			if i < roles.size():
@@ -377,7 +402,7 @@ func _build_buttons() -> void:
 	add_child(back_button)
 
 func _on_start_pressed() -> void:
-	if PartySelection12.selection_mode == PartySelection12.MODE_FREE:
+	if _uses_free_grid():
 		if PartySelection12.free_roles.size() < PartySelection12.FREE_PARTY_SIZE:
 			return
 		get_tree().change_scene_to_file(LOADING_SCENE)

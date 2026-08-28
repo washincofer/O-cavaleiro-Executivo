@@ -6,6 +6,7 @@ extends Control
 ## outros 7 slots sao placeholders "?" — as proximas fases entram aqui aos
 ## poucos.
 
+const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
 const CHARACTER_SELECT_SCENE := "res://scenes/menu/character_select_12.tscn"
 const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf"
 const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
@@ -38,10 +39,42 @@ const STAGES := [
 		"loading_title": "CARREGANDO AS RUINAS...",
 		"selection_mode": "free",
 	},
-	{"name": "?", "unlocked": false},
-	{"name": "?", "unlocked": false},
-	{"name": "?", "unlocked": false},
-	{"name": "?", "unlocked": false},
+	{
+		"name": "FLORESTA",
+		"unlocked": true,
+		"preview": "res://assets/Environment/Forest/Runtime/forest_bg.png",
+		"target_scene": "res://scenes/playtest/platform_boss_forest_12.tscn",
+		"loading_title": "CARREGANDO A FLORESTA...",
+		"selection_mode": "free",
+		"reward_role": "paladin",
+	},
+	{
+		"name": "CEMITERIO",
+		"unlocked": true,
+		"preview": "res://assets/Environment/Cemetery/Runtime/cemetery_bg.png",
+		"target_scene": "res://scenes/playtest/platform_boss_cemetery_12.tscn",
+		"loading_title": "CARREGANDO O CEMITERIO...",
+		"selection_mode": "free",
+		"reward_role": "knight",
+	},
+	{
+		"name": "NOITE ESTRELADA",
+		"unlocked": true,
+		"preview": "res://assets/Environment/StarryNight/Runtime/starry_night_bg.png",
+		"target_scene": "res://scenes/playtest/platform_boss_starrynight_12.tscn",
+		"loading_title": "CARREGANDO A NOITE ESTRELADA...",
+		"selection_mode": "free",
+		"reward_role": "bridge_heroine",
+	},
+	{
+		"name": "COVIL DO TESOURO",
+		"unlocked": true,
+		"preview": "res://assets/Environment/TreasureHoard/Runtime/treasure_bg.png",
+		"target_scene": "res://scenes/playtest/platform_boss_treasurehoard_12.tscn",
+		"loading_title": "CARREGANDO O COVIL DO TESOURO...",
+		"selection_mode": "gated",
+		"required_role": "bridge_heroine",
+	},
 	{"name": "?", "unlocked": false},
 	{"name": "?", "unlocked": false},
 ]
@@ -195,42 +228,69 @@ func _add_bolt(pos: Vector2) -> void:
 	hl.color = Color("5a6478")
 	add_child(hl)
 
+func _is_stage_gated(stage: Dictionary) -> bool:
+	var required_role: String = stage.get("required_role", "")
+	return required_role != "" and not PartySelection12.is_unlocked(required_role)
+
 func _build_tile(stage: Dictionary, index: int, pos: Vector2, size: Vector2) -> void:
-	var unlocked: bool = stage["unlocked"]
+	var exists: bool = stage["unlocked"]
+	var gated: bool = exists and _is_stage_gated(stage)
+	var playable: bool = exists and not gated
 	var accent: Color = TILE_COLORS[index % TILE_COLORS.size()]
 
 	var border := ColorRect.new()
 	border.position = pos
 	border.size = size
-	border.color = accent if unlocked else Color("2a2f3a")
+	border.color = accent if playable else Color("2a2f3a")
 	add_child(border)
 
 	var inner := ColorRect.new()
 	inner.position = pos + Vector2(2, 2)
 	inner.size = size - Vector2(4, 4)
-	inner.color = Color("11141c") if unlocked else Color("15171d")
+	inner.color = Color("11141c") if playable else Color("15171d")
 	add_child(inner)
 
 	var button := Button.new()
 	button.position = pos + Vector2(2, 2)
 	button.size = size - Vector2(4, 4)
-	button.disabled = not unlocked
+	button.disabled = not playable
 	button.focus_mode = Control.FOCUS_NONE
 	button.flat = true
 	button.add_theme_font_override("font", body_font)
 	button.add_theme_font_size_override("font_size", 11)
 
-	if unlocked:
+	if exists:
 		var icon := TextureRect.new()
 		icon.set_anchors_preset(Control.PRESET_FULL_RECT)
 		icon.texture = load(stage["preview"])
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_SCALE
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if gated:
+			icon.modulate = Color(0.32, 0.32, 0.38, 0.65)
 		button.add_child(icon)
+
+	if playable:
 		button.pressed.connect(_on_stage_pressed.bind(index))
 		glow_borders.append(border)
 		glow_colors.append(accent)
+	elif gated:
+		# Fase existe mas exige um personagem ainda bloqueado (Sprint 15:
+		# Covil do Tesouro exige a Heroina da Ponte, dona da mecanica de
+		# ponte usada no vao da sala) — mostra a arte escurecida com um
+		# aviso curto, em vez do "?" generico das fases ainda inexistentes.
+		var lock_label := Label.new()
+		lock_label.text = "TRANCADA"
+		lock_label.position = Vector2(2, size.y * 0.5 - 6)
+		lock_label.size = Vector2(size.x - 4, 12)
+		lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lock_label.add_theme_font_override("font", body_font)
+		lock_label.add_theme_font_size_override("font_size", 7)
+		lock_label.add_theme_color_override("font_color", Color("d9c9a8"))
+		lock_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		lock_label.add_theme_constant_override("outline_size", 2)
+		lock_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(lock_label)
 	else:
 		button.text = "?"
 		button.add_theme_color_override("font_color", Color("454b58"))
@@ -241,16 +301,27 @@ func _build_tile(stage: Dictionary, index: int, pos: Vector2, size: Vector2) -> 
 
 func _show_preview(index: int) -> void:
 	var stage: Dictionary = STAGES[index]
-	if stage["unlocked"]:
-		preview_rect.texture = load(stage["preview"])
-		preview_label.text = stage["name"]
-	else:
+	if not stage["unlocked"]:
 		preview_rect.texture = null
 		preview_label.text = "EM BREVE"
+		return
+	preview_rect.texture = load(stage["preview"])
+	if _is_stage_gated(stage):
+		var required_role: String = stage["required_role"]
+		preview_label.text = "REQUER: %s" % Actor.DISPLAY_NAME.get(required_role, required_role.to_upper())
+	else:
+		preview_label.text = stage["name"]
 
 func _on_stage_pressed(index: int) -> void:
 	var stage: Dictionary = STAGES[index]
 	PartySelection12.target_scene = stage["target_scene"]
 	PartySelection12.loading_title = stage["loading_title"]
 	PartySelection12.selection_mode = stage.get("selection_mode", PartySelection12.MODE_CATEGORIZED)
+	PartySelection12.stage_reward_role = stage.get("reward_role", "")
+	PartySelection12.required_role = stage.get("required_role", "")
+	if PartySelection12.selection_mode == PartySelection12.MODE_GATED:
+		# Garante que o personagem exigido sempre entre no grupo — sem isso
+		# o vao da sala nao teria como ser cruzado se o jogador escalasse
+		# outros 3 quaisquer no lugar dela.
+		PartySelection12.free_roles = [PartySelection12.required_role] as Array[String]
 	get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)

@@ -10,6 +10,7 @@ signal died(actor)
 
 const HEALTH_BAR_TEX := preload("res://assets/UI/Runtime/MedievalFree/health_bar.png")
 const NAMEPLATE_FONT := preload("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
+const HitEffect := preload("res://scenes/playtest/hit_effect_12.tscn")
 
 const ROLE_ANIM := {
 	"warrior": {
@@ -85,6 +86,16 @@ const ROLE_ANIM := {
 		"jump": {"path": "res://assets/Characters/Paladin/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 13, "fps": 10.0, "loop": false},
 		"fall": {"path": "res://assets/Characters/Paladin/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 13, "fps": 10.0, "loop": true},
 	},
+	# Bridge Heroine (Gothicvania, Legacy Collection): so trouxe Idle/Run/
+	# Attack/Jump (sem Hurt/Death, mesmo caso ja tratado sem problemas pelo
+	# Cavaleiro/Ogro). Sem "special" propria — reaproveita o proprio ataque
+	# (ver ROLE_TAG/activate_special no controller de cada fase de boss).
+	"bridge_heroine": {
+		"idle": {"path": "res://assets/Characters/BridgeHeroine/Runtime/Idle.png", "fw": 128, "fh": 64, "count": 4, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Characters/BridgeHeroine/Runtime/Run.png", "fw": 128, "fh": 64, "count": 7, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/BridgeHeroine/Runtime/Attack.png", "fw": 128, "fh": 64, "count": 5, "fps": 14.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/BridgeHeroine/Runtime/Jump.png", "fw": 128, "fh": 64, "count": 4, "fps": 8.0, "loop": false},
+	},
 	"knight": {
 		"idle": {"path": "res://assets/Characters/Knight/Runtime/Idle.png", "fw": 64, "fh": 64, "count": 15, "fps": 8.0, "loop": true},
 		"move": {"path": "res://assets/Characters/Knight/Runtime/Run.png", "fw": 96, "fh": 64, "count": 8, "fps": 12.0, "loop": true},
@@ -115,6 +126,42 @@ const ROLE_ANIM := {
 		"hurt": {"path": "res://assets/Enemies/Rat/Runtime/Hurt.png", "fw": 70, "fh": 70, "count": 3, "fps": 12.0, "loop": false},
 		"death": {"path": "res://assets/Enemies/Rat/Runtime/Death.png", "fw": 70, "fh": 70, "count": 6, "fps": 10.0, "loop": false},
 	},
+	"satyr": {
+		"idle": {"path": "res://assets/Enemies/Satyr/Runtime/Idle.png", "fw": 32, "fh": 32, "count": 6, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Satyr/Runtime/Walk.png", "fw": 32, "fh": 32, "count": 8, "fps": 10.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Satyr/Runtime/Attack.png", "fw": 32, "fh": 32, "count": 7, "fps": 12.0, "loop": false},
+		"hurt": {"path": "res://assets/Enemies/Satyr/Runtime/Hurt.png", "fw": 32, "fh": 32, "count": 4, "fps": 14.0, "loop": false},
+		"death": {"path": "res://assets/Enemies/Satyr/Runtime/Death.png", "fw": 32, "fh": 32, "count": 10, "fps": 10.0, "loop": false},
+	},
+	# Pack Gothicvania (Legacy Collection) so trouxe Idle/Walk/Attack para o
+	# Ogro (sem Hurt/Death) — o mesmo caso ja tratado sem problemas pelo
+	# Cavaleiro (sem "hurt") e por `_die()` (sem "death" ele so fica invisivel).
+	"ogre": {
+		"idle": {"path": "res://assets/Enemies/Ogre/Runtime/Idle.png", "fw": 144, "fh": 80, "count": 4, "fps": 6.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Ogre/Runtime/Walk.png", "fw": 144, "fh": 80, "count": 6, "fps": 8.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Ogre/Runtime/Attack.png", "fw": 144, "fh": 80, "count": 7, "fps": 10.0, "loop": false},
+	},
+	# Morcego (Monsters Creatures Fantasy 2): nao anda, so voa — "idle" e
+	# "move" reaproveitam a mesma folha (Fly.png), e o offset visual (ver
+	# ROLE_BODY) flutua o sprite bem acima da origem fisica, na mesma tecnica
+	# ja usada pelos magos do grupo (offset negativo grande) para dar a
+	# ilusao de estar no ar mesmo com a origem "presa" ao chao.
+	"bat": {
+		"idle": {"path": "res://assets/Enemies/Bat/Runtime/Fly.png", "fw": 87, "fh": 87, "count": 11, "fps": 14.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Bat/Runtime/Fly.png", "fw": 87, "fh": 87, "count": 11, "fps": 14.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Bat/Runtime/Attack.png", "fw": 87, "fh": 87, "count": 11, "fps": 16.0, "loop": false},
+		"hurt": {"path": "res://assets/Enemies/Bat/Runtime/Hurt.png", "fw": 87, "fh": 87, "count": 3, "fps": 14.0, "loop": false},
+		"death": {"path": "res://assets/Enemies/Bat/Runtime/Death.png", "fw": 87, "fh": 87, "count": 4, "fps": 10.0, "loop": false},
+	},
+	# Pack Gothicvania "Grotto-escape-2-boss-dragon" (Legacy Collection) so
+	# trouxe Idle e Breath (sopro de fogo, usado como "attack") — sem Walk/
+	# Hurt/Death, mesmo caso ja tratado sem problemas pelo Ogro/`_die()`; o
+	# Dragao guarda o tesouro parado, entao nem precisaria de "move" mesmo.
+	"dragon": {
+		"idle": {"path": "res://assets/Enemies/Dragon/Runtime/Idle.png", "fw": 144, "fh": 64, "count": 6, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Dragon/Runtime/Idle.png", "fw": 144, "fh": 64, "count": 6, "fps": 8.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Dragon/Runtime/Breath.png", "fw": 144, "fh": 64, "count": 7, "fps": 10.0, "loop": false},
+	},
 }
 
 # scale, sprite offset (raw pixel space) and capsule collision tuned from the
@@ -129,9 +176,14 @@ const ROLE_BODY := {
 	"wanderer": {"scale": 0.485, "offset": Vector2(0.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
 	"paladin": {"scale": 1.3, "offset": Vector2(2.5, 0.0), "radius": 7.0, "height": 28.0, "shape_y": -16.0, "speed": 90.0, "max_hp": 6, "ranged": false},
 	"knight": {"scale": 1.4, "offset": Vector2(-3.0, -12.0), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 90.0, "max_hp": 5, "ranged": false},
+	"bridge_heroine": {"scale": 1.25, "offset": Vector2(0.0, -32.0), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 94.0, "max_hp": 5, "ranged": false},
 	"slime": {"scale": 1.0, "offset": Vector2(0.0, -9.0), "radius": 7.0, "height": 14.0, "shape_y": -8.0, "speed": 46.0, "max_hp": 3, "ranged": false},
 	"rat": {"scale": 0.9, "offset": Vector2(0.0, -10.0), "radius": 6.0, "height": 16.0, "shape_y": -9.0, "speed": 58.0, "max_hp": 3, "ranged": false},
 	"necromancer": {"scale": 1.75, "offset": Vector2(-4.0, -16.0), "radius": 10.0, "height": 48.0, "shape_y": -28.0, "speed": 26.0, "max_hp": 60, "ranged": false},
+	"satyr": {"scale": 4.5, "offset": Vector2(2.0, -11.0), "radius": 9.0, "height": 44.0, "shape_y": -26.0, "speed": 34.0, "max_hp": 55, "ranged": false},
+	"ogre": {"scale": 1.5, "offset": Vector2(10.0, -40.0), "radius": 11.0, "height": 44.0, "shape_y": -25.0, "speed": 22.0, "max_hp": 58, "ranged": false},
+	"bat": {"scale": 2.4, "offset": Vector2(-3.5, -25.0), "radius": 10.0, "height": 30.0, "shape_y": -16.0, "speed": 50.0, "max_hp": 50, "ranged": false},
+	"dragon": {"scale": 2.2, "offset": Vector2(-23.5, -32.0), "radius": 14.0, "height": 46.0, "shape_y": -26.0, "speed": 0.0, "max_hp": 65, "ranged": false},
 }
 
 # Tinta permanente do sprite por role (multiplicada sobre a textura); a
@@ -149,9 +201,14 @@ const DISPLAY_NAME := {
 	"wanderer": "MAGO ANDARILHO",
 	"paladin": "PALADINO",
 	"knight": "CAVALEIRO",
+	"bridge_heroine": "HEROINA DA PONTE",
 	"slime": "GOSMA",
 	"rat": "RATO",
 	"necromancer": "NECROMANTE",
+	"satyr": "SATYR",
+	"ogre": "OGRO",
+	"bat": "MORCEGO",
+	"dragon": "DRAGAO",
 }
 
 const RANGED_PROJECTILE_KIND := {
@@ -434,7 +491,22 @@ func activate_special() -> bool:
 			return _fire_piercing_shot()
 		"mage", "wanderer":
 			return _cast_teleport()
+		"bridge_heroine":
+			return _summon_bridge()
 	return false
+
+func _summon_bridge() -> bool:
+	# Mecanica exclusiva da Heroina da Ponte (Sprint 15): invoca uma
+	# plataforma temporaria a frente dela. So o Covil do Tesouro (unica fase
+	# com um vao real para isso) implementa `summon_bridge_from` de verdade;
+	# as demais fases o tem como no-op inofensivo (mesmo padrao usado por
+	# `try_break_rubble` nas fases de boss sem entulho).
+	special_cooldown = special_cooldown_max
+	attack_lock_timer = 0.4
+	if is_instance_valid(sprite) and sprite.sprite_frames.has_animation("special"):
+		sprite.play("special")
+	controller.summon_bridge_from(self)
+	return true
 
 func _start_charge() -> bool:
 	special_cooldown = special_cooldown_max
@@ -494,8 +566,18 @@ func take_damage(amount: int, source = null) -> void:
 		if sprite.sprite_frames.has_animation("hurt"):
 			sprite.play("hurt")
 		sprite.modulate = base_modulate * Color(1.0, 0.45, 0.45)
+	_spawn_hit_effect()
 	if hp <= 0:
 		_die()
+
+func _spawn_hit_effect() -> void:
+	var parent := get_parent()
+	if not is_instance_valid(parent):
+		return
+	var fx := HitEffect.instantiate()
+	parent.add_child(fx)
+	var shape_y: float = ROLE_BODY.get(role, {}).get("shape_y", -15.0)
+	fx.global_position = global_position + Vector2(0.0, shape_y)
 
 func force_kill() -> void:
 	if not alive:
