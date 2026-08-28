@@ -9,7 +9,7 @@ extends CharacterBody2D
 signal died(actor)
 
 const HEALTH_BAR_TEX := preload("res://assets/UI/Runtime/MedievalFree/health_bar.png")
-const NAMEPLATE_FONT := preload("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
+const NAMEPLATE_FONT := preload("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
 const HitEffect := preload("res://scenes/playtest/hit_effect_12.tscn")
 
 const ROLE_ANIM := {

@@ -31,8 +31,8 @@ extends Control
 ## (cetico ou chorando, varia por personagem), "grito" (boca aberta, bravo).
 
 const CHARACTER_SELECT_SCENE := "res://scenes/menu/character_select_12.tscn"
-const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf"
-const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
+const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf"
+const BODY_FONT_PATH := "res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf"
 const PORTRAIT_DIR := "res://assets/UI/Runtime/Dialogue/"
 
 const CAVALEIRO_ID := "cavaleiro"
@@ -159,11 +159,8 @@ func _build_landscape() -> void:
 	portrait_left = _build_portrait_slot(Vector2(6, 20), Vector2(110, 110))
 	portrait_right = _build_portrait_slot(Vector2(204, 20), Vector2(110, 110))
 
-	var box := ColorRect.new()
+	var box := KenneyUI12.make_panel(Vector2(312, 44), Color(0.02, 0.02, 0.03, 0.92))
 	box.position = Vector2(4, 132)
-	box.size = Vector2(312, 44)
-	box.color = Color(0.02, 0.02, 0.03, 0.85)
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(box)
 
 	name_label = Label.new()
@@ -206,11 +203,8 @@ func _build_portrait() -> void:
 	portrait_left = _build_portrait_slot(Vector2(4, 30), Vector2(84, 84))
 	portrait_right = _build_portrait_slot(Vector2(92, 30), Vector2(84, 84))
 
-	var box := ColorRect.new()
+	var box := KenneyUI12.make_panel(Vector2(172, 150), Color(0.02, 0.02, 0.03, 0.92))
 	box.position = Vector2(4, 122)
-	box.size = Vector2(172, 150)
-	box.color = Color(0.02, 0.02, 0.03, 0.85)
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(box)
 
 	name_label = Label.new()
@@ -251,7 +245,7 @@ func _build_skip_button(pos: Vector2, size: Vector2) -> void:
 	skip_button.text = "PULAR >>"
 	skip_button.focus_mode = Control.FOCUS_NONE
 	skip_button.position = pos
-	MedievalUI12.style_button(skip_button, true, body_font, 6, Color("f4e7c9"), size)
+	KenneyUI12.style_button(skip_button, false, 6, size)
 	skip_button.pressed.connect(_go_to_character_select)
 	add_child(skip_button)
 

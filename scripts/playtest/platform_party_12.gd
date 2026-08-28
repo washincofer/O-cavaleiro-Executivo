@@ -53,6 +53,7 @@ var state_label: Label
 var party_label: Label
 var objective_label: Label
 var event_label: Label
+var hp_bars: Array = []
 var event_timeout := 0.0
 var completed := false
 var game_over := false
@@ -520,6 +521,9 @@ const ROLE_TINT := {
 const SLOT_SPAWN_X := [140.0, 105.0, 70.0]
 const SLOT_FOLLOW_OFFSET := [-36.0, -36.0, -72.0]
 
+func _role_tint(role: String) -> Color:
+	return ROLE_TINT.get(role, Color("ffe26f"))
+
 const ROLE_OBJECTIVE_LINE := {
 	"cavaleiro_executivo": "quebra o entulho (Estocada)",
 	"warrior": "quebra o entulho (Estocada)",
@@ -735,7 +739,7 @@ func _build_hud() -> void:
 	objective_label.add_theme_font_size_override("font_size", 6)
 	panel.add_child(objective_label)
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
 
 	state_label = Label.new()
 	state_label.position = Vector2(0, 76)
@@ -759,6 +763,8 @@ func _build_hud() -> void:
 	event_label.add_theme_font_size_override("font_size", 7)
 	event_label.add_theme_color_override("font_color", Color("ffe26f"))
 	canvas.add_child(event_label)
+
+	hp_bars = PartyHpBars12.build(canvas, party_slots, 22.0, _role_tint)
 
 	canvas.add_child(TouchControls.instantiate())
 
@@ -791,7 +797,7 @@ func _build_hud_portrait(canvas: CanvasLayer) -> void:
 	objective_label.size = Vector2(172, 16)
 	panel.add_child(objective_label)
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
 
 	state_label = Label.new()
 	state_label.position = Vector2(0, 150)
@@ -819,6 +825,8 @@ func _build_hud_portrait(canvas: CanvasLayer) -> void:
 	event_label.size = Vector2(172, 20)
 	canvas.add_child(event_label)
 
+	hp_bars = PartyHpBars12.build(canvas, party_slots, 34.0, _role_tint)
+
 	canvas.add_child(TouchControls.instantiate())
 
 func _update_hud() -> void:
@@ -832,14 +840,15 @@ func _update_hud() -> void:
 	else:
 		state_label.text = ""
 
+	PartyHpBars12.update(hp_bars, active_actor)
+
 	var parts: Array[String] = []
 	for i in range(party_slots.size()):
 		var member: Actor = party_slots[i]
 		if not is_instance_valid(member):
 			continue
 		var marker := ">" if member == active_actor and member.alive else " "
-		var status := "X" if not member.alive else str(member.hp)
-		parts.append("%s%d:%s[%s]" % [marker, i + 1, member.actor_name, status])
+		parts.append("%s%d:%s" % [marker, i + 1, member.actor_name])
 	party_label.text = " | ".join(parts)
 
 	var rubble_status := "OK" if rubble_broken else "intacto"
@@ -879,14 +888,12 @@ func _build_pause_menu() -> void:
 	dim.color = Color(0, 0, 0, 0.72)
 	pause_layer.add_child(dim)
 
-	var panel := ColorRect.new()
+	var panel := KenneyUI12.make_panel(Vector2(268, 170), Color(0.06, 0.065, 0.09, 0.94))
 	panel.position = Vector2(26, 6)
-	panel.size = Vector2(268, 170)
-	panel.color = Color("1b2028")
 	pause_layer.add_child(panel)
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
-	var body_font: FontFile = load("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+	var body_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
 
 	var title := Label.new()
 	title.text = "PAUSADO"
@@ -911,7 +918,7 @@ func _build_pause_menu() -> void:
 	resume_btn.text = "CONTINUAR"
 	resume_btn.focus_mode = Control.FOCUS_NONE
 	resume_btn.position = Vector2(46, 150)
-	MedievalUI12.style_button(resume_btn, false, body_font, 8, Color("2a1a0f"), Vector2(100, 18))
+	KenneyUI12.style_button(resume_btn, true, 8, Vector2(100, 18))
 	resume_btn.pressed.connect(_toggle_pause)
 	pause_layer.add_child(resume_btn)
 
@@ -919,7 +926,7 @@ func _build_pause_menu() -> void:
 	back_btn.text = "VOLTAR A SELECAO"
 	back_btn.focus_mode = Control.FOCUS_NONE
 	back_btn.position = Vector2(156, 150)
-	MedievalUI12.style_button(back_btn, true, body_font, 8, Color("f4e7c9"), Vector2(120, 18))
+	KenneyUI12.style_button(back_btn, false, 8, Vector2(120, 18))
 	back_btn.pressed.connect(_on_back_to_select_pressed)
 	pause_layer.add_child(back_btn)
 
