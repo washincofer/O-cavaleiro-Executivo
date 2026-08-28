@@ -1,14 +1,10 @@
 extends Node2D
 
-## Sprint 13: fase da boss fight (fundo craftpix post-apocaliptico), estilo
+## Sprint 13/14: fase da boss fight (fundo craftpix post-apocaliptico), estilo
 ## Super Kirby Clash — uma sala unica (sem scroll) onde o trio selecionado
-## enfrenta um unico inimigo gigante, o GOLEM DE PEDRA.
+## enfrenta um unico inimigo gigante, o NECROMANTE (pack "Necromancer").
 ##
-## Nao ha sprite de Golem disponivel nos packs enviados: o boss reaproveita
-## a Gosma (Slime) em escala ~3.2x + modulate acinzentado (role "golem" em
-## platform_actor_12.gd) como stand-in ate uma arte definitiva chegar.
-##
-## Mecanica do boss: a cada poucos segundos o Golem entra em "windup" (aviso
+## Mecanica do boss: a cada poucos segundos o boss entra em "windup" (aviso
 ## visual + textual) antes de um impacto em area. Ativar a habilidade
 ## especial (H) de QUALQUER personagem do grupo durante o windup interrompe
 ## o golpe e causa dano bonus — reaproveita a mesma tecla/mecanica unica de
@@ -23,6 +19,8 @@ extends Node2D
 const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
 const Projectile = preload("res://scripts/playtest/platform_projectile_12.gd")
 const PauseWatcher = preload("res://scripts/playtest/pause_watcher_12.gd")
+const HEALTH_BAR_TEX := preload("res://assets/UI/Runtime/MedievalFree/health_bar.png")
+const TouchControls = preload("res://scenes/playtest/touch_controls_12.tscn")
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 
 const WORLD_WIDTH := 320.0
@@ -61,10 +59,10 @@ var rubble_body: StaticBody2D
 var rubble_visual: ColorRect
 var rubble_broken := false
 
-var golem: Actor = null
+var boss_actor: Actor = null
 var boss_name_label: Label
-var boss_bar_bg: ColorRect
-var boss_bar_fill: ColorRect
+var boss_bar_bg: NinePatchRect
+var boss_bar_empty: ColorRect
 var boss_bar_pos := Vector2(70, 21)
 var boss_bar_size := Vector2(180, 8)
 
@@ -99,7 +97,7 @@ func _process(delta: float) -> void:
 	_check_falls()
 	_update_camera()
 
-	if is_instance_valid(golem) and golem.alive:
+	if is_instance_valid(boss_actor) and boss_actor.alive:
 		_update_boss_slam(delta)
 
 	if event_timeout > 0.0:
@@ -109,7 +107,7 @@ func _process(delta: float) -> void:
 
 	if not completed and active_enemies <= 0 and total_enemies > 0:
 		completed = true
-		report_event("VITORIA — O GOLEM DE PEDRA FOI DESTRUIDO")
+		report_event("VITORIA — O NECROMANTE FOI DESTRUIDO")
 
 	_update_hud()
 
@@ -181,13 +179,13 @@ func activate_actor_special(actor: Actor) -> void:
 		report_event("%s: habilidade em recarga" % actor.actor_name)
 		return
 	match actor.role:
-		"warrior":
+		"warrior", "knight":
 			report_event("%s: ESTOCADA" % actor.actor_name)
 		"archer", "lightning_mage":
 			report_event("%s: TIRO PERFURANTE" % actor.actor_name)
 		"mage", "wanderer":
 			report_event("%s: CONJURANDO TELEPORTE" % actor.actor_name)
-		"fire_mage":
+		"fire_mage", "paladin":
 			report_event("%s: RAJADA DE FOGO" % actor.actor_name)
 	_try_interrupt_slam(actor)
 
@@ -522,17 +520,17 @@ func _spawn_party() -> void:
 		party_slots.append(actor)
 
 func _spawn_enemies() -> void:
-	golem = _spawn_actor("GOLEM DE PEDRA", "enemy", "golem", Vector2(210, ACTOR_GROUND_Y), Color("9c9488"))
-	# Ataque de contato mais espacado que o padrao: o Golem se apoia
+	boss_actor = _spawn_actor("NECROMANTE", "enemy", "necromancer", Vector2(210, ACTOR_GROUND_Y), Color("8a6fd1"))
+	# Ataque de contato mais espacado que o padrao: o boss se apoia
 	# principalmente no impacto em area (windup/slam) como ameaca central,
 	# nao em dano constante corpo a corpo.
-	golem.attack_cooldown_max = 1.3
+	boss_actor.attack_cooldown_max = 1.3
 
 func _update_boss_slam(delta: float) -> void:
 	if slam_windup > 0.0:
 		slam_windup -= delta
 		var pulse: float = 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.02)
-		golem.sprite.modulate = golem.base_modulate.lerp(Color(1.0, 0.3, 0.25), pulse)
+		boss_actor.sprite.modulate = boss_actor.base_modulate.lerp(Color(1.0, 0.3, 0.25), pulse)
 		if slam_windup <= 0.0:
 			_resolve_slam()
 	else:
@@ -542,29 +540,29 @@ func _update_boss_slam(delta: float) -> void:
 
 func _start_slam_windup() -> void:
 	slam_windup = SLAM_WINDUP_TIME
-	report_event("GOLEM SE PREPARA PARA UM IMPACTO — INTERROMPA COM H!")
+	report_event("O NECROMANTE SE PREPARA PARA UM IMPACTO — INTERROMPA COM H!")
 
 func _resolve_slam() -> void:
-	golem.sprite.modulate = golem.base_modulate
-	report_event("GOLEM: IMPACTO DEVASTADOR")
+	boss_actor.sprite.modulate = boss_actor.base_modulate
+	report_event("NECROMANTE: IMPACTO DEVASTADOR")
 	for member in party_slots:
 		if is_instance_valid(member) and member.alive:
-			if member.global_position.distance_to(golem.global_position) <= SLAM_RADIUS:
-				member.take_damage(1, golem)
-				var dir: float = signf(member.global_position.x - golem.global_position.x)
+			if member.global_position.distance_to(boss_actor.global_position) <= SLAM_RADIUS:
+				member.take_damage(1, boss_actor)
+				var dir: float = signf(member.global_position.x - boss_actor.global_position.x)
 				if dir == 0.0:
 					dir = 1.0
 				member.velocity = Vector2(dir * 220.0, -120.0)
 	slam_timer = SLAM_INTERVAL
 
 func _try_interrupt_slam(actor: Actor) -> void:
-	if slam_windup <= 0.0 or not is_instance_valid(golem) or not golem.alive:
+	if slam_windup <= 0.0 or not is_instance_valid(boss_actor) or not boss_actor.alive:
 		return
 	slam_windup = 0.0
 	slam_timer = SLAM_INTERVAL + SLAM_STAGGER_TIME
-	golem.sprite.modulate = golem.base_modulate
-	golem.take_damage(INTERRUPT_BONUS_DAMAGE, actor)
-	report_event("%s INTERROMPEU O GOLEM! (+%d de dano)" % [actor.actor_name, INTERRUPT_BONUS_DAMAGE])
+	boss_actor.sprite.modulate = boss_actor.base_modulate
+	boss_actor.take_damage(INTERRUPT_BONUS_DAMAGE, actor)
+	report_event("%s INTERROMPEU O NECROMANTE! (+%d de dano)" % [actor.actor_name, INTERRUPT_BONUS_DAMAGE])
 
 # --- HUD ---------------------------------------------------------------------
 
@@ -592,7 +590,7 @@ func _build_hud() -> void:
 	var body_font: FontFile = load("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
 
 	boss_name_label = Label.new()
-	boss_name_label.text = "GOLEM DE PEDRA"
+	boss_name_label.text = "NECROMANTE"
 	boss_name_label.position = Vector2(boss_bar_pos.x, boss_bar_pos.y - 8.0)
 	boss_name_label.size = Vector2(boss_bar_size.x, 8)
 	boss_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -601,17 +599,23 @@ func _build_hud() -> void:
 	boss_name_label.add_theme_color_override("font_color", Color("e8b3a0"))
 	canvas.add_child(boss_name_label)
 
-	boss_bar_bg = ColorRect.new()
+	# health_bar.png (pack Medieval Free) ja vem 100% cheia (sem variante
+	# vazia) — um NinePatchRect estica so a faixa central preservando as
+	# pontas arredondadas, e a barra "esvazia" da direita para a esquerda
+	# cobrindo a fatia sem vida com um retangulo escuro (boss_bar_empty).
+	boss_bar_bg = NinePatchRect.new()
+	boss_bar_bg.texture = HEALTH_BAR_TEX
 	boss_bar_bg.position = boss_bar_pos
 	boss_bar_bg.size = boss_bar_size
-	boss_bar_bg.color = Color("241014")
+	boss_bar_bg.patch_margin_left = 6
+	boss_bar_bg.patch_margin_right = 6
+	boss_bar_bg.patch_margin_top = 2
+	boss_bar_bg.patch_margin_bottom = 2
 	canvas.add_child(boss_bar_bg)
 
-	boss_bar_fill = ColorRect.new()
-	boss_bar_fill.position = boss_bar_pos
-	boss_bar_fill.size = boss_bar_size
-	boss_bar_fill.color = Color("c23b3b")
-	canvas.add_child(boss_bar_fill)
+	boss_bar_empty = ColorRect.new()
+	boss_bar_empty.color = Color("2c1a1c")
+	canvas.add_child(boss_bar_empty)
 
 	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
 
@@ -638,6 +642,8 @@ func _build_hud() -> void:
 	event_label.add_theme_color_override("font_color", Color("ffe26f"))
 	canvas.add_child(event_label)
 
+	canvas.add_child(TouchControls.instantiate())
+
 func _update_hud() -> void:
 	if not is_instance_valid(state_label):
 		return
@@ -659,14 +665,20 @@ func _update_hud() -> void:
 		parts.append("%s%d:%s[%s]" % [marker, i + 1, member.actor_name, status])
 	party_label.text = " | ".join(parts)
 
-	if is_instance_valid(golem) and golem.alive:
-		objective_label.text = "derrote o Golem — H interrompe o impacto"
-		var ratio: float = clampf(float(golem.hp) / float(maxi(golem.max_hp, 1)), 0.0, 1.0)
-		boss_bar_fill.size = Vector2(boss_bar_size.x * ratio, boss_bar_size.y)
+	if is_instance_valid(boss_actor) and boss_actor.alive:
+		objective_label.text = "derrote o Necromante — H interrompe o impacto"
+		var ratio: float = clampf(float(boss_actor.hp) / float(maxi(boss_actor.max_hp, 1)), 0.0, 1.0)
+		var inset_x: float = boss_bar_size.x * 0.09
+		var inset_y: float = boss_bar_size.y * 0.143
+		var interior_w: float = boss_bar_size.x - inset_x * 2.0
+		var interior_h: float = boss_bar_size.y - inset_y * 2.0
+		var empty_w: float = interior_w * (1.0 - ratio)
+		boss_bar_empty.position = Vector2(boss_bar_pos.x + inset_x + (interior_w - empty_w), boss_bar_pos.y + inset_y)
+		boss_bar_empty.size = Vector2(empty_w, interior_h)
 	else:
 		objective_label.text = ""
-		if is_instance_valid(boss_bar_fill):
-			boss_bar_fill.visible = false
+		if is_instance_valid(boss_bar_empty):
+			boss_bar_empty.visible = false
 		if is_instance_valid(boss_bar_bg):
 			boss_bar_bg.visible = false
 		if is_instance_valid(boss_name_label):
@@ -714,7 +726,7 @@ func _build_pause_menu() -> void:
 	pause_layer.add_child(title)
 
 	var instructions := Label.new()
-	instructions.text = "OBJETIVO\nDerrote o GOLEM DE PEDRA, um chefe unico com muita vida.\nDe tempos em tempos ele se prepara para um IMPACTO em area\n(aviso na tela) — use a habilidade especial (H) de QUALQUER\npersonagem do seu grupo durante o aviso para INTERROMPER o\ngolpe e causar dano bonus. Se o impacto acontecer, quem\nestiver perto leva dano e e arremessado para tras.\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
+	instructions.text = "OBJETIVO\nDerrote o NECROMANTE, um chefe unico com muita vida.\nDe tempos em tempos ele se prepara para um IMPACTO em area\n(aviso na tela) — use a habilidade especial (H) de QUALQUER\npersonagem do seu grupo durante o aviso para INTERROMPER o\ngolpe e causar dano bonus. Se o impacto acontecer, quem\nestiver perto leva dano e e arremessado para tras.\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
 	instructions.position = Vector2(38, 24)
 	instructions.size = Vector2(244, 120)
 	instructions.add_theme_font_override("font", body_font)

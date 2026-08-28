@@ -21,7 +21,22 @@ const PORTRAIT_PATH := {
 	"fire_mage": "res://assets/UI/Runtime/Portraits/fire_mage.png",
 	"lightning_mage": "res://assets/UI/Runtime/Portraits/lightning_mage.png",
 	"wanderer": "res://assets/UI/Runtime/Portraits/wanderer.png",
+	"paladin": "res://assets/UI/Runtime/Portraits/paladin.png",
+	"knight": "res://assets/UI/Runtime/Portraits/knight.png",
 }
+
+# Elenco livre (fases de boss): qualquer 3, sem categorias — Paladino e
+# Cavaleiro so aparecem aqui, nunca na selecao por categoria da Caverna.
+const FREE_GRID_ROLES := [
+	"warrior", "archer", "mage", "fire_mage", "lightning_mage", "wanderer", "paladin", "knight",
+]
+const FREE_COLS := 4
+const FREE_TILE_W := 74.0
+const FREE_TILE_H := 29.0
+const FREE_TILE_GAP := 3.0
+const FREE_GRID_X := 5.0
+const FREE_GRID_Y := 34.0
+const FREE_ACCENT := Color("ffd23f")
 
 const CATEGORY_LABEL := {
 	"breaker": "QUEBRA ENTULHO",
@@ -81,8 +96,10 @@ func _ready() -> void:
 	title.add_theme_constant_override("outline_size", 3)
 	add_child(title)
 
+	var is_free: bool = PartySelection12.selection_mode == PartySelection12.MODE_FREE
+
 	var subtitle := Label.new()
-	subtitle.text = "ESCOLHA UM PERSONAGEM DE CADA CATEGORIA"
+	subtitle.text = "ESCOLHA 3 PERSONAGENS DO ELENCO" if is_free else "ESCOLHA UM PERSONAGEM DE CADA CATEGORIA"
 	subtitle.position = Vector2(0, 22)
 	subtitle.size = Vector2(320, 8)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -91,8 +108,11 @@ func _ready() -> void:
 	subtitle.add_theme_color_override("font_color", Color("8fa6c9"))
 	add_child(subtitle)
 
-	for i in range(PartySelection12.CATEGORIES.size()):
-		_build_category_column(PartySelection12.CATEGORIES[i], COL_X[i])
+	if is_free:
+		_build_free_grid()
+	else:
+		for i in range(PartySelection12.CATEGORIES.size()):
+			_build_category_column(PartySelection12.CATEGORIES[i], COL_X[i])
 
 	_build_preview_strip()
 	_build_buttons()
@@ -191,7 +211,76 @@ func _on_tile_pressed(category: String, role: String) -> void:
 	_refresh_selection_visuals()
 	_refresh_preview_strip()
 
+func _build_free_grid() -> void:
+	for i in range(FREE_GRID_ROLES.size()):
+		var role: String = FREE_GRID_ROLES[i]
+		var col: int = i % FREE_COLS
+		var row: int = i / FREE_COLS
+		var pos := Vector2(
+			FREE_GRID_X + col * (FREE_TILE_W + FREE_TILE_GAP),
+			FREE_GRID_Y + row * (FREE_TILE_H + FREE_TILE_GAP)
+		)
+		_build_free_tile(role, pos)
+
+func _build_free_tile(role: String, pos: Vector2) -> void:
+	var border := ColorRect.new()
+	border.position = pos
+	border.size = Vector2(FREE_TILE_W, FREE_TILE_H)
+	border.color = Color("2a2f3a")
+	add_child(border)
+	tile_border_by_key["free:%s" % role] = border
+
+	var inner := ColorRect.new()
+	inner.position = pos + Vector2(1, 1)
+	inner.size = Vector2(FREE_TILE_W, FREE_TILE_H) - Vector2(2, 2)
+	inner.color = Color("11141c")
+	add_child(inner)
+
+	var portrait := TextureRect.new()
+	portrait.position = pos + Vector2(2, 1)
+	portrait.size = Vector2(22.0, FREE_TILE_H - 2.0)
+	portrait.texture = load(PORTRAIT_PATH[role])
+	portrait.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(portrait)
+
+	var name_label := Label.new()
+	name_label.text = Actor.DISPLAY_NAME.get(role, role.to_upper())
+	name_label.position = pos + Vector2(25, 0)
+	name_label.size = Vector2(FREE_TILE_W - 27.0, FREE_TILE_H)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_override("font", body_font)
+	name_label.add_theme_font_size_override("font_size", 5)
+	name_label.add_theme_color_override("font_color", Color("e8e2d0"))
+	name_label.clip_text = true
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(name_label)
+
+	var button := Button.new()
+	button.position = pos
+	button.size = Vector2(FREE_TILE_W, FREE_TILE_H)
+	button.flat = true
+	button.focus_mode = Control.FOCUS_NONE
+	button.text = ""
+	button.pressed.connect(_on_free_tile_pressed.bind(role))
+	add_child(button)
+
+func _on_free_tile_pressed(role: String) -> void:
+	PartySelection12.toggle_free_role(role)
+	_refresh_selection_visuals()
+	_refresh_preview_strip()
+
 func _refresh_selection_visuals() -> void:
+	if PartySelection12.selection_mode == PartySelection12.MODE_FREE:
+		for key in tile_border_by_key.keys():
+			var role: String = key.split(":")[1]
+			var border: ColorRect = tile_border_by_key[key]
+			border.color = FREE_ACCENT if PartySelection12.free_roles.has(role) else Color("2a2f3a")
+		return
+
 	for key in tile_border_by_key.keys():
 		var parts: PackedStringArray = key.split(":")
 		var category: String = parts[0]
@@ -237,10 +326,23 @@ func _build_preview_strip() -> void:
 		preview_name.append(name_label)
 
 func _refresh_preview_strip() -> void:
+	if PartySelection12.selection_mode == PartySelection12.MODE_FREE:
+		var roles: Array[String] = PartySelection12.free_roles
+		for i in range(3):
+			if i < roles.size():
+				preview_portrait[i].texture = load(PORTRAIT_PATH[roles[i]])
+				preview_portrait[i].visible = true
+				preview_name[i].text = Actor.DISPLAY_NAME.get(roles[i], roles[i].to_upper())
+			else:
+				preview_portrait[i].visible = false
+				preview_name[i].text = "?"
+		return
+
 	for i in range(PartySelection12.CATEGORIES.size()):
 		var category: String = PartySelection12.CATEGORIES[i]
 		var role: String = selected.get(category, PartySelection12.DEFAULT_SELECTION[category])
 		preview_portrait[i].texture = load(PORTRAIT_PATH[role])
+		preview_portrait[i].visible = true
 		preview_name[i].text = Actor.DISPLAY_NAME.get(role, role.to_upper())
 
 func _build_buttons() -> void:
@@ -275,6 +377,11 @@ func _build_buttons() -> void:
 	add_child(back_button)
 
 func _on_start_pressed() -> void:
+	if PartySelection12.selection_mode == PartySelection12.MODE_FREE:
+		if PartySelection12.free_roles.size() < PartySelection12.FREE_PARTY_SIZE:
+			return
+		get_tree().change_scene_to_file(LOADING_SCENE)
+		return
 	for category in PartySelection12.CATEGORIES:
 		PartySelection12.set_role(category, selected[category])
 	get_tree().change_scene_to_file(LOADING_SCENE)

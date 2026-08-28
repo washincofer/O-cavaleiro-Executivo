@@ -13,6 +13,7 @@ const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
 const Projectile = preload("res://scripts/playtest/platform_projectile_12.gd")
 const PauseWatcher = preload("res://scripts/playtest/pause_watcher_12.gd")
 const Switch = preload("res://scripts/playtest/platform_switch_12.gd")
+const TouchControls = preload("res://scenes/playtest/touch_controls_12.tscn")
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 
 const WORLD_WIDTH := 1320.0
@@ -735,6 +736,8 @@ func _build_hud() -> void:
 	event_label.add_theme_font_size_override("font_size", 7)
 	event_label.add_theme_color_override("font_color", Color("ffe26f"))
 	canvas.add_child(event_label)
+
+	canvas.add_child(TouchControls.instantiate())
 
 func _update_hud() -> void:
 	if not is_instance_valid(state_label):

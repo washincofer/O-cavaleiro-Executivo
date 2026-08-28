@@ -40,10 +40,27 @@ func _ready() -> void:
 	skip_hint.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
 	add_child(skip_hint)
 
+	# Botao real (Control) alem da deteccao generica de tecla/clique/toque
+	# em _unhandled_input — em touchscreens um Button nativo responde de
+	# forma mais confiavel que checar o tipo do evento bruto durante a
+	# reproducao do video.
+	var skip_button := Button.new()
+	skip_button.text = "PULAR >>"
+	skip_button.position = Vector2(240, 4)
+	skip_button.size = Vector2(72, 16)
+	skip_button.focus_mode = Control.FOCUS_NONE
+	skip_button.add_theme_font_override("font", load(BODY_FONT_PATH))
+	skip_button.add_theme_font_size_override("font_size", 7)
+	skip_button.modulate = Color(1, 1, 1, 0.85)
+	skip_button.pressed.connect(_go_to_stage_select)
+	add_child(skip_button)
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		_go_to_stage_select()
 	elif event is InputEventMouseButton and event.pressed:
+		_go_to_stage_select()
+	elif event is InputEventScreenTouch and event.pressed:
 		_go_to_stage_select()
 
 func _go_to_stage_select() -> void:

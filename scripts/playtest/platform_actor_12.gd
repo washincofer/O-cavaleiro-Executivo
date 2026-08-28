@@ -8,6 +8,9 @@ extends CharacterBody2D
 
 signal died(actor)
 
+const HEALTH_BAR_TEX := preload("res://assets/UI/Runtime/MedievalFree/health_bar.png")
+const NAMEPLATE_FONT := preload("res://assets/Fonts/Runtime/MedievalSharp-Book.ttf")
+
 const ROLE_ANIM := {
 	"warrior": {
 		"idle": {"path": "res://assets/Characters/Warrior/Runtime/Idle.png", "fw": 135, "fh": 135, "count": 10, "fps": 8.0, "loop": true},
@@ -68,6 +71,29 @@ const ROLE_ANIM := {
 		"jump": {"path": "res://assets/Characters/Wanderer/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": false},
 		"fall": {"path": "res://assets/Characters/Wanderer/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 8, "fps": 8.0, "loop": true},
 	},
+	# Paladino e Cavaleiro sao personagens livres (selecionaveis so nas fases
+	# de boss, fora do sistema de categorias da Caverna) — cada um reaproveita
+	# uma mecanica ja existente (Rajada/Estocada) na tecla especial, sem
+	# depender de logica nova no boss.
+	"paladin": {
+		"idle": {"path": "res://assets/Characters/Paladin/Runtime/Idle.png", "fw": 128, "fh": 128, "count": 27, "fps": 10.0, "loop": true},
+		"move": {"path": "res://assets/Characters/Paladin/Runtime/Walk.png", "fw": 128, "fh": 128, "count": 10, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/Paladin/Runtime/Attack.png", "fw": 128, "fh": 128, "count": 30, "fps": 16.0, "loop": false},
+		"special": {"path": "res://assets/Characters/Paladin/Runtime/Attack2.png", "fw": 160, "fh": 128, "count": 24, "fps": 10.0, "loop": false},
+		"hurt": {"path": "res://assets/Characters/Paladin/Runtime/Hurt.png", "fw": 128, "fh": 128, "count": 12, "fps": 14.0, "loop": false},
+		"death": {"path": "res://assets/Characters/Paladin/Runtime/Death.png", "fw": 128, "fh": 128, "count": 30, "fps": 8.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/Paladin/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 13, "fps": 10.0, "loop": false},
+		"fall": {"path": "res://assets/Characters/Paladin/Runtime/Jump.png", "fw": 128, "fh": 128, "count": 13, "fps": 10.0, "loop": true},
+	},
+	"knight": {
+		"idle": {"path": "res://assets/Characters/Knight/Runtime/Idle.png", "fw": 64, "fh": 64, "count": 15, "fps": 8.0, "loop": true},
+		"move": {"path": "res://assets/Characters/Knight/Runtime/Run.png", "fw": 96, "fh": 64, "count": 8, "fps": 12.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/Knight/Runtime/Attack.png", "fw": 144, "fh": 64, "count": 22, "fps": 18.0, "loop": false},
+		"special": {"path": "res://assets/Characters/Knight/Runtime/Shield.png", "fw": 96, "fh": 64, "count": 7, "fps": 10.0, "loop": false},
+		"death": {"path": "res://assets/Characters/Knight/Runtime/Death.png", "fw": 96, "fh": 64, "count": 15, "fps": 10.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/Knight/Runtime/Jump.png", "fw": 144, "fh": 64, "count": 15, "fps": 10.0, "loop": false},
+		"fall": {"path": "res://assets/Characters/Knight/Runtime/Jump.png", "fw": 144, "fh": 64, "count": 15, "fps": 10.0, "loop": true},
+	},
 	"slime": {
 		"idle": {"path": "res://assets/Enemies/Slime/Runtime/Idle.png", "fw": 156, "fh": 156, "count": 14, "fps": 8.0, "loop": true},
 		"move": {"path": "res://assets/Enemies/Slime/Runtime/Walk.png", "fw": 156, "fh": 156, "count": 6, "fps": 8.0, "loop": true},
@@ -75,15 +101,12 @@ const ROLE_ANIM := {
 		"hurt": {"path": "res://assets/Enemies/Slime/Runtime/Hurt.png", "fw": 156, "fh": 156, "count": 3, "fps": 12.0, "loop": false},
 		"death": {"path": "res://assets/Enemies/Slime/Runtime/Death.png", "fw": 156, "fh": 156, "count": 11, "fps": 10.0, "loop": false},
 	},
-	# Nao ha sprite proprio de Golem disponivel; o boss da fase de Ruinas
-	# reaproveita a Gosma (Slime) em escala bem maior + modulate acinzentado
-	# (ver ROLE_MODULATE) como stand-in ate uma arte definitiva chegar.
-	"golem": {
-		"idle": {"path": "res://assets/Enemies/Slime/Runtime/Idle.png", "fw": 156, "fh": 156, "count": 14, "fps": 6.0, "loop": true},
-		"move": {"path": "res://assets/Enemies/Slime/Runtime/Walk.png", "fw": 156, "fh": 156, "count": 6, "fps": 6.0, "loop": true},
-		"attack": {"path": "res://assets/Enemies/Slime/Runtime/Attack.png", "fw": 156, "fh": 156, "count": 19, "fps": 12.0, "loop": false},
-		"hurt": {"path": "res://assets/Enemies/Slime/Runtime/Hurt.png", "fw": 156, "fh": 156, "count": 3, "fps": 10.0, "loop": false},
-		"death": {"path": "res://assets/Enemies/Slime/Runtime/Death.png", "fw": 156, "fh": 156, "count": 11, "fps": 8.0, "loop": false},
+	"necromancer": {
+		"idle": {"path": "res://assets/Enemies/Necromancer/Runtime/Idle.png", "fw": 96, "fh": 96, "count": 40, "fps": 10.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Necromancer/Runtime/Walk.png", "fw": 96, "fh": 96, "count": 10, "fps": 10.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Necromancer/Runtime/Attack.png", "fw": 128, "fh": 128, "count": 30, "fps": 15.0, "loop": false},
+		"hurt": {"path": "res://assets/Enemies/Necromancer/Runtime/Hurt.png", "fw": 96, "fh": 96, "count": 9, "fps": 14.0, "loop": false},
+		"death": {"path": "res://assets/Enemies/Necromancer/Runtime/Death.png", "fw": 96, "fh": 96, "count": 40, "fps": 12.0, "loop": false},
 	},
 	"rat": {
 		"idle": {"path": "res://assets/Enemies/Rat/Runtime/Idle.png", "fw": 70, "fh": 70, "count": 10, "fps": 8.0, "loop": true},
@@ -104,18 +127,18 @@ const ROLE_BODY := {
 	"fire_mage": {"scale": 0.485, "offset": Vector2(14.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
 	"lightning_mage": {"scale": 0.390, "offset": Vector2(26.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
 	"wanderer": {"scale": 0.485, "offset": Vector2(0.0, -64.0), "radius": 6.0, "height": 28.0, "shape_y": -16.0, "speed": 84.0, "max_hp": 4, "ranged": true},
+	"paladin": {"scale": 1.3, "offset": Vector2(2.5, 0.0), "radius": 7.0, "height": 28.0, "shape_y": -16.0, "speed": 90.0, "max_hp": 6, "ranged": false},
+	"knight": {"scale": 1.4, "offset": Vector2(-3.0, -12.0), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 90.0, "max_hp": 5, "ranged": false},
 	"slime": {"scale": 1.0, "offset": Vector2(0.0, -9.0), "radius": 7.0, "height": 14.0, "shape_y": -8.0, "speed": 46.0, "max_hp": 3, "ranged": false},
 	"rat": {"scale": 0.9, "offset": Vector2(0.0, -10.0), "radius": 6.0, "height": 16.0, "shape_y": -9.0, "speed": 58.0, "max_hp": 3, "ranged": false},
-	"golem": {"scale": 3.2, "offset": Vector2(0.0, -9.0), "radius": 22.0, "height": 45.0, "shape_y": -26.0, "speed": 26.0, "max_hp": 60, "ranged": false},
+	"necromancer": {"scale": 1.75, "offset": Vector2(-4.0, -16.0), "radius": 10.0, "height": 48.0, "shape_y": -28.0, "speed": 26.0, "max_hp": 60, "ranged": false},
 }
 
 # Tinta permanente do sprite por role (multiplicada sobre a textura); a
-# maioria fica branca (sem alterar as cores originais do pack). Usada pelo
-# Golem para diferenciar visualmente da Gosma comum sem precisar de um
-# sprite proprio.
-const ROLE_MODULATE := {
-	"golem": Color("8f8a80"),
-}
+# maioria fica branca (sem alterar as cores originais do pack) — so entra
+# aqui quando um role reaproveita a arte de outro e precisa de diferenciacao
+# visual (ex.: um inimigo comum reaproveitado em escala maior como boss).
+const ROLE_MODULATE := {}
 
 const DISPLAY_NAME := {
 	"warrior": "GUERREIRO",
@@ -124,9 +147,11 @@ const DISPLAY_NAME := {
 	"fire_mage": "MAGO DE FOGO",
 	"lightning_mage": "MAGO DO RAIO",
 	"wanderer": "MAGO ANDARILHO",
+	"paladin": "PALADINO",
+	"knight": "CAVALEIRO",
 	"slime": "GOSMA",
 	"rat": "RATO",
-	"golem": "GOLEM DE PEDRA",
+	"necromancer": "NECROMANTE",
 }
 
 const RANGED_PROJECTILE_KIND := {
@@ -230,8 +255,13 @@ func setup(
 	nameplate = Label.new()
 	nameplate.text = actor_name
 	nameplate.position = Vector2(-25, body_shape_y - body_height * 0.5 - 16.0)
+	nameplate.size = Vector2(50, 8)
+	nameplate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nameplate.add_theme_font_override("font", NAMEPLATE_FONT)
 	nameplate.add_theme_font_size_override("font_size", 6)
 	nameplate.add_theme_color_override("font_color", p_tint)
+	nameplate.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	nameplate.add_theme_constant_override("outline_size", 2)
 	add_child(nameplate)
 	queue_redraw()
 
@@ -396,9 +426,9 @@ func activate_special() -> bool:
 	if not alive or special_cooldown > 0.0 or charge_timer > 0.0:
 		return false
 	match role:
-		"warrior":
+		"warrior", "knight":
 			return _start_charge()
-		"fire_mage":
+		"fire_mage", "paladin":
 			return _cast_fire_burst()
 		"archer", "lightning_mage":
 			return _fire_piercing_shot()
@@ -531,9 +561,23 @@ func _draw() -> void:
 		draw_arc(Vector2(0, -3), 12.0, 0.0, TAU, 28, Color("ffe26f"), 1.5)
 
 	var ratio := float(hp) / float(max_hp)
-	var bar_y: float = ROLE_BODY[role]["shape_y"] - float(ROLE_BODY[role]["height"]) * 0.5 - 6.0
-	draw_rect(Rect2(-10, bar_y, 20, 3), Color(0.12, 0.12, 0.12))
-	draw_rect(
-		Rect2(-10, bar_y, 20 * ratio, 3),
-		Color(0.3, 0.9, 0.4) if team == "ally" else Color(0.95, 0.25, 0.2)
-	)
+	var bar_y: float = ROLE_BODY[role]["shape_y"] - float(ROLE_BODY[role]["height"]) * 0.5 - 8.0
+	var bar_w := 24.0
+	var bar_h := 5.0
+	var bar_rect := Rect2(-bar_w * 0.5, bar_y, bar_w, bar_h)
+	draw_texture_rect(HEALTH_BAR_TEX, bar_rect, false)
+
+	# health_bar.png ja vem 100% cheia (sem variante vazia no pack) — em vez
+	# de recortar o preenchimento, cobrimos a fatia NAO preenchida com a
+	# mesma cor escura do fundo do proprio sprite, "esvaziando" da direita
+	# para a esquerda conforme o HP cai.
+	var inset_x := bar_w * 0.09
+	var inset_y := bar_h * 0.143
+	var interior_w: float = bar_w - inset_x * 2.0
+	var interior_h: float = bar_h - inset_y * 2.0
+	var empty_w: float = interior_w * (1.0 - ratio)
+	if empty_w > 0.0:
+		draw_rect(
+			Rect2(bar_rect.position.x + inset_x + (interior_w - empty_w), bar_rect.position.y + inset_y, empty_w, interior_h),
+			Color("2c1a1c")
+		)

@@ -28,6 +28,7 @@ const STAGES := [
 		"preview": "res://assets/UI/Runtime/stage_caverna_preview.png",
 		"target_scene": "res://scenes/playtest/platform_party_12.tscn",
 		"loading_title": "CARREGANDO A CAVERNA...",
+		"selection_mode": "categorized",
 	},
 	{
 		"name": "RUINAS",
@@ -35,6 +36,7 @@ const STAGES := [
 		"preview": "res://assets/Environment/Ruins/Runtime/ruins_bg.png",
 		"target_scene": "res://scenes/playtest/platform_boss_12.tscn",
 		"loading_title": "CARREGANDO AS RUINAS...",
+		"selection_mode": "free",
 	},
 	{"name": "?", "unlocked": false},
 	{"name": "?", "unlocked": false},
@@ -250,4 +252,5 @@ func _on_stage_pressed(index: int) -> void:
 	var stage: Dictionary = STAGES[index]
 	PartySelection12.target_scene = stage["target_scene"]
 	PartySelection12.loading_title = stage["loading_title"]
+	PartySelection12.selection_mode = stage.get("selection_mode", PartySelection12.MODE_CATEGORIZED)
 	get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
