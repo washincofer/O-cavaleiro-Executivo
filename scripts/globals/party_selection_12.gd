@@ -25,14 +25,21 @@ const CATEGORY_TELEPORTER := "teleporter"
 
 const CATEGORIES := [CATEGORY_BREAKER, CATEGORY_PIERCER, CATEGORY_TELEPORTER]
 
+# O Cavaleiro Executivo e obrigatorio em qualquer grupo (pedido do usuario) —
+# a categoria "quebra entulho" vira uma opcao so, sempre ele (mesma mecanica
+# de Estocada que Guerreiro/Cavaleiro-Knight ja usam), entao so sobram 2
+# categorias de escolha real na Caverna. Nas fases livres/gated (boss),
+# `mandatory_free_roles()` garante ele sempre presente nos 3 slots.
+const MANDATORY_ROLE := "cavaleiro_executivo"
+
 const OPTIONS := {
-	CATEGORY_BREAKER: ["warrior", "fire_mage"],
+	CATEGORY_BREAKER: [MANDATORY_ROLE],
 	CATEGORY_PIERCER: ["archer", "lightning_mage"],
 	CATEGORY_TELEPORTER: ["mage", "wanderer"],
 }
 
 const DEFAULT_SELECTION := {
-	CATEGORY_BREAKER: "warrior",
+	CATEGORY_BREAKER: MANDATORY_ROLE,
 	CATEGORY_PIERCER: "archer",
 	CATEGORY_TELEPORTER: "mage",
 }
@@ -42,10 +49,11 @@ const MODE_FREE := "free"
 const MODE_GATED := "gated"
 
 const ALL_ROLES := [
+	MANDATORY_ROLE,
 	"warrior", "archer", "mage", "fire_mage", "lightning_mage", "wanderer",
 	"paladin", "knight", "bridge_heroine",
 ]
-const DEFAULT_FREE_ROLES: Array[String] = ["warrior", "archer", "mage"]
+const DEFAULT_FREE_ROLES: Array[String] = [MANDATORY_ROLE, "archer", "mage"]
 const FREE_PARTY_SIZE := 3
 
 # Sprint 15: Paladino/Cavaleiro/Heroina da Ponte comecam bloqueados e sao
@@ -81,6 +89,13 @@ var last_unlocked_role: String = ""
 # forcar esse personagem no grupo (ver `toggle_free_role`).
 var required_role: String = ""
 
+# Dialogo estilo visual novel exibido antes da fase (Sprint pos-16, pedido
+# do usuario) — setado por `stage_select_12.gd` junto com o resto do estado
+# da fase; `dialogue_12.gd` le esses dois campos pra saber qual roteiro
+# mostrar e qual fundo usar, e some (volta pra "") ao terminar/pular.
+var pending_dialogue_id: String = ""
+var pending_dialogue_bg: String = ""
+
 func _ready() -> void:
 	for role in ALL_ROLES:
 		if not LOCKED_BY_DEFAULT.has(role):
@@ -103,12 +118,36 @@ func set_role(category: String, role: String) -> void:
 		selection[category] = role
 
 func toggle_free_role(role: String) -> void:
+	if role == MANDATORY_ROLE:
+		return
 	if selection_mode == MODE_GATED and role == required_role:
 		return
 	if free_roles.has(role):
 		free_roles.erase(role)
 	elif free_roles.size() < FREE_PARTY_SIZE:
 		free_roles.append(role)
+
+# Monta os 3 slots livres garantindo o Cavaleiro Executivo (e, se informado,
+# um segundo papel exigido pela fase, ex.: Heroina da Ponte no modo gated)
+# sempre presentes. Preenche o resto reaproveitando a selecao anterior do
+# jogador (se ja tinha uma valida) e so cai pro default se precisar.
+func mandatory_free_roles(extra_required: String = "") -> Array[String]:
+	var roles: Array[String] = [MANDATORY_ROLE]
+	if extra_required != "" and extra_required != MANDATORY_ROLE:
+		roles.append(extra_required)
+	for role in free_roles:
+		if roles.size() >= FREE_PARTY_SIZE:
+			break
+		if not roles.has(role):
+			roles.append(role)
+	var fallback: Array[String] = DEFAULT_FREE_ROLES.duplicate()
+	var fi := 0
+	while roles.size() < FREE_PARTY_SIZE and fi < fallback.size():
+		var role: String = fallback[fi]
+		if not roles.has(role):
+			roles.append(role)
+		fi += 1
+	return roles
 
 func get_party_roles() -> Array[String]:
 	if selection_mode == MODE_FREE or selection_mode == MODE_GATED:

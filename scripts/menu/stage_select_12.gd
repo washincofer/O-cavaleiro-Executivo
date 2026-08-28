@@ -8,6 +8,7 @@ extends Control
 
 const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
 const CHARACTER_SELECT_SCENE := "res://scenes/menu/character_select_12.tscn"
+const DIALOGUE_SCENE := "res://scenes/menu/dialogue_12.tscn"
 const TITLE_FONT_PATH := "res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf"
 const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
 
@@ -38,6 +39,7 @@ const STAGES := [
 		"target_scene": "res://scenes/playtest/platform_boss_12.tscn",
 		"loading_title": "CARREGANDO AS RUINAS...",
 		"selection_mode": "free",
+		"dialogue_id": "coordenador",
 	},
 	{
 		"name": "FLORESTA",
@@ -47,6 +49,7 @@ const STAGES := [
 		"loading_title": "CARREGANDO A FLORESTA...",
 		"selection_mode": "free",
 		"reward_role": "paladin",
+		"dialogue_id": "presidente",
 	},
 	{
 		"name": "CEMITERIO",
@@ -56,6 +59,7 @@ const STAGES := [
 		"loading_title": "CARREGANDO O CEMITERIO...",
 		"selection_mode": "free",
 		"reward_role": "knight",
+		"dialogue_id": "gerente_executivo",
 	},
 	{
 		"name": "NOITE ESTRELADA",
@@ -65,6 +69,7 @@ const STAGES := [
 		"loading_title": "CARREGANDO A NOITE ESTRELADA...",
 		"selection_mode": "free",
 		"reward_role": "bridge_heroine",
+		"dialogue_id": "especialista",
 	},
 	{
 		"name": "COVIL DO TESOURO",
@@ -74,6 +79,7 @@ const STAGES := [
 		"loading_title": "CARREGANDO O COVIL DO TESOURO...",
 		"selection_mode": "gated",
 		"required_role": "bridge_heroine",
+		"dialogue_id": "gerente",
 	},
 	{"name": "?", "unlocked": false},
 	{"name": "?", "unlocked": false},
@@ -206,13 +212,26 @@ func _build_preview_panel() -> void:
 	for corner in [Vector2(12, 34), Vector2(160, 34), Vector2(12, 126), Vector2(160, 126)]:
 		_add_bolt(corner)
 
+	# Sprint 16: nameplate com o botao Medieval Free (MedievalUI12) no lugar
+	# do texto flutuante sem fundo — primeira aplicacao real do helper de
+	# skin fora do probe de dev.
+	var label_bg := Panel.new()
+	label_bg.position = Vector2(8, 128)
+	label_bg.size = Vector2(156, 12)
+	label_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label_bg.add_theme_stylebox_override("panel", MedievalUI12.button_stylebox(true))
+	add_child(label_bg)
+
 	preview_label = Label.new()
 	preview_label.position = Vector2(8, 128)
 	preview_label.size = Vector2(156, 12)
 	preview_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	preview_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	preview_label.add_theme_font_override("font", body_font)
 	preview_label.add_theme_font_size_override("font_size", 10)
 	preview_label.add_theme_color_override("font_color", Color("ffe26f"))
+	preview_label.add_theme_color_override("font_outline_color", Color("241a05"))
+	preview_label.add_theme_constant_override("outline_size", 2)
 	add_child(preview_label)
 
 func _add_bolt(pos: Vector2) -> void:
@@ -320,8 +339,17 @@ func _on_stage_pressed(index: int) -> void:
 	PartySelection12.stage_reward_role = stage.get("reward_role", "")
 	PartySelection12.required_role = stage.get("required_role", "")
 	if PartySelection12.selection_mode == PartySelection12.MODE_GATED:
-		# Garante que o personagem exigido sempre entre no grupo — sem isso
-		# o vao da sala nao teria como ser cruzado se o jogador escalasse
-		# outros 3 quaisquer no lugar dela.
-		PartySelection12.free_roles = [PartySelection12.required_role] as Array[String]
+		# Garante que o personagem exigido pela fase E o Cavaleiro Executivo
+		# (obrigatorio em qualquer grupo) sempre entrem — sem isso o vao da
+		# sala nao teria como ser cruzado, ou o grupo ficaria sem o
+		# protagonista fixo.
+		PartySelection12.free_roles = PartySelection12.mandatory_free_roles(PartySelection12.required_role)
+	elif PartySelection12.selection_mode == PartySelection12.MODE_FREE:
+		PartySelection12.free_roles = PartySelection12.mandatory_free_roles()
+	var dialogue_id: String = stage.get("dialogue_id", "")
+	if dialogue_id != "":
+		PartySelection12.pending_dialogue_id = dialogue_id
+		PartySelection12.pending_dialogue_bg = stage.get("preview", "")
+		get_tree().change_scene_to_file(DIALOGUE_SCENE)
+		return
 	get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)

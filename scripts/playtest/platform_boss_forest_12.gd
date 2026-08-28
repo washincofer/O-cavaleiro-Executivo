@@ -16,6 +16,28 @@ extends Node2D
 ## Arquivo proprio (convencao das sprints anteriores: cada fase mantem seu
 ## controller independente), copiado de platform_boss_12.gd com o boss e o
 ## cenario trocados.
+##
+## Sprint 16: convertida pro padrao retrato/paisagem seguindo exatamente o
+## padrao validado em platform_boss_12.gd (Ruinas, a sala-piloto) — mundo
+## encolhe de verdade em retrato (world_width vira var), camera fixa sem
+## pan horizontal revelando ceu extra acima da sala (content_scale_size
+## 180x320 mostra 320 unidades verticais, nao mais as 180 do design
+## original), e HUD/pausa em retrato via o helper compartilhado
+## `BossHudPortrait12`. Ver o comentario extenso em platform_boss_12.gd
+## pra detalhes do raciocinio.
+##
+## Pedido do usuario (pos-Sprint 16): o Satyr virou o CHEFE FINAL/mais
+## dificil do jogo — visual reduzido pra ficar menor que os personagens
+## jogaveis (ROLE_BODY em platform_actor_12.gd, scale 4.5 -> 1.2; o raio de
+## acerto de magia e fixo e independente do tamanho visual, entao continua
+## acertando normalmente) e ganhou um segundo poder de verdade: alem do
+## golpe de casco em area ja existente (interrompivel com H,
+## `_update_boss_slam`), agora tambem faz uma INVESTIDA — um dash real
+## pelo chao (`_update_satyr_charge`, maquina "" -> telegraph -> dashing)
+## que so se desvia, nao se interrompe. Fase de furia abaixo de 40% de
+## vida (`_update_satyr_enrage`) acelera os dois. `ai_suspended`
+## (platform_actor_12.gd) impede a perseguicao padrao de `_enemy_tick()`
+## de brigar com o controle direto do dash.
 
 const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
 const Projectile = preload("res://scripts/playtest/platform_projectile_12.gd")
@@ -25,10 +47,16 @@ const TouchControls = preload("res://scenes/playtest/touch_controls_12.tscn")
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 const VICTORY_CUTSCENE_SCENE := "res://scenes/menu/victory_cutscene_12.tscn"
 
-const WORLD_WIDTH := 320.0
+const WORLD_WIDTH_LANDSCAPE := 320.0
+const WORLD_WIDTH_PORTRAIT := 180.0
 const DEATH_Y := 210.0
 const GROUND_TOP := 150.0
 const FOREST_BG_PATH := "res://assets/Environment/Forest/Runtime/forest_bg.png"
+
+var world_width := WORLD_WIDTH_LANDSCAPE
+var is_portrait := false
+var camera_half_width := 160.0
+var camera_y := 90.0
 
 var actors: Array[Actor] = []
 var enemies: Array[Actor] = []
@@ -71,12 +99,58 @@ var boss_bar_size := Vector2(180, 8)
 const SLAM_INTERVAL := 4.2
 const SLAM_WINDUP_TIME := 1.0
 const SLAM_STAGGER_TIME := 2.2
-const SLAM_RADIUS := 64.0
+const SLAM_RADIUS_LANDSCAPE := 64.0
+# Mesma logica de platform_boss_12.gd: sala em retrato encolhe pra 180 de
+# largura (boss centralizado em x=90) — raio reduzido preserva a opcao de
+# recuar em vez de so interromper com H.
+const SLAM_RADIUS_PORTRAIT := 52.0
 const INTERRUPT_BONUS_DAMAGE := 6
+var slam_radius := SLAM_RADIUS_LANDSCAPE
 var slam_timer := 2.6
 var slam_windup := 0.0
 
+# Pedido do usuario: Satyr vira o chefe mais dificil do jogo, com varios
+# poderes diferentes em vez de so repetir o "impacto em area" (SLAM_*, que
+# ja existia e continua interrompivel com H). A INVESTIDA e um segundo
+# poder totalmente distinto — um dash rapido de verdade pelo chao (nao um
+# raio de area parado), que NAO se interrompe com H, so se desvia saindo
+# da frente. `ai_suspended` (platform_actor_12.gd) impede a perseguicao
+# padrao de brigar com o controle direto do dash.
+const CHARGE_INTERVAL := 6.0
+const CHARGE_TELEGRAPH_TIME := 0.5
+const CHARGE_SPEED_LANDSCAPE := 260.0
+const CHARGE_SPEED_PORTRAIT := 190.0
+const CHARGE_MAX_TIME := 1.0
+const CHARGE_DAMAGE := 1
+const CHARGE_HITBOX_RADIUS := 16.0
+var charge_speed := CHARGE_SPEED_LANDSCAPE
+var charge_timer := 4.5
+var charge_state := ""
+var charge_state_time := 0.0
+var charge_direction := 1.0
+var charge_hit_actors: Array = []
+
+# Fase de furia: abaixo de 40% de vida o Satyr fica mais rapido e agressivo
+# nos dois poderes — a marca de "chefe final mais dificil" do jogo.
+const ENRAGE_HP_RATIO := 0.4
+const ENRAGE_SPEED_MULT := 1.35
+const ENRAGE_INTERVAL_MULT := 0.65
+var satyr_enraged := false
+
 func _ready() -> void:
+	is_portrait = DeviceLayout12.is_portrait
+	if is_portrait:
+		world_width = WORLD_WIDTH_PORTRAIT
+		camera_half_width = world_width / 2.0
+		camera_y = DEATH_Y - 160.0
+		slam_radius = SLAM_RADIUS_PORTRAIT
+		charge_speed = CHARGE_SPEED_PORTRAIT
+	else:
+		world_width = WORLD_WIDTH_LANDSCAPE
+		camera_half_width = 160.0
+		camera_y = 90.0
+		slam_radius = SLAM_RADIUS_LANDSCAPE
+		charge_speed = CHARGE_SPEED_LANDSCAPE
 	_build_world()
 	_spawn_party()
 	_spawn_enemies()
@@ -101,6 +175,8 @@ func _process(delta: float) -> void:
 
 	if is_instance_valid(boss_actor) and boss_actor.alive:
 		_update_boss_slam(delta)
+		_update_satyr_charge(delta)
+		_update_satyr_enrage()
 
 	if event_timeout > 0.0:
 		event_timeout -= delta
@@ -192,7 +268,7 @@ func activate_actor_special(actor: Actor) -> void:
 		report_event("%s: habilidade em recarga" % actor.actor_name)
 		return
 	match actor.role:
-		"warrior", "knight":
+		"warrior", "knight", "cavaleiro_executivo":
 			report_event("%s: ESTOCADA" % actor.actor_name)
 		"archer", "lightning_mage":
 			report_event("%s: TIRO PERFURANTE" % actor.actor_name)
@@ -262,7 +338,7 @@ func _rescue_inactive_ally(actor: Actor) -> void:
 	if not is_instance_valid(active_actor) or not active_actor.alive:
 		return
 
-	var preferred_x: float = clampf(active_actor.global_position.x + actor.follow_offset_x, 18.0, WORLD_WIDTH - 18.0)
+	var preferred_x: float = clampf(active_actor.global_position.x + actor.follow_offset_x, 18.0, world_width - 18.0)
 	var rescue_position: Vector2 = _safe_floor_position(preferred_x, active_actor.global_position.y)
 
 	if rescue_position == Vector2.INF:
@@ -326,8 +402,8 @@ func _alive_party_count() -> int:
 func _update_camera() -> void:
 	if not is_instance_valid(camera) or not is_instance_valid(active_actor):
 		return
-	var target_x: float = clampf(active_actor.global_position.x, 160.0, WORLD_WIDTH - 160.0)
-	camera.global_position = Vector2(target_x, 90.0)
+	var target_x: float = clampf(active_actor.global_position.x, camera_half_width, world_width - camera_half_width)
+	camera.global_position = Vector2(target_x, camera_y)
 
 func try_break_rubble(_actor: Actor) -> void:
 	# Nao ha entulho nesta fase; mantido apenas porque platform_actor_12.gd
@@ -397,11 +473,16 @@ func _build_world() -> void:
 
 	_add_background()
 	_add_ground()
-	_add_ledge(Rect2(6, 116, 50, 14))
-	_add_ledge(Rect2(264, 116, 50, 14))
+	if is_portrait:
+		_add_sky_fill_portrait()
+		_add_ledge(Rect2(6, 116, 44, 14))
+		_add_ledge(Rect2(130, 116, 44, 14))
+	else:
+		_add_ledge(Rect2(6, 116, 50, 14))
+		_add_ledge(Rect2(264, 116, 50, 14))
 
 	_add_wall_collision(Rect2(-12, 0, 12, DEATH_Y))
-	_add_wall_collision(Rect2(WORLD_WIDTH, 0, 12, DEATH_Y))
+	_add_wall_collision(Rect2(world_width, 0, 12, DEATH_Y))
 
 	actor_layer = Node2D.new()
 	actor_layer.name = "Actors"
@@ -414,25 +495,49 @@ func _build_world() -> void:
 
 	camera = Camera2D.new()
 	camera.limit_left = 0
-	camera.limit_top = 0
-	camera.limit_right = int(WORLD_WIDTH)
-	camera.limit_bottom = int(DEATH_Y)
+	camera.limit_right = int(world_width)
+	if is_portrait:
+		camera.limit_top = int(camera_y - 160.0)
+		camera.limit_bottom = int(camera_y + 160.0)
+	else:
+		camera.limit_top = 0
+		camera.limit_bottom = int(DEATH_Y)
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 8.0
 	camera.enabled = true
-	camera.global_position = Vector2(160, 90)
+	camera.global_position = Vector2(camera_half_width, camera_y)
 	add_child(camera)
 
 func _add_background() -> void:
 	var bg := Sprite2D.new()
 	bg.texture = load(FOREST_BG_PATH)
 	bg.centered = false
-	bg.position = Vector2(0, 0)
 	bg.z_index = -10
+	if is_portrait:
+		bg.region_enabled = true
+		bg.region_rect = Rect2(70, 0, WORLD_WIDTH_PORTRAIT, 180)
+	bg.position = Vector2(0, 0)
 	world_layer.add_child(bg)
 
+func _add_sky_fill_portrait() -> void:
+	# Mesma tecnica de platform_boss_12.gd — degrade solido extraido do
+	# topo do fundo da Floresta preenche o espaco extra revelado acima da
+	# sala quando content_scale_size passa a ser 180x320.
+	var top_color := Color("a3c5ab")
+	var deep_color := Color("2a3d2e")
+	var fill_top: float = camera_y - 160.0
+	var band_count := 4
+	var band_h: float = (0.0 - fill_top) / band_count
+	for i in range(band_count):
+		var band := ColorRect.new()
+		band.position = Vector2(0, fill_top + i * band_h)
+		band.size = Vector2(world_width, band_h + 1.0)
+		band.color = deep_color.lerp(top_color, float(i) / float(band_count - 1))
+		band.z_index = -11
+		world_layer.add_child(band)
+
 func _add_ground() -> void:
-	var rect := Rect2(0, GROUND_TOP, WORLD_WIDTH, DEATH_Y - GROUND_TOP)
+	var rect := Rect2(0, GROUND_TOP, world_width, DEATH_Y - GROUND_TOP)
 	var body := StaticBody2D.new()
 	body.collision_layer = 1
 	body.collision_mask = 0
@@ -526,30 +631,38 @@ const ROLE_TINT := {
 	"paladin": Color("ffe08a"),
 	"knight": Color("aac4e8"),
 	"bridge_heroine": Color("ffb3d1"),
+	"cavaleiro_executivo": Color("d4af37"),
 }
 
-const SLOT_SPAWN_X := [64.0, 46.0, 28.0]
+const SLOT_SPAWN_X_LANDSCAPE := [64.0, 46.0, 28.0]
+const SLOT_SPAWN_X_PORTRAIT := [48.0, 30.0, 12.0]
 const SLOT_FOLLOW_OFFSET := [-18.0, -18.0, -36.0]
 const ACTOR_GROUND_Y := GROUND_TOP - 34.0
+const BOSS_SPAWN_X_LANDSCAPE := 210.0
+const BOSS_SPAWN_X_PORTRAIT := 90.0
 
 func _spawn_party() -> void:
 	var roles: Array[String] = PartySelection12.get_party_roles()
+	var slot_spawn_x: Array = SLOT_SPAWN_X_PORTRAIT if is_portrait else SLOT_SPAWN_X_LANDSCAPE
 	party_slots = []
 	for i in range(roles.size()):
 		var role: String = roles[i]
 		var display_name: String = Actor.DISPLAY_NAME.get(role, role.to_upper())
 		var tint: Color = ROLE_TINT.get(role, Color.WHITE)
-		var actor := _spawn_actor(display_name, "ally", role, Vector2(SLOT_SPAWN_X[i], ACTOR_GROUND_Y), tint, i)
+		var actor := _spawn_actor(display_name, "ally", role, Vector2(slot_spawn_x[i], ACTOR_GROUND_Y), tint, i)
 		actor.follow_offset_x = SLOT_FOLLOW_OFFSET[i]
 		party_slots.append(actor)
 
 func _spawn_enemies() -> void:
-	boss_actor = _spawn_actor("SATYR", "enemy", "satyr", Vector2(210, ACTOR_GROUND_Y), Color("d1a15c"))
+	var boss_x: float = BOSS_SPAWN_X_PORTRAIT if is_portrait else BOSS_SPAWN_X_LANDSCAPE
+	boss_actor = _spawn_actor("SATYR", "enemy", "satyr", Vector2(boss_x, ACTOR_GROUND_Y), Color("d1a15c"))
 	# Satyr e mais agil que o Necromante: golpes corpo a corpo mais frequentes,
 	# compensados por uma investida com aviso mais curto (ver SLAM_* acima).
 	boss_actor.attack_cooldown_max = 1.0
 
 func _update_boss_slam(delta: float) -> void:
+	if charge_state != "":
+		return
 	if slam_windup > 0.0:
 		slam_windup -= delta
 		var pulse: float = 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.02)
@@ -563,20 +676,20 @@ func _update_boss_slam(delta: float) -> void:
 
 func _start_slam_windup() -> void:
 	slam_windup = SLAM_WINDUP_TIME
-	report_event("O SATYR SE PREPARA PARA UMA INVESTIDA — INTERROMPA COM H!")
+	report_event("O SATYR SE PREPARA PARA UM GOLPE DE CASCOS — INTERROMPA COM H!")
 
 func _resolve_slam() -> void:
 	boss_actor.sprite.modulate = boss_actor.base_modulate
-	report_event("SATYR: INVESTIDA CERTEIRA")
+	report_event("SATYR: GOLPE DE CASCOS CERTEIRO")
 	for member in party_slots:
 		if is_instance_valid(member) and member.alive:
-			if member.global_position.distance_to(boss_actor.global_position) <= SLAM_RADIUS:
+			if member.global_position.distance_to(boss_actor.global_position) <= slam_radius:
 				member.take_damage(1, boss_actor)
 				var dir: float = signf(member.global_position.x - boss_actor.global_position.x)
 				if dir == 0.0:
 					dir = 1.0
 				member.velocity = Vector2(dir * 220.0, -120.0)
-	slam_timer = SLAM_INTERVAL
+	slam_timer = SLAM_INTERVAL * (ENRAGE_INTERVAL_MULT if satyr_enraged else 1.0)
 
 func _try_interrupt_slam(actor: Actor) -> void:
 	if slam_windup <= 0.0 or not is_instance_valid(boss_actor) or not boss_actor.alive:
@@ -587,11 +700,77 @@ func _try_interrupt_slam(actor: Actor) -> void:
 	boss_actor.take_damage(INTERRUPT_BONUS_DAMAGE, actor)
 	report_event("%s INTERROMPEU O SATYR! (+%d de dano)" % [actor.actor_name, INTERRUPT_BONUS_DAMAGE])
 
+func _update_satyr_charge(delta: float) -> void:
+	match charge_state:
+		"":
+			if slam_windup > 0.0:
+				return
+			charge_timer -= delta
+			if charge_timer <= 0.0:
+				charge_state = "telegraph"
+				charge_state_time = CHARGE_TELEGRAPH_TIME
+				charge_direction = _charge_target_direction()
+				boss_actor.ai_suspended = true
+				boss_actor.velocity.x = 0.0
+				report_event("O SATYR AGACHA PARA UMA INVESTIDA — DESVIE!")
+		"telegraph":
+			charge_state_time -= delta
+			var pulse: float = 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.03)
+			boss_actor.sprite.modulate = boss_actor.base_modulate.lerp(Color(1.0, 0.85, 0.2), pulse)
+			if charge_state_time <= 0.0:
+				charge_state = "dashing"
+				charge_state_time = CHARGE_MAX_TIME
+				charge_hit_actors.clear()
+				boss_actor.sprite.modulate = boss_actor.base_modulate
+		"dashing":
+			charge_state_time -= delta
+			var step: float = charge_speed * delta * charge_direction
+			var next_x: float = clampf(boss_actor.global_position.x + step, 8.0, world_width - 8.0)
+			boss_actor.global_position.x = next_x
+			boss_actor.facing = charge_direction
+			for member in party_slots:
+				if is_instance_valid(member) and member.alive and not charge_hit_actors.has(member):
+					if absf(member.global_position.x - boss_actor.global_position.x) <= CHARGE_HITBOX_RADIUS:
+						member.take_damage(CHARGE_DAMAGE, boss_actor)
+						member.velocity = Vector2(charge_direction * 200.0, -110.0)
+						charge_hit_actors.append(member)
+			var hit_wall: bool = next_x <= 8.0 or next_x >= world_width - 8.0
+			if charge_state_time <= 0.0 or hit_wall:
+				charge_state = ""
+				boss_actor.ai_suspended = false
+				charge_timer = CHARGE_INTERVAL * (ENRAGE_INTERVAL_MULT if satyr_enraged else 1.0)
+
+func _charge_target_direction() -> float:
+	if is_instance_valid(active_actor) and active_actor.global_position.x != boss_actor.global_position.x:
+		return signf(active_actor.global_position.x - boss_actor.global_position.x)
+	return 1.0
+
+func _update_satyr_enrage() -> void:
+	if satyr_enraged or not is_instance_valid(boss_actor):
+		return
+	if float(boss_actor.hp) / float(maxi(boss_actor.max_hp, 1)) <= ENRAGE_HP_RATIO:
+		satyr_enraged = true
+		charge_speed *= ENRAGE_SPEED_MULT
+		report_event("O SATYR ENTRA EM FURIA!")
+
 # --- HUD ---------------------------------------------------------------------
 
 func _build_hud() -> void:
 	var canvas := CanvasLayer.new()
 	add_child(canvas)
+
+	if is_portrait:
+		var refs := BossHudPortrait12.build_hud(canvas, "SATYR")
+		party_label = refs["party_label"]
+		objective_label = refs["objective_label"]
+		boss_name_label = refs["boss_name_label"]
+		boss_bar_bg = refs["boss_bar_bg"]
+		boss_bar_empty = refs["boss_bar_empty"]
+		state_label = refs["state_label"]
+		event_label = refs["event_label"]
+		boss_bar_pos = refs["boss_bar_pos"]
+		boss_bar_size = refs["boss_bar_size"]
+		return
 
 	var panel := ColorRect.new()
 	panel.position = Vector2(0, 0)
@@ -689,7 +868,7 @@ func _update_hud() -> void:
 	party_label.text = " | ".join(parts)
 
 	if is_instance_valid(boss_actor) and boss_actor.alive:
-		objective_label.text = "derrote o Satyr — H interrompe a investida"
+		objective_label.text = "derrote o Satyr — H interrompe o golpe — desvie da investida"
 		var ratio: float = clampf(float(boss_actor.hp) / float(maxi(boss_actor.max_hp, 1)), 0.0, 1.0)
 		var inset_x: float = boss_bar_size.x * 0.09
 		var inset_y: float = boss_bar_size.y * 0.143
@@ -717,7 +896,14 @@ func _toggle_pause() -> void:
 	get_tree().paused = is_paused
 	pause_layer.visible = is_paused
 
+const PAUSE_INSTRUCTIONS := "OBJETIVO\nDerrote o SATYR, o chefe mais dificil do jogo — pequeno mas\nagil, com dois golpes. GOLPE DE CASCOS em area (aviso na\ntela): especial (H) de QUALQUER personagem no aviso\nINTERROMPE e causa dano bonus. INVESTIDA rapida (outro aviso)\nNAO se interrompe, so se desvia. Abaixo de 40% de vida ele\nentra em FURIA e fica mais rapido.\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
+
 func _build_pause_menu() -> void:
+	if is_portrait:
+		pause_layer = BossHudPortrait12.build_pause_menu(PAUSE_INSTRUCTIONS, _toggle_pause, _on_back_to_select_pressed)
+		add_child(pause_layer)
+		return
+
 	pause_layer = CanvasLayer.new()
 	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	pause_layer.layer = 10
@@ -749,7 +935,7 @@ func _build_pause_menu() -> void:
 	pause_layer.add_child(title)
 
 	var instructions := Label.new()
-	instructions.text = "OBJETIVO\nDerrote o SATYR, um chefe unico com muita vida.\nDe tempos em tempos ele se prepara para uma INVESTIDA\n(aviso na tela) — use a habilidade especial (H) de QUALQUER\npersonagem do seu grupo durante o aviso para INTERROMPER o\ngolpe e causar dano bonus. Se a investida acontecer, quem\nestiver perto leva dano e e arremessado para tras.\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
+	instructions.text = PAUSE_INSTRUCTIONS
 	instructions.position = Vector2(38, 24)
 	instructions.size = Vector2(244, 120)
 	instructions.add_theme_font_override("font", body_font)
@@ -759,21 +945,17 @@ func _build_pause_menu() -> void:
 
 	var resume_btn := Button.new()
 	resume_btn.text = "CONTINUAR"
-	resume_btn.position = Vector2(46, 150)
-	resume_btn.size = Vector2(100, 18)
 	resume_btn.focus_mode = Control.FOCUS_NONE
-	resume_btn.add_theme_font_override("font", body_font)
-	resume_btn.add_theme_font_size_override("font_size", 8)
+	resume_btn.position = Vector2(46, 150)
+	MedievalUI12.style_button(resume_btn, false, body_font, 8, Color("2a1a0f"), Vector2(100, 18))
 	resume_btn.pressed.connect(_toggle_pause)
 	pause_layer.add_child(resume_btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "VOLTAR A SELECAO"
-	back_btn.position = Vector2(156, 150)
-	back_btn.size = Vector2(120, 18)
 	back_btn.focus_mode = Control.FOCUS_NONE
-	back_btn.add_theme_font_override("font", body_font)
-	back_btn.add_theme_font_size_override("font_size", 8)
+	back_btn.position = Vector2(156, 150)
+	MedievalUI12.style_button(back_btn, true, body_font, 8, Color("f4e7c9"), Vector2(120, 18))
 	back_btn.pressed.connect(_on_back_to_select_pressed)
 	pause_layer.add_child(back_btn)
 

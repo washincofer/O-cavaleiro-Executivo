@@ -27,6 +27,29 @@ extends Node2D
 ## Arquivo proprio (convencao das sprints anteriores: cada fase mantem seu
 ## controller independente), copiado de platform_boss_starrynight_12.gd com
 ## o boss, o cenario e o layout do chao (vao + ponte) trocados/adaptados.
+##
+## Sprint 16: convertida pro padrao retrato/paisagem — a mais arriscada das
+## 5 salas de boss por causa do VAO. Analise de fisica (speed=92,
+## jump_velocity=-245, gravity=760, dash 1.55x) confirma que o vao de 70px
+## ja e pulavel sem a ponte na paisagem publicada (~92px de alcance com
+## pulo+dash) — um desbalanceamento PRE-EXISTENTE, fora do escopo desta
+## sprint (o plano so pedia pra reportar, nao consertar). Por isso, em
+## retrato, o VAO fica em EXATOS 70px (gap_left_x/gap_right_x viram vars,
+## nao mudam de largura) — so as plataformas dos dois lados encolhem, e o
+## raio de proximidade da ponte (`summon_bridge_from`) e reajustado pra nao
+## cobrir a sala quase inteira numa largura de 180px. Camera/HUD/pausa
+## seguem o mesmo padrao das outras 4 salas (ver platform_boss_12.gd).
+##
+## Pedido do usuario (pos-Sprint 16): o Dragao nao ficava mais parado
+## guardando o tesouro — agora "voa" de verdade (`_update_dragon_flight`,
+## puramente visual/patrulha curta na propria plataforma, sem tocar no
+## `speed=0` do ROLE_BODY nem na logica de perseguicao compartilhada) e
+## ganhou um SEGUNDO ataque independente do sopro de fogo: ele some da tela
+## (`_update_fire_rain`, maquina de estados "" -> vanish -> raining ->
+## returning) e uma chuva de fogo cai do ceu em ondas, comecando no centro
+## da sala e se espalhando para os dois lados ate os cantos
+## (`_spawn_fire_wave`/`_spawn_fire_impact`) — esquivavel (sair da faixa
+## avisada), diferente do sopro que se interrompe com H.
 
 const Actor = preload("res://scripts/playtest/platform_actor_12.gd")
 const Projectile = preload("res://scripts/playtest/platform_projectile_12.gd")
@@ -36,20 +59,39 @@ const TouchControls = preload("res://scenes/playtest/touch_controls_12.tscn")
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 const VICTORY_CUTSCENE_SCENE := "res://scenes/menu/victory_cutscene_12.tscn"
 
-const WORLD_WIDTH := 320.0
+const WORLD_WIDTH_LANDSCAPE := 320.0
+const WORLD_WIDTH_PORTRAIT := 180.0
 const DEATH_Y := 210.0
 const GROUND_TOP := 150.0
 const TREASUREHOARD_BG_PATH := "res://assets/Environment/TreasureHoard/Runtime/treasure_bg.png"
 
+var world_width := WORLD_WIDTH_LANDSCAPE
+var is_portrait := false
+var camera_half_width := 160.0
+var camera_y := 90.0
+
 # Vao real no chao entre o grupo (plataforma esquerda) e o Dragao (direita)
 # — a mecanica exclusiva da fase. So a especial da Heroina da Ponte
 # (`summon_bridge_from`) constroi uma travessia; cair no vao mata o
-# personagem ativo como qualquer buraco (`_check_falls`).
-const GAP_LEFT_X := 140.0
-const GAP_RIGHT_X := 210.0
-const GAP_CENTER_X := (GAP_LEFT_X + GAP_RIGHT_X) * 0.5
-const RIGHT_PLATFORM_X := GAP_RIGHT_X
+# personagem ativo como qualquer buraco (`_check_falls`). Largura do vao
+# (gap_right_x - gap_left_x = 70) e IGUAL nos dois modos de proposito —
+# so a posicao/tamanho das plataformas dos lados muda.
+const GAP_LEFT_X_LANDSCAPE := 140.0
+const GAP_RIGHT_X_LANDSCAPE := 210.0
+const GAP_LEFT_X_PORTRAIT := 40.0
+const GAP_RIGHT_X_PORTRAIT := 110.0
+const RIGHT_PLATFORM_OFFSET_LANDSCAPE := 55.0
+const RIGHT_PLATFORM_OFFSET_PORTRAIT := 35.0
+const BRIDGE_PROXIMITY_LANDSCAPE := 60.0
+const BRIDGE_PROXIMITY_PORTRAIT := 45.0
 const BRIDGE_DURATION := 6.0
+
+var gap_left_x := GAP_LEFT_X_LANDSCAPE
+var gap_right_x := GAP_RIGHT_X_LANDSCAPE
+var gap_center_x := (GAP_LEFT_X_LANDSCAPE + GAP_RIGHT_X_LANDSCAPE) * 0.5
+var right_platform_x := GAP_RIGHT_X_LANDSCAPE
+var right_platform_offset := RIGHT_PLATFORM_OFFSET_LANDSCAPE
+var bridge_proximity := BRIDGE_PROXIMITY_LANDSCAPE
 
 var bridge_body: StaticBody2D = null
 var bridge_visual: ColorRect = null
@@ -96,12 +138,62 @@ var boss_bar_size := Vector2(180, 8)
 const SLAM_INTERVAL := 5.0
 const SLAM_WINDUP_TIME := 1.4
 const SLAM_STAGGER_TIME := 2.4
-const SLAM_RADIUS := 90.0
+const SLAM_RADIUS_LANDSCAPE := 90.0
+# Mesma logica das outras 4 salas: sala em retrato encolhe pra 180 de
+# largura — raio reduzido preserva a opcao de recuar em vez de so
+# interromper com H (a plataforma direita, onde o Dragao fica, e a que
+# mais importa aqui: 70 de largura, raio precisa deixar folga real).
+const SLAM_RADIUS_PORTRAIT := 72.0
 const INTERRUPT_BONUS_DAMAGE := 6
+var slam_radius := SLAM_RADIUS_LANDSCAPE
 var slam_timer := 3.0
 var slam_windup := 0.0
 
+# Voo: o Dragao nao fica mais parado — flutua (bob vertical no sprite,
+# puramente visual) e desliza devagar de um lado a outro da plataforma
+# direita (posicao real, entra no calculo de SLAM_RADIUS normalmente).
+var dragon_flight_time := 0.0
+
+# Segundo ataque, independente do sopro de fogo (SLAM_*): o Dragao some da
+# tela (voa para fora) e uma chuva de fogo cai do ceu, comecando no CENTRO
+# da sala e se espalhando em ondas para os dois lados ate os cantos —
+# esquiva (sair da faixa avisada), nao interrompe com H como o sopro.
+const FIRE_RAIN_INTERVAL := 16.0
+const FIRE_RAIN_VANISH_TIME := 0.9
+const FIRE_RAIN_WAVE_COUNT := 5
+const FIRE_RAIN_WAVE_GAP := 0.55
+const FIRE_RAIN_WARN_TIME := 0.4
+const FIRE_RAIN_RETURN_TIME := 0.7
+const FIRE_RAIN_DAMAGE := 1
+var fire_rain_timer := 9.0
+var fire_rain_state := ""
+var fire_rain_state_time := 0.0
+var fire_rain_wave_index := 0
+var fire_rain_wave_timer := 0.0
+
 func _ready() -> void:
+	is_portrait = DeviceLayout12.is_portrait
+	if is_portrait:
+		world_width = WORLD_WIDTH_PORTRAIT
+		camera_half_width = world_width / 2.0
+		camera_y = DEATH_Y - 160.0
+		slam_radius = SLAM_RADIUS_PORTRAIT
+		gap_left_x = GAP_LEFT_X_PORTRAIT
+		gap_right_x = GAP_RIGHT_X_PORTRAIT
+		right_platform_x = GAP_RIGHT_X_PORTRAIT
+		right_platform_offset = RIGHT_PLATFORM_OFFSET_PORTRAIT
+		bridge_proximity = BRIDGE_PROXIMITY_PORTRAIT
+	else:
+		world_width = WORLD_WIDTH_LANDSCAPE
+		camera_half_width = 160.0
+		camera_y = 90.0
+		slam_radius = SLAM_RADIUS_LANDSCAPE
+		gap_left_x = GAP_LEFT_X_LANDSCAPE
+		gap_right_x = GAP_RIGHT_X_LANDSCAPE
+		right_platform_x = GAP_RIGHT_X_LANDSCAPE
+		right_platform_offset = RIGHT_PLATFORM_OFFSET_LANDSCAPE
+		bridge_proximity = BRIDGE_PROXIMITY_LANDSCAPE
+	gap_center_x = (gap_left_x + gap_right_x) * 0.5
 	_build_world()
 	_spawn_party()
 	_spawn_enemies()
@@ -126,6 +218,8 @@ func _process(delta: float) -> void:
 
 	if is_instance_valid(boss_actor) and boss_actor.alive:
 		_update_boss_slam(delta)
+		_update_dragon_flight(delta)
+		_update_fire_rain(delta)
 
 	_handle_bridge(delta)
 
@@ -219,7 +313,7 @@ func activate_actor_special(actor: Actor) -> void:
 		report_event("%s: habilidade em recarga" % actor.actor_name)
 		return
 	match actor.role:
-		"warrior", "knight":
+		"warrior", "knight", "cavaleiro_executivo":
 			report_event("%s: ESTOCADA" % actor.actor_name)
 		"archer", "lightning_mage":
 			report_event("%s: TIRO PERFURANTE" % actor.actor_name)
@@ -289,7 +383,7 @@ func _rescue_inactive_ally(actor: Actor) -> void:
 	if not is_instance_valid(active_actor) or not active_actor.alive:
 		return
 
-	var preferred_x: float = clampf(active_actor.global_position.x + actor.follow_offset_x, 18.0, WORLD_WIDTH - 18.0)
+	var preferred_x: float = clampf(active_actor.global_position.x + actor.follow_offset_x, 18.0, world_width - 18.0)
 	var rescue_position: Vector2 = _safe_floor_position(preferred_x, active_actor.global_position.y)
 
 	if rescue_position == Vector2.INF:
@@ -353,8 +447,8 @@ func _alive_party_count() -> int:
 func _update_camera() -> void:
 	if not is_instance_valid(camera) or not is_instance_valid(active_actor):
 		return
-	var target_x: float = clampf(active_actor.global_position.x, 160.0, WORLD_WIDTH - 160.0)
-	camera.global_position = Vector2(target_x, 90.0)
+	var target_x: float = clampf(active_actor.global_position.x, camera_half_width, world_width - camera_half_width)
+	camera.global_position = Vector2(target_x, camera_y)
 
 func try_break_rubble(_actor: Actor) -> void:
 	# Nao ha entulho nesta fase; mantido apenas porque platform_actor_12.gd
@@ -417,13 +511,18 @@ func _build_world() -> void:
 	add_child(world_layer)
 
 	_add_background()
-	_add_ground_segment(Rect2(0, GROUND_TOP, GAP_LEFT_X, DEATH_Y - GROUND_TOP))
-	_add_ground_segment(Rect2(GAP_RIGHT_X, GROUND_TOP, WORLD_WIDTH - GAP_RIGHT_X, DEATH_Y - GROUND_TOP))
-	_add_ledge(Rect2(6, 116, 50, 14))
-	_add_ledge(Rect2(264, 116, 50, 14))
+	_add_ground_segment(Rect2(0, GROUND_TOP, gap_left_x, DEATH_Y - GROUND_TOP))
+	_add_ground_segment(Rect2(gap_right_x, GROUND_TOP, world_width - gap_right_x, DEATH_Y - GROUND_TOP))
+	if is_portrait:
+		_add_sky_fill_portrait()
+		_add_ledge(Rect2(2, 116, 28, 14))
+		_add_ledge(Rect2(130, 116, 40, 14))
+	else:
+		_add_ledge(Rect2(6, 116, 50, 14))
+		_add_ledge(Rect2(264, 116, 50, 14))
 
 	_add_wall_collision(Rect2(-12, 0, 12, DEATH_Y))
-	_add_wall_collision(Rect2(WORLD_WIDTH, 0, 12, DEATH_Y))
+	_add_wall_collision(Rect2(world_width, 0, 12, DEATH_Y))
 
 	actor_layer = Node2D.new()
 	actor_layer.name = "Actors"
@@ -436,26 +535,50 @@ func _build_world() -> void:
 
 	camera = Camera2D.new()
 	camera.limit_left = 0
-	camera.limit_top = 0
-	camera.limit_right = int(WORLD_WIDTH)
-	camera.limit_bottom = int(DEATH_Y)
+	camera.limit_right = int(world_width)
+	if is_portrait:
+		camera.limit_top = int(camera_y - 160.0)
+		camera.limit_bottom = int(camera_y + 160.0)
+	else:
+		camera.limit_top = 0
+		camera.limit_bottom = int(DEATH_Y)
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 8.0
 	camera.enabled = true
-	camera.global_position = Vector2(160, 90)
+	camera.global_position = Vector2(camera_half_width, camera_y)
 	add_child(camera)
 
 func _add_background() -> void:
 	var bg := Sprite2D.new()
 	bg.texture = load(TREASUREHOARD_BG_PATH)
 	bg.centered = false
-	bg.position = Vector2(0, 0)
 	bg.z_index = -10
+	if is_portrait:
+		bg.region_enabled = true
+		bg.region_rect = Rect2(70, 0, WORLD_WIDTH_PORTRAIT, 180)
+	bg.position = Vector2(0, 0)
 	world_layer.add_child(bg)
+
+func _add_sky_fill_portrait() -> void:
+	# Mesma tecnica das outras 4 salas — degrade solido extraido do topo do
+	# fundo do Covil do Tesouro preenche o espaco extra revelado acima da
+	# sala quando content_scale_size passa a ser 180x320.
+	var top_color := Color("501433")
+	var deep_color := Color("200817")
+	var fill_top: float = camera_y - 160.0
+	var band_count := 4
+	var band_h: float = (0.0 - fill_top) / band_count
+	for i in range(band_count):
+		var band := ColorRect.new()
+		band.position = Vector2(0, fill_top + i * band_h)
+		band.size = Vector2(world_width, band_h + 1.0)
+		band.color = deep_color.lerp(top_color, float(i) / float(band_count - 1))
+		band.z_index = -11
+		world_layer.add_child(band)
 
 func _add_ground_segment(rect: Rect2) -> void:
 	# Duas chamadas (esquerda/direita) em vez de um unico chao de ponta a
-	# ponta — o vao entre GAP_LEFT_X/GAP_RIGHT_X fica sem colisao nenhuma,
+	# ponta — o vao entre gap_left_x/gap_right_x fica sem colisao nenhuma,
 	# a mecanica exclusiva desta fase (ver `summon_bridge_from`).
 	var body := StaticBody2D.new()
 	body.collision_layer = 1
@@ -550,25 +673,38 @@ const ROLE_TINT := {
 	"paladin": Color("ffe08a"),
 	"knight": Color("aac4e8"),
 	"bridge_heroine": Color("ffb3d1"),
+	"cavaleiro_executivo": Color("d4af37"),
 }
 
-const SLOT_SPAWN_X := [64.0, 46.0, 28.0]
-const SLOT_FOLLOW_OFFSET := [-18.0, -18.0, -36.0]
+const SLOT_SPAWN_X_LANDSCAPE := [64.0, 46.0, 28.0]
+# Diferente das outras 4 salas: aqui a plataforma esquerda em retrato so vai
+# ate gap_left_x_portrait=40 (nao a sala inteira) — [48,30,12] usado nas
+# outras salas cairia no vao (48 > 40). Valores proprios, com folga do
+# raio de colisao (ate 7px) tanto da parede (x=0) quanto da borda do vao.
+const SLOT_SPAWN_X_PORTRAIT := [26.0, 18.0, 10.0]
+const SLOT_FOLLOW_OFFSET_LANDSCAPE := [-18.0, -18.0, -36.0]
+# A plataforma esquerda em retrato so tem 40px (contra 140 na paisagem) — os
+# offsets da paisagem fariam o 3o personagem tentar seguir ate x=-10 (dentro
+# da parede) e travar visivelmente contra ela. Reduzidos na mesma proporcao
+# de SLOT_SPAWN_X_PORTRAIT (espacamento 8 em vez de 18).
+const SLOT_FOLLOW_OFFSET_PORTRAIT := [-8.0, -8.0, -16.0]
 const ACTOR_GROUND_Y := GROUND_TOP - 34.0
 
 func _spawn_party() -> void:
 	var roles: Array[String] = PartySelection12.get_party_roles()
+	var slot_spawn_x: Array = SLOT_SPAWN_X_PORTRAIT if is_portrait else SLOT_SPAWN_X_LANDSCAPE
+	var slot_follow_offset: Array = SLOT_FOLLOW_OFFSET_PORTRAIT if is_portrait else SLOT_FOLLOW_OFFSET_LANDSCAPE
 	party_slots = []
 	for i in range(roles.size()):
 		var role: String = roles[i]
 		var display_name: String = Actor.DISPLAY_NAME.get(role, role.to_upper())
 		var tint: Color = ROLE_TINT.get(role, Color.WHITE)
-		var actor := _spawn_actor(display_name, "ally", role, Vector2(SLOT_SPAWN_X[i], ACTOR_GROUND_Y), tint, i)
-		actor.follow_offset_x = SLOT_FOLLOW_OFFSET[i]
+		var actor := _spawn_actor(display_name, "ally", role, Vector2(slot_spawn_x[i], ACTOR_GROUND_Y), tint, i)
+		actor.follow_offset_x = slot_follow_offset[i]
 		party_slots.append(actor)
 
 func _spawn_enemies() -> void:
-	boss_actor = _spawn_actor("DRAGAO", "enemy", "dragon", Vector2(RIGHT_PLATFORM_X + 55.0, ACTOR_GROUND_Y), Color("ffb35c"))
+	boss_actor = _spawn_actor("DRAGAO", "enemy", "dragon", Vector2(right_platform_x + right_platform_offset, ACTOR_GROUND_Y), Color("ffb35c"))
 	# O Dragao nunca sai do lugar (guarda o tesouro — "speed": 0 em
 	# ROLE_BODY), entao o contato so acontece se o grupo se aproximar demais;
 	# a ameaca principal e o sopro de fogo em area, com raio grande o
@@ -586,7 +722,7 @@ func _handle_bridge(delta: float) -> void:
 		_despawn_bridge()
 
 func summon_bridge_from(actor: Actor) -> void:
-	if absf(actor.global_position.x - GAP_CENTER_X) > 60.0:
+	if absf(actor.global_position.x - gap_center_x) > bridge_proximity:
 		report_event("%s: PONTE (aproxime-se do vao para usar)" % actor.actor_name)
 		return
 	_spawn_bridge()
@@ -594,7 +730,7 @@ func summon_bridge_from(actor: Actor) -> void:
 
 func _spawn_bridge() -> void:
 	_despawn_bridge()
-	var rect := Rect2(GAP_LEFT_X, GROUND_TOP, GAP_RIGHT_X - GAP_LEFT_X, DEATH_Y - GROUND_TOP)
+	var rect := Rect2(gap_left_x, GROUND_TOP, gap_right_x - gap_left_x, DEATH_Y - GROUND_TOP)
 	bridge_body = StaticBody2D.new()
 	bridge_body.collision_layer = 1
 	bridge_body.collision_mask = 0
@@ -625,6 +761,8 @@ func _despawn_bridge() -> void:
 	bridge_visual = null
 
 func _update_boss_slam(delta: float) -> void:
+	if fire_rain_state != "":
+		return
 	if slam_windup > 0.0:
 		slam_windup -= delta
 		var pulse: float = 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.02)
@@ -645,7 +783,7 @@ func _resolve_slam() -> void:
 	report_event("DRAGAO: SOPRO DE FOGO DEVASTADOR")
 	for member in party_slots:
 		if is_instance_valid(member) and member.alive:
-			if member.global_position.distance_to(boss_actor.global_position) <= SLAM_RADIUS:
+			if member.global_position.distance_to(boss_actor.global_position) <= slam_radius:
 				member.take_damage(1, boss_actor)
 				var dir: float = signf(member.global_position.x - boss_actor.global_position.x)
 				if dir == 0.0:
@@ -662,11 +800,122 @@ func _try_interrupt_slam(actor: Actor) -> void:
 	boss_actor.take_damage(INTERRUPT_BONUS_DAMAGE, actor)
 	report_event("%s INTERROMPEU O DRAGAO! (+%d de dano)" % [actor.actor_name, INTERRUPT_BONUS_DAMAGE])
 
+func _update_dragon_flight(delta: float) -> void:
+	# Puramente visual (bob no sprite) + deslize real na plataforma direita —
+	# nunca roda durante a sequencia de sumico/chuva de fogo (o dragao ja
+	# esta sendo animado por ela).
+	if fire_rain_state != "":
+		return
+	dragon_flight_time += delta
+	boss_actor.sprite.position.y = sin(dragon_flight_time * 1.6) * 5.0
+	var patrol_center: float = right_platform_x + right_platform_offset
+	var patrol_range: float = min(right_platform_offset - 6.0, (world_width - right_platform_x) * 0.4)
+	boss_actor.global_position.x = patrol_center + sin(dragon_flight_time * 0.5) * patrol_range
+
+func _update_fire_rain(delta: float) -> void:
+	match fire_rain_state:
+		"":
+			if slam_windup > 0.0:
+				return
+			fire_rain_timer -= delta
+			if fire_rain_timer <= 0.0:
+				fire_rain_state = "vanish"
+				fire_rain_state_time = FIRE_RAIN_VANISH_TIME
+				report_event("O DRAGAO ALCA VOO E SOME NO CEU!")
+		"vanish":
+			fire_rain_state_time -= delta
+			boss_actor.sprite.modulate.a = clampf(fire_rain_state_time / FIRE_RAIN_VANISH_TIME, 0.0, 1.0)
+			boss_actor.sprite.position.y -= 44.0 * delta
+			if fire_rain_state_time <= 0.0:
+				boss_actor.visible = false
+				fire_rain_state = "raining"
+				fire_rain_wave_index = 0
+				fire_rain_wave_timer = 0.0
+				report_event("CHUVA DE FOGO DO CEU — AFASTE-SE DO CENTRO!")
+		"raining":
+			fire_rain_wave_timer -= delta
+			if fire_rain_wave_timer <= 0.0:
+				_spawn_fire_wave(fire_rain_wave_index)
+				fire_rain_wave_index += 1
+				fire_rain_wave_timer = FIRE_RAIN_WAVE_GAP
+				if fire_rain_wave_index >= FIRE_RAIN_WAVE_COUNT:
+					fire_rain_state = "returning"
+					fire_rain_state_time = FIRE_RAIN_RETURN_TIME
+					boss_actor.visible = true
+					boss_actor.sprite.modulate.a = 0.0
+					boss_actor.sprite.position.y = -44.0
+					boss_actor.global_position.x = right_platform_x + right_platform_offset
+		"returning":
+			fire_rain_state_time -= delta
+			var t: float = 1.0 - clampf(fire_rain_state_time / FIRE_RAIN_RETURN_TIME, 0.0, 1.0)
+			boss_actor.sprite.modulate.a = t
+			boss_actor.sprite.position.y = lerp(-44.0, 0.0, t)
+			if fire_rain_state_time <= 0.0:
+				boss_actor.sprite.modulate.a = 1.0
+				boss_actor.sprite.position.y = 0.0
+				fire_rain_state = ""
+				fire_rain_timer = FIRE_RAIN_INTERVAL
+				report_event("O DRAGAO RETORNA!")
+
+func _spawn_fire_wave(wave_index: int) -> void:
+	# Onda 0 cai exatamente no centro da sala; as seguintes se espalham em
+	# pares simetricos (esquerda/direita) cada vez mais perto dos cantos.
+	var half_width: float = world_width * 0.5
+	var step: float = half_width / float(FIRE_RAIN_WAVE_COUNT)
+	var band_w: float = clampf(step + 6.0, 14.0, 60.0)
+	var center_x: float = world_width * 0.5
+	if wave_index == 0:
+		_spawn_fire_impact(center_x, band_w)
+		return
+	var off: float = wave_index * step
+	_spawn_fire_impact(clampf(center_x + off, band_w * 0.5, world_width - band_w * 0.5), band_w)
+	_spawn_fire_impact(clampf(center_x - off, band_w * 0.5, world_width - band_w * 0.5), band_w)
+
+func _spawn_fire_impact(center_x: float, band_w: float) -> void:
+	var warn := ColorRect.new()
+	warn.color = Color(1.0, 0.3, 0.1, 0.4)
+	warn.position = Vector2(center_x - band_w * 0.5, -10.0)
+	warn.size = Vector2(band_w, GROUND_TOP + 10.0)
+	warn.z_index = 5
+	world_layer.add_child(warn)
+	get_tree().create_timer(FIRE_RAIN_WARN_TIME).timeout.connect(_resolve_fire_impact.bind(warn, center_x, band_w))
+
+func _resolve_fire_impact(warn: ColorRect, center_x: float, band_w: float) -> void:
+	if is_instance_valid(warn):
+		warn.queue_free()
+	for member in party_slots:
+		if is_instance_valid(member) and member.alive:
+			if absf(member.global_position.x - center_x) <= band_w * 0.5:
+				member.take_damage(FIRE_RAIN_DAMAGE, boss_actor)
+				var dir: float = signf(member.global_position.x - center_x)
+				if dir == 0.0:
+					dir = 1.0
+				member.velocity = Vector2(dir * 160.0, -140.0)
+	var scorch := ColorRect.new()
+	scorch.color = Color(0.08, 0.05, 0.04, 0.55)
+	scorch.position = Vector2(center_x - band_w * 0.5, GROUND_TOP - 2.0)
+	scorch.size = Vector2(band_w, 4.0)
+	scorch.z_index = -1
+	world_layer.add_child(scorch)
+
 # --- HUD ---------------------------------------------------------------------
 
 func _build_hud() -> void:
 	var canvas := CanvasLayer.new()
 	add_child(canvas)
+
+	if is_portrait:
+		var refs := BossHudPortrait12.build_hud(canvas, "DRAGAO")
+		party_label = refs["party_label"]
+		objective_label = refs["objective_label"]
+		boss_name_label = refs["boss_name_label"]
+		boss_bar_bg = refs["boss_bar_bg"]
+		boss_bar_empty = refs["boss_bar_empty"]
+		state_label = refs["state_label"]
+		event_label = refs["event_label"]
+		boss_bar_pos = refs["boss_bar_pos"]
+		boss_bar_size = refs["boss_bar_size"]
+		return
 
 	var panel := ColorRect.new()
 	panel.position = Vector2(0, 0)
@@ -792,7 +1041,14 @@ func _toggle_pause() -> void:
 	get_tree().paused = is_paused
 	pause_layer.visible = is_paused
 
+const PAUSE_INSTRUCTIONS := "OBJETIVO\nHa um VAO entre seu grupo e o DRAGAO — use a especial (H) da\nHEROINA DA PONTE perto do vao para construir uma travessia\ntemporaria (ela some apos alguns segundos). Cair no vao mata\no personagem ativo. Do outro lado, derrote o Dragao — de\ntempos em tempos ele inspira para um SOPRO DE FOGO em area\n(aviso na tela) — a especial de QUALQUER personagem durante\no aviso INTERROMPE o golpe e causa dano bonus. De tempos em\ntempos ele tambem SOME NO CEU e chove fogo, comecando no\ncentro da sala e se espalhando para os cantos — esse ataque\nNAO se interrompe, so se esquiva saindo da faixa avisada.\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
+
 func _build_pause_menu() -> void:
+	if is_portrait:
+		pause_layer = BossHudPortrait12.build_pause_menu(PAUSE_INSTRUCTIONS, _toggle_pause, _on_back_to_select_pressed)
+		add_child(pause_layer)
+		return
+
 	pause_layer = CanvasLayer.new()
 	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	pause_layer.layer = 10
@@ -824,7 +1080,7 @@ func _build_pause_menu() -> void:
 	pause_layer.add_child(title)
 
 	var instructions := Label.new()
-	instructions.text = "OBJETIVO\nHa um VAO entre seu grupo e o DRAGAO — use a especial (H) da\nHEROINA DA PONTE perto do vao para construir uma travessia\ntemporaria (ela some apos alguns segundos). Cair no vao mata\no personagem ativo. Do outro lado, derrote o Dragao — de\ntempos em tempos ele inspira para um SOPRO DE FOGO em area\n(aviso na tela) — a especial de QUALQUER personagem durante\no aviso INTERROMPE o golpe e causa dano bonus.\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar"
+	instructions.text = PAUSE_INSTRUCTIONS
 	instructions.position = Vector2(38, 24)
 	instructions.size = Vector2(244, 120)
 	instructions.add_theme_font_override("font", body_font)
@@ -834,21 +1090,17 @@ func _build_pause_menu() -> void:
 
 	var resume_btn := Button.new()
 	resume_btn.text = "CONTINUAR"
-	resume_btn.position = Vector2(46, 150)
-	resume_btn.size = Vector2(100, 18)
 	resume_btn.focus_mode = Control.FOCUS_NONE
-	resume_btn.add_theme_font_override("font", body_font)
-	resume_btn.add_theme_font_size_override("font_size", 8)
+	resume_btn.position = Vector2(46, 150)
+	MedievalUI12.style_button(resume_btn, false, body_font, 8, Color("2a1a0f"), Vector2(100, 18))
 	resume_btn.pressed.connect(_toggle_pause)
 	pause_layer.add_child(resume_btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "VOLTAR A SELECAO"
-	back_btn.position = Vector2(156, 150)
-	back_btn.size = Vector2(120, 18)
 	back_btn.focus_mode = Control.FOCUS_NONE
-	back_btn.add_theme_font_override("font", body_font)
-	back_btn.add_theme_font_size_override("font_size", 8)
+	back_btn.position = Vector2(156, 150)
+	MedievalUI12.style_button(back_btn, true, body_font, 8, Color("f4e7c9"), Vector2(120, 18))
 	back_btn.pressed.connect(_on_back_to_select_pressed)
 	pause_layer.add_child(back_btn)
 

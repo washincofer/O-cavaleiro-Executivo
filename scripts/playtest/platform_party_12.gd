@@ -19,6 +19,16 @@ const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 const WORLD_WIDTH := 1320.0
 const DEATH_Y := 360.0
 
+## Sprint 16: retrato so estreita o recorte horizontal da camera (WORLD_WIDTH
+## e toda a geometria/distancias de pulo continuam intocadas — ja calibradas
+## e testadas, ex.: o vao 3 de 220px so e cruzavel pelo teleporte da Maga por
+## causa dessa distancia especifica). O fundo (`_add_background`) ja usa um
+## ColorRect de ceu bem maior que a area jogavel (-50 a DEATH_Y+100=460), sem
+## precisar do "sky fill" usado nas salas de boss — a camera so revela mais
+## desse ceu ja existente. Camera Y fica fixo em 205.0 nos dois modos.
+var is_portrait := false
+var camera_half_width := 160.0
+
 const CAVE_TILE_PATH := "res://assets/Environment/Cave/Runtime/cave_tileset.png"
 const MOUNTAIN_PATH := "res://assets/Environment/Cave/Runtime/bg_mountains.png"
 const TREES_PATH := "res://assets/Environment/Cave/Runtime/trees.png"
@@ -63,6 +73,8 @@ var ward_body: StaticBody2D
 var ward_visual: ColorRect
 
 func _ready() -> void:
+	is_portrait = DeviceLayout12.is_portrait
+	camera_half_width = 90.0 if is_portrait else 160.0
 	_build_world()
 	_spawn_party()
 	_spawn_enemies()
@@ -302,7 +314,7 @@ func _alive_party_count() -> int:
 func _update_camera() -> void:
 	if not is_instance_valid(camera) or not is_instance_valid(active_actor):
 		return
-	var target_x: float = clampf(active_actor.global_position.x, 160.0, WORLD_WIDTH - 160.0)
+	var target_x: float = clampf(active_actor.global_position.x, camera_half_width, WORLD_WIDTH - camera_half_width)
 	camera.global_position = Vector2(target_x, 205.0)
 
 func _build_world() -> void:
@@ -354,7 +366,7 @@ func _build_world() -> void:
 	camera.position_smoothing_enabled = true
 	camera.position_smoothing_speed = 8.0
 	camera.enabled = true
-	camera.global_position = Vector2(160, 205)
+	camera.global_position = Vector2(camera_half_width, 205)
 	add_child(camera)
 
 func _build_cave_tileset() -> TileSet:
@@ -496,6 +508,7 @@ func _add_gap_marker(from_x: float, to_x: float) -> void:
 	world_layer.add_child(label)
 
 const ROLE_TINT := {
+	"cavaleiro_executivo": Color("d4af37"),
 	"warrior": Color("cfd6e0"),
 	"archer": Color("8fd67a"),
 	"mage": Color("b48cff"),
@@ -508,6 +521,7 @@ const SLOT_SPAWN_X := [140.0, 105.0, 70.0]
 const SLOT_FOLLOW_OFFSET := [-36.0, -36.0, -72.0]
 
 const ROLE_OBJECTIVE_LINE := {
+	"cavaleiro_executivo": "quebra o entulho (Estocada)",
 	"warrior": "quebra o entulho (Estocada)",
 	"fire_mage": "quebra o entulho (Rajada de Fogo)",
 	"archer": "atravessa a barreira magica (Tiro Perfurante)",
@@ -600,7 +614,12 @@ func fire_burst_from(actor: Actor) -> void:
 
 func _spawn_ward_and_switch() -> void:
 	ward_body = StaticBody2D.new()
-	ward_body.collision_layer = 2
+	# Layer 3 (bit 4) — dedicada, separada da layer 2 (bit 2) usada pelos
+	# Actors. Antes as duas coisas dividiam a layer 2, entao o raycast de
+	# flecha/orbe (mask incluindo bit 2 pra enxergar a barreira) tambem
+	# enxergava qualquer personagem aliado no caminho e parava nele, como
+	# se fosse parede — a magia dos magos "era bloqueada" por companheiros.
+	ward_body.collision_layer = 4
 	ward_body.collision_mask = 0
 	ward_body.position = Vector2(772, 240)
 	var shape := CollisionShape2D.new()
@@ -692,6 +711,10 @@ func _build_hud() -> void:
 	var canvas := CanvasLayer.new()
 	add_child(canvas)
 
+	if is_portrait:
+		_build_hud_portrait(canvas)
+		return
+
 	# HUD compacto e semitransparente: so 2 linhas finas no topo, para o
 	# cenario ficar visivel por tras. Instrucoes completas ficam no menu
 	# de pausa (ESC).
@@ -739,6 +762,65 @@ func _build_hud() -> void:
 
 	canvas.add_child(TouchControls.instantiate())
 
+func _build_hud_portrait(canvas: CanvasLayer) -> void:
+	# Sem boss nesta fase — chrome proprio em vez do BossHudPortrait12
+	# compartilhado (que exige nome/barra de boss). Mesmo padrao visual
+	# (painel superior, state_label central, event_label, TouchControls).
+	var panel := ColorRect.new()
+	panel.position = Vector2(0, 0)
+	panel.size = Vector2(180, 30)
+	panel.color = Color(0.02, 0.025, 0.035, 0.55)
+	canvas.add_child(panel)
+
+	party_label = Label.new()
+	party_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	party_label.add_theme_font_size_override("font_size", 6)
+	party_label.add_theme_color_override("font_color", Color("ffe26f"))
+	# size por ultimo (autowrap+fonte antes de entrar na tree pode inflar o
+	# minimum_size e o Control nao encolhe sozinho depois).
+	party_label.position = Vector2(4, 0)
+	party_label.custom_minimum_size = Vector2(172, 12)
+	party_label.size = Vector2(172, 12)
+	panel.add_child(party_label)
+
+	objective_label = Label.new()
+	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	objective_label.add_theme_font_size_override("font_size", 5)
+	objective_label.position = Vector2(4, 13)
+	objective_label.custom_minimum_size = Vector2(172, 16)
+	objective_label.size = Vector2(172, 16)
+	panel.add_child(objective_label)
+
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
+
+	state_label = Label.new()
+	state_label.position = Vector2(0, 150)
+	state_label.size = Vector2(180, 30)
+	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	state_label.add_theme_font_override("font", title_font)
+	state_label.add_theme_font_size_override("font_size", 12)
+	state_label.add_theme_color_override("font_color", Color("ffe26f"))
+	state_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	state_label.add_theme_constant_override("outline_size", 4)
+	canvas.add_child(state_label)
+
+	var help := Label.new()
+	help.text = "ESC: pausar e ver instrucoes"
+	help.position = Vector2(5, 296)
+	help.add_theme_font_size_override("font_size", 6)
+	canvas.add_child(help)
+
+	event_label = Label.new()
+	event_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	event_label.add_theme_font_size_override("font_size", 6)
+	event_label.add_theme_color_override("font_color", Color("ffe26f"))
+	event_label.position = Vector2(4, 32)
+	event_label.custom_minimum_size = Vector2(172, 20)
+	event_label.size = Vector2(172, 20)
+	canvas.add_child(event_label)
+
+	canvas.add_child(TouchControls.instantiate())
+
 func _update_hud() -> void:
 	if not is_instance_valid(state_label):
 		return
@@ -775,6 +857,17 @@ func _toggle_pause() -> void:
 	pause_layer.visible = is_paused
 
 func _build_pause_menu() -> void:
+	var objective_lines: Array[String] = []
+	for member in party_slots:
+		if is_instance_valid(member):
+			objective_lines.append("%s %s" % [member.actor_name, ROLE_OBJECTIVE_LINE.get(member.role, "")])
+	var instructions_text := "OBJETIVO\nDerrote os inimigos e supere 3 provas — cada uma so cede a\nhabilidade especial (H) de UM personagem do seu grupo:\n%s\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar" % "\n".join(objective_lines)
+
+	if is_portrait:
+		pause_layer = BossHudPortrait12.build_pause_menu(instructions_text, _toggle_pause, _on_back_to_select_pressed)
+		add_child(pause_layer)
+		return
+
 	pause_layer = CanvasLayer.new()
 	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	pause_layer.layer = 10
@@ -805,13 +898,8 @@ func _build_pause_menu() -> void:
 	title.add_theme_color_override("font_color", Color("ffe26f"))
 	pause_layer.add_child(title)
 
-	var objective_lines: Array[String] = []
-	for member in party_slots:
-		if is_instance_valid(member):
-			objective_lines.append("%s %s" % [member.actor_name, ROLE_OBJECTIVE_LINE.get(member.role, "")])
-
 	var instructions := Label.new()
-	instructions.text = "OBJETIVO\nDerrote os inimigos e supere 3 provas — cada uma so cede a\nhabilidade especial (H) de UM personagem do seu grupo:\n%s\n\nCONTROLES\nA/D mover | ESPACO pular (2x no ar) | K dash\n1/2/3 trocar personagem | J atacar | H especial\nR reiniciar a fase | ESC pausar/continuar" % "\n".join(objective_lines)
+	instructions.text = instructions_text
 	instructions.position = Vector2(38, 24)
 	instructions.size = Vector2(244, 120)
 	instructions.add_theme_font_override("font", body_font)
@@ -821,21 +909,17 @@ func _build_pause_menu() -> void:
 
 	var resume_btn := Button.new()
 	resume_btn.text = "CONTINUAR"
-	resume_btn.position = Vector2(46, 150)
-	resume_btn.size = Vector2(100, 18)
 	resume_btn.focus_mode = Control.FOCUS_NONE
-	resume_btn.add_theme_font_override("font", body_font)
-	resume_btn.add_theme_font_size_override("font_size", 8)
+	resume_btn.position = Vector2(46, 150)
+	MedievalUI12.style_button(resume_btn, false, body_font, 8, Color("2a1a0f"), Vector2(100, 18))
 	resume_btn.pressed.connect(_toggle_pause)
 	pause_layer.add_child(resume_btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "VOLTAR A SELECAO"
-	back_btn.position = Vector2(156, 150)
-	back_btn.size = Vector2(120, 18)
 	back_btn.focus_mode = Control.FOCUS_NONE
-	back_btn.add_theme_font_override("font", body_font)
-	back_btn.add_theme_font_size_override("font_size", 8)
+	back_btn.position = Vector2(156, 150)
+	MedievalUI12.style_button(back_btn, true, body_font, 8, Color("f4e7c9"), Vector2(120, 18))
 	back_btn.pressed.connect(_on_back_to_select_pressed)
 	pause_layer.add_child(back_btn)
 
