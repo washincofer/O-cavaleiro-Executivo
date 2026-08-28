@@ -36,7 +36,7 @@ func _build_landscape() -> void:
 	bg.color = Color("10141d")
 	add_child(bg)
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
 
 	var title := Label.new()
 	title.text = PartySelection12.loading_title
@@ -59,7 +59,7 @@ func _build_portrait() -> void:
 	bg.color = Color("10141d")
 	add_child(bg)
 
-	var title_font: FontFile = load("res://assets/Fonts/Runtime/AoboshiOne-Regular.ttf")
+	var title_font: FontFile = load("res://assets/Fonts/Runtime/MedievalScrollOfWisdom.ttf")
 
 	var title := Label.new()
 	title.text = PartySelection12.loading_title

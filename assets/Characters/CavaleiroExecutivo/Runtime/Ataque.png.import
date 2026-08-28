@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d2uiv4dgxorpq"
-path="res://.godot/imported/divider.png-06e233bbfbae6d9149cd8027985c9de5.ctex"
+uid="uid://dl3xg1c31qdvc"
+path="res://.godot/imported/Ataque.png-9dd5ca804bb0947a9c96da619314df96.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/UI/Runtime/KenneyBorders/divider.png"
-dest_files=["res://.godot/imported/divider.png-06e233bbfbae6d9149cd8027985c9de5.ctex"]
+source_file="res://assets/Characters/CavaleiroExecutivo/Runtime/Ataque.png"
+dest_files=["res://.godot/imported/Ataque.png-9dd5ca804bb0947a9c96da619314df96.ctex"]
 
 [params]
 
