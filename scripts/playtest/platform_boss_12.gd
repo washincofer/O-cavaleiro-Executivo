@@ -79,6 +79,7 @@ var party_label: Label
 var objective_label: Label
 var event_label: Label
 var hp_bars: Array = []
+var cooldown_bars: Array = []
 var event_timeout := 0.0
 var completed := false
 var game_over := false
@@ -214,6 +215,7 @@ func _process(delta: float) -> void:
 	_update_hud()
 
 func _handle_victory_reward() -> void:
+	SaveSystem12.save_game()
 	# Sprint 15: fases sem `stage_reward_role` (Ruinas incluida — Paladino/
 	# Cavaleiro ja sao liberados pelas fases novas) mantem o fluxo antigo,
 	# sem cutscene automatica: o jogador sai pelo ESC/"VOLTAR A SELECAO" ou
@@ -926,6 +928,7 @@ func _build_hud() -> void:
 		boss_bar_pos = refs["boss_bar_pos"]
 		boss_bar_size = refs["boss_bar_size"]
 		hp_bars = PartyHpBars12.build(canvas, party_slots, 34.0, _role_tint)
+		cooldown_bars = AbilityCooldownHud12.build(canvas, hp_bars)
 		return
 
 	var panel := ColorRect.new()
@@ -1001,6 +1004,7 @@ func _build_hud() -> void:
 	canvas.add_child(event_label)
 
 	hp_bars = PartyHpBars12.build(canvas, party_slots, 22.0, _role_tint)
+	cooldown_bars = AbilityCooldownHud12.build(canvas, hp_bars)
 
 	canvas.add_child(TouchControls.instantiate())
 
@@ -1016,6 +1020,7 @@ func _update_hud() -> void:
 		state_label.text = ""
 
 	PartyHpBars12.update(hp_bars, active_actor)
+	AbilityCooldownHud12.update(cooldown_bars)
 
 	var parts: Array[String] = []
 	for i in range(party_slots.size()):

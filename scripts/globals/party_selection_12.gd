@@ -52,6 +52,7 @@ const ALL_ROLES := [
 	MANDATORY_ROLE,
 	"warrior", "archer", "mage", "fire_mage", "lightning_mage", "wanderer",
 	"paladin", "knight", "bridge_heroine",
+	"almoxarifado", "protocolo",
 ]
 const DEFAULT_FREE_ROLES: Array[String] = [MANDATORY_ROLE, "archer", "mage"]
 const FREE_PARTY_SIZE := 3
@@ -60,7 +61,7 @@ const FREE_PARTY_SIZE := 3
 # liberados ao vencer o boss de uma fase nova especifica (ver
 # `unlock_role`, chamado pelo controller de cada fase na vitoria) — nao
 # fazem parte do elenco inicial disponivel na selecao livre.
-const LOCKED_BY_DEFAULT := ["paladin", "knight", "bridge_heroine"]
+const LOCKED_BY_DEFAULT := ["paladin", "knight", "bridge_heroine", "almoxarifado", "protocolo"]
 
 const DEFAULT_TARGET_SCENE := "res://scenes/playtest/platform_party_12.tscn"
 const DEFAULT_LOADING_TITLE := "CARREGANDO A CAVERNA..."
@@ -95,6 +96,13 @@ var required_role: String = ""
 # mostrar e qual fundo usar, e some (volta pra "") ao terminar/pular.
 var pending_dialogue_id: String = ""
 var pending_dialogue_bg: String = ""
+
+# Pos-16 (Fase 00 - Recepcao/Prologo, pedido do usuario): a Fase 00 e
+# jogada uma unica vez e nao aparece mais como fase selecionavel depois —
+# esta flag e o unico estado novo que precisa sobreviver entre sessoes
+# (por isso SaveSystem12 a le/escreve junto de `unlocked_roles`). Comeca
+# false tanto num boot novo quanto num `SaveSystem12.new_game()`.
+var prologue_cleared: bool = false
 
 func _ready() -> void:
 	for role in ALL_ROLES:

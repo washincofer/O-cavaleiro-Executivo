@@ -32,7 +32,10 @@ const VIDEO_PATH := "res://assets/Video/Runtime/company_intro.ogv"
 # suportam os dois — a ordem so decide qual o navegador tenta primeiro.
 const WEB_VIDEO_URL_WEBM := "company_intro.webm"
 const WEB_VIDEO_URL_MP4 := "company_intro.mp4"
-const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
+## Pos-16: o video agora entrega pro Menu Principal, nao mais direto pro
+## Stage Select (nome da constante ficou desatualizado de proposito — o
+## fluxo de skip/fade abaixo, ja testado, nao mudou nada, so o destino).
+const STAGE_SELECT_SCENE := "res://scenes/menu/main_menu_12.tscn"
 const BODY_FONT_PATH := "res://assets/Fonts/Runtime/MedievalSharp-Book.ttf"
 const VIDEO_ASPECT := 320.0 / 180.0
 

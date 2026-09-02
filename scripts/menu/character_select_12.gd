@@ -35,6 +35,8 @@ const PORTRAIT_PATH := {
 	"paladin": "res://assets/UI/Runtime/Portraits/paladin.png",
 	"knight": "res://assets/UI/Runtime/Portraits/knight.png",
 	"bridge_heroine": "res://assets/UI/Runtime/Portraits/bridge_heroine.png",
+	"almoxarifado": "res://assets/UI/Runtime/Portraits/almoxarifado.png",
+	"protocolo": "res://assets/UI/Runtime/Portraits/protocolo.png",
 }
 
 # Elenco livre (fases de boss): qualquer 3 (com o Cavaleiro Executivo
@@ -48,6 +50,7 @@ const FREE_GRID_ROLES := [
 	"cavaleiro_executivo",
 	"warrior", "archer", "mage", "fire_mage", "lightning_mage", "wanderer",
 	"paladin", "knight", "bridge_heroine",
+	"almoxarifado", "protocolo",
 ]
 const FREE_COLS := 3
 const FREE_TILE_W := 100.0
@@ -77,6 +80,8 @@ const ROLE_TAG := {
 	"lightning_mage": "PERFURANTE",
 	"mage": "TELEPORTE",
 	"wanderer": "TELEPORTE",
+	"protocolo": "ESTOCADA",
+	"almoxarifado": "PERFURANTE",
 }
 
 const COL_X := [6.0, 112.0, 218.0]
@@ -255,7 +260,8 @@ func _build_tile(category: String, role: String, accent: Color, pos: Vector2, ti
 	var portrait := TextureRect.new()
 	portrait.position = pos + Vector2(2, 1)
 	portrait.size = Vector2(20.0, tile_h - 2.0)
-	portrait.texture = load(PORTRAIT_PATH[role])
+	if PORTRAIT_PATH.has(role):
+		portrait.texture = load(PORTRAIT_PATH[role])
 	portrait.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -373,7 +379,13 @@ func _build_free_tile(role: String, pos: Vector2, tile_w: float, tile_h: float) 
 	var portrait := TextureRect.new()
 	portrait.position = pos + Vector2(2, 1)
 	portrait.size = Vector2(22.0, tile_h - 2.0)
-	portrait.texture = load(PORTRAIT_PATH[role])
+	# .has()/indexacao condicional em vez de acesso direto: um papel novo
+	# sem retrato ainda cadastrado nao pode travar a funcao a meio caminho
+	# (foi exatamente o bug encontrado com almoxarifado/protocolo — o erro
+	# de indice invalido abortava ANTES do name_label "BLOQUEADO" ser
+	# desenhado mais abaixo, deixando o slot inteiro em branco na grade).
+	if PORTRAIT_PATH.has(role):
+		portrait.texture = load(PORTRAIT_PATH[role])
 	portrait.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -524,7 +536,8 @@ func _refresh_preview_strip() -> void:
 	for i in range(PartySelection12.CATEGORIES.size()):
 		var category: String = PartySelection12.CATEGORIES[i]
 		var role: String = selected.get(category, PartySelection12.DEFAULT_SELECTION[category])
-		preview_portrait[i].texture = load(PORTRAIT_PATH[role])
+		if PORTRAIT_PATH.has(role):
+			preview_portrait[i].texture = load(PORTRAIT_PATH[role])
 		preview_portrait[i].visible = true
 		preview_name[i].text = Actor.DISPLAY_NAME.get(role, role.to_upper())
 
