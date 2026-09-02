@@ -103,6 +103,7 @@ var glow_colors: Array[Color] = []
 var glow_t := 0.0
 
 func _ready() -> void:
+	SaveSystem12.save_game()
 	title_font = load(TITLE_FONT_PATH)
 	body_font = load(BODY_FONT_PATH)
 

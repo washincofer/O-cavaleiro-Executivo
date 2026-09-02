@@ -96,6 +96,13 @@ var required_role: String = ""
 var pending_dialogue_id: String = ""
 var pending_dialogue_bg: String = ""
 
+# Pos-16 (Fase 00 - Recepcao/Prologo, pedido do usuario): a Fase 00 e
+# jogada uma unica vez e nao aparece mais como fase selecionavel depois —
+# esta flag e o unico estado novo que precisa sobreviver entre sessoes
+# (por isso SaveSystem12 a le/escreve junto de `unlocked_roles`). Comeca
+# false tanto num boot novo quanto num `SaveSystem12.new_game()`.
+var prologue_cleared: bool = false
+
 func _ready() -> void:
 	for role in ALL_ROLES:
 		if not LOCKED_BY_DEFAULT.has(role):
