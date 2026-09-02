@@ -185,6 +185,30 @@ const ROLE_ANIM := {
 		"move": {"path": "res://assets/Enemies/Dragon/Runtime/Idle.png", "fw": 144, "fh": 64, "count": 6, "fps": 8.0, "loop": true},
 		"attack": {"path": "res://assets/Enemies/Dragon/Runtime/Breath.png", "fw": 144, "fh": 64, "count": 7, "fps": 10.0, "loop": false},
 	},
+	# Fase 01 (Operacoes & Logistica): companions/inimigos com arte gerada
+	# (pedido do usuario) — sheets simples de 2 quadros (idle/move/attack),
+	# mesmo padrao "minimo aceitavel" ja usado por ogre/dragon (sem
+	# hurt/death/jump/fall — `_update_animation`/`_die` ja toleram a falta).
+	"almoxarifado": {
+		"idle": {"path": "res://assets/Characters/Almoxarifado/Runtime/Idle.png", "fw": 80, "fh": 112, "count": 2, "fps": 3.0, "loop": true},
+		"move": {"path": "res://assets/Characters/Almoxarifado/Runtime/Walk.png", "fw": 80, "fh": 112, "count": 2, "fps": 6.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/Almoxarifado/Runtime/Attack.png", "fw": 80, "fh": 112, "count": 2, "fps": 10.0, "loop": false},
+	},
+	"protocolo": {
+		"idle": {"path": "res://assets/Characters/Protocolo/Runtime/Idle.png", "fw": 80, "fh": 112, "count": 2, "fps": 3.0, "loop": true},
+		"move": {"path": "res://assets/Characters/Protocolo/Runtime/Walk.png", "fw": 80, "fh": 112, "count": 2, "fps": 6.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/Protocolo/Runtime/Attack.png", "fw": 80, "fh": 112, "count": 2, "fps": 10.0, "loop": false},
+	},
+	"especialista": {
+		"idle": {"path": "res://assets/Enemies/Especialista/Runtime/Idle.png", "fw": 80, "fh": 112, "count": 2, "fps": 3.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Especialista/Runtime/Walk.png", "fw": 80, "fh": 112, "count": 2, "fps": 6.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Especialista/Runtime/Attack.png", "fw": 80, "fh": 112, "count": 2, "fps": 10.0, "loop": false},
+	},
+	"danelmo": {
+		"idle": {"path": "res://assets/Enemies/Danelmo/Runtime/Idle.png", "fw": 120, "fh": 168, "count": 2, "fps": 3.0, "loop": true},
+		"move": {"path": "res://assets/Enemies/Danelmo/Runtime/Walk.png", "fw": 120, "fh": 168, "count": 2, "fps": 6.0, "loop": true},
+		"attack": {"path": "res://assets/Enemies/Danelmo/Runtime/Attack.png", "fw": 120, "fh": 168, "count": 2, "fps": 8.0, "loop": false},
+	},
 }
 
 # scale, sprite offset (raw pixel space) and capsule collision tuned from the
@@ -223,6 +247,13 @@ const ROLE_BODY := {
 	"ogre": {"scale": 1.5, "offset": Vector2(10.0, -40.0), "radius": 11.0, "height": 44.0, "shape_y": -25.0, "speed": 22.0, "max_hp": 58, "ranged": false},
 	"bat": {"scale": 2.4, "offset": Vector2(-3.5, -25.0), "radius": 10.0, "height": 30.0, "shape_y": -16.0, "speed": 50.0, "max_hp": 50, "ranged": false},
 	"dragon": {"scale": 2.2, "offset": Vector2(-23.5, -32.0), "radius": 14.0, "height": 46.0, "shape_y": -26.0, "speed": 0.0, "max_hp": 65, "ranged": false},
+	# Fase 01: sheets geradas em canvas 40x56 (2x/3x export) — pes no pixel
+	# 96 (2x) / 144 (3x) de 112/168 de altura total, centro em 56/84;
+	# offset.y = -(pes-centro) alinha o pe ao chao (y=0), igual ao resto.
+	"almoxarifado": {"scale": 0.34, "offset": Vector2(0.0, -40.0), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 90.0, "max_hp": 6, "ranged": false},
+	"protocolo": {"scale": 0.34, "offset": Vector2(0.0, -40.0), "radius": 6.0, "height": 26.0, "shape_y": -15.0, "speed": 90.0, "max_hp": 5, "ranged": false},
+	"especialista": {"scale": 0.5, "offset": Vector2(0.0, -40.0), "radius": 8.0, "height": 32.0, "shape_y": -18.0, "speed": 42.0, "max_hp": 32, "ranged": false},
+	"danelmo": {"scale": 0.9, "offset": Vector2(0.0, -60.0), "radius": 11.0, "height": 44.0, "shape_y": -25.0, "speed": 24.0, "max_hp": 75, "ranged": false},
 }
 
 # Tinta permanente do sprite por role (multiplicada sobre a textura); a
@@ -249,6 +280,10 @@ const DISPLAY_NAME := {
 	"ogre": "OGRO",
 	"bat": "MORCEGO",
 	"dragon": "DRAGAO",
+	"almoxarifado": "RAPAZ DO ALMOXARIFADO",
+	"protocolo": "RAPAZ DO PROTOCOLO",
+	"especialista": "ESPECIALISTA DE SEGURANCA",
+	"danelmo": "DANELMO GROSSMANOBRA",
 }
 
 # A maioria dos packs desenha o personagem de frente pra DIREITA (facing=1
@@ -557,11 +592,11 @@ func activate_special() -> bool:
 	if not alive or special_cooldown > 0.0 or charge_timer > 0.0:
 		return false
 	match role:
-		"warrior", "knight", "cavaleiro_executivo":
+		"warrior", "knight", "cavaleiro_executivo", "protocolo":
 			return _start_charge()
 		"fire_mage", "paladin":
 			return _cast_fire_burst()
-		"archer", "lightning_mage":
+		"archer", "lightning_mage", "almoxarifado":
 			return _fire_piercing_shot()
 		"mage", "wanderer":
 			return _cast_teleport()

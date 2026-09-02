@@ -52,6 +52,7 @@ const ALL_ROLES := [
 	MANDATORY_ROLE,
 	"warrior", "archer", "mage", "fire_mage", "lightning_mage", "wanderer",
 	"paladin", "knight", "bridge_heroine",
+	"almoxarifado", "protocolo",
 ]
 const DEFAULT_FREE_ROLES: Array[String] = [MANDATORY_ROLE, "archer", "mage"]
 const FREE_PARTY_SIZE := 3
@@ -60,7 +61,7 @@ const FREE_PARTY_SIZE := 3
 # liberados ao vencer o boss de uma fase nova especifica (ver
 # `unlock_role`, chamado pelo controller de cada fase na vitoria) — nao
 # fazem parte do elenco inicial disponivel na selecao livre.
-const LOCKED_BY_DEFAULT := ["paladin", "knight", "bridge_heroine"]
+const LOCKED_BY_DEFAULT := ["paladin", "knight", "bridge_heroine", "almoxarifado", "protocolo"]
 
 const DEFAULT_TARGET_SCENE := "res://scenes/playtest/platform_party_12.tscn"
 const DEFAULT_LOADING_TITLE := "CARREGANDO A CAVERNA..."

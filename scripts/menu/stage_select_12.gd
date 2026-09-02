@@ -90,7 +90,15 @@ const STAGES := [
 		"required_role": "bridge_heroine",
 		"dialogue_id": "gerente",
 	},
-	{"name": "?", "unlocked": false},
+	{
+		"name": "OPERACOES & LOGISTICA",
+		"unlocked": true,
+		"preview": "res://assets/Environment/Warehouse/Runtime/warehouse_bg.png",
+		"target_scene": "res://scenes/playtest/platform_fase01_operacoes_12.tscn",
+		"loading_title": "CARREGANDO OPERACOES & LOGISTICA...",
+		"selection_mode": "free",
+		"reward_role": "almoxarifado",
+	},
 	{"name": "?", "unlocked": false},
 ]
 
