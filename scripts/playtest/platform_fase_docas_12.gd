@@ -45,7 +45,7 @@ const ROOMS := [
 		"background": "l01_docas_recebimento.png",
 		"spawn_feet": Vector2(60, 800), "camera_vertical_offset": -260.0,
 		"platforms": [FLOOR, Rect2(1000, 400, 180, 22)],
-		"ladders": [Rect2(1080, 420, 24, 380)],
+		"ladders": [Rect2(1080, 400, 24, 400)],
 		"interactions": [
 			{"id": "saida_l01", "type": "transition", "position": Vector2(1600, 750),
 				"radius": 100.0, "prompt": "Avancar para a triagem", "target_room": "L02"},
@@ -81,7 +81,7 @@ const ROOMS := [
 		"background": "l04_armazenagem_vertical.png",
 		"spawn_feet": Vector2(60, 800), "camera_vertical_offset": -320.0,
 		"platforms": [FLOOR, Rect2(760, 460, 220, 22)],
-		"ladders": [Rect2(860, 480, 24, 320)],
+		"ladders": [Rect2(860, 460, 24, 340)],
 		"interactions": [
 			{"id": "saida_l04", "type": "transition", "position": Vector2(1600, 750),
 				"radius": 100.0, "prompt": "Avancar para a linha de operacoes", "target_room": "L05"},
@@ -127,7 +127,7 @@ const ROOMS := [
 		"background": "l07_nucleo_armazem.png",
 		"spawn_feet": Vector2(60, 800), "camera_vertical_offset": -320.0,
 		"platforms": [FLOOR, Rect2(700, 460, 220, 22)],
-		"ladders": [Rect2(800, 480, 24, 320)],
+		"ladders": [Rect2(800, 460, 24, 340)],
 		"interactions": [
 			{"id": "saida_l07", "type": "transition", "position": Vector2(1600, 750),
 				"radius": 100.0, "prompt": "Entrar no deposito de retencao", "target_room": "L08"},
@@ -151,7 +151,7 @@ const ROOMS := [
 		"background": "l09_expedicao_pesada.png",
 		"spawn_feet": Vector2(60, 800), "camera_vertical_offset": -300.0,
 		"platforms": [FLOOR, Rect2(1180, 500, 200, 22)],
-		"ladders": [Rect2(1260, 520, 24, 280)],
+		"ladders": [Rect2(1260, 500, 24, 300)],
 		"interactions": [
 			{"id": "saida_l09", "type": "transition", "position": Vector2(1600, 750),
 				"radius": 100.0, "prompt": "Avancar para a doca central", "target_room": "L10"},
@@ -163,7 +163,7 @@ const ROOMS := [
 		"background": "l10_doca_central.png",
 		"spawn_feet": Vector2(60, 800), "camera_vertical_offset": -300.0,
 		"platforms": [FLOOR, Rect2(120, 500, 200, 22)],
-		"ladders": [Rect2(160, 520, 24, 280)],
+		"ladders": [Rect2(160, 500, 24, 300)],
 		"interactions": [
 			{"id": "checkpoint_l10", "type": "dialogue", "position": Vector2(300, 750),
 				"radius": 130.0, "once": true, "auto": true, "auto_radius": 110.0,
@@ -311,6 +311,22 @@ func _build_room(room: Dictionary) -> void:
 		body.add_child(cs)
 		room_root.add_child(body)
 
+	# Paredes invisiveis nas duas bordas da sala — sem elas, segurar o
+	# movimento em direcao a uma borda depois de ja ter alcancado a
+	# transicao/escada da ponta continuava empurrando o jogador pra fora do
+	# `FLOOR` (que tem exatamente a largura da arte) e ele caia num limbo
+	# sem chao embaixo. As paredes cobrem bem mais que a altura visivel pra
+	# nao deixar escapar por cima ao escalar uma escada na borda.
+	for wall_x in [-40.0, NATIVE_SIZE.x]:
+		var wall := StaticBody2D.new()
+		var wall_cs := CollisionShape2D.new()
+		var wall_shape := RectangleShape2D.new()
+		wall_shape.size = Vector2(40.0, 4000.0)
+		wall_cs.shape = wall_shape
+		wall_cs.position = Vector2(wall_x + 20.0, NATIVE_SIZE.y - 1500.0)
+		wall.add_child(wall_cs)
+		room_root.add_child(wall)
+
 	var ladders: Array = room.get("ladders", [])
 	player.set_meta("ladders", ladders)
 
@@ -350,9 +366,13 @@ func _draw_debug(overlay: Node2D, platform_list: Array, ladders: Array) -> void:
 
 
 func _process(delta: float) -> void:
-	if get_tree().paused:
+	if get_tree().paused or transition_busy:
 		return
 	_update_camera(delta)
+	if dialogue_panel.visible:
+		if Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("jump"):
+			_advance_dialogue()
+		return
 	_update_interactions()
 
 
@@ -447,30 +467,39 @@ func _finish_dialogue_interaction() -> void:
 		checkpoint_room_id = String(current_room["id"])
 		SaveSystem12.save_game()
 	dialogue_panel.visible = false
-	get_tree().paused = false
+	player.input_enabled = true
 
 
 func _show_dialogue_line() -> void:
-	get_tree().paused = true
+	# NUNCA pausar a arvore aqui (`get_tree().paused = true`) — isso
+	# congelava o jogo de verdade, porque este script nao roda em
+	# PROCESS_MODE_ALWAYS: so o `PauseWatcher` (ESC) continuava recebendo
+	# input, entao a unica forma de "escapar" do dialogo era abrir/fechar o
+	# menu de pausa. Trava so o movimento do jogador, igual
+	# `platform_fase00_12.gd`.
 	dialogue_panel.visible = true
+	player.input_enabled = false
 	var line: Array = dialogue_lines[dialogue_index]
 	var speaker := String(line[0])
 	dialogue_name.text = speaker.to_upper()
 	dialogue_text.text = String(line[2])
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if dialogue_panel.visible and (event.is_action_pressed("interact") or event.is_action_pressed("jump") or (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed)):
-		dialogue_index += 1
-		if dialogue_index >= dialogue_lines.size():
-			pending_dialogue_action.call()
-		else:
-			_show_dialogue_line()
+func _advance_dialogue() -> void:
+	if not dialogue_panel.visible:
+		return
+	dialogue_index += 1
+	if dialogue_index >= dialogue_lines.size():
+		var cb := pending_dialogue_action
+		pending_dialogue_action = Callable()
+		cb.call()
+	else:
+		_show_dialogue_line()
 
 
 func _finish_and_go_to_stage_select() -> void:
 	dialogue_panel.visible = false
-	get_tree().paused = false
+	player.input_enabled = true
 	SaveSystem12.save_game()
 	get_window().content_scale_size = Vector2i(320, 180)
 	get_tree().change_scene_to_file(STAGE_SELECT_SCENE)
@@ -520,8 +549,8 @@ func _build_ui() -> void:
 	dialogue_panel = Control.new()
 	dialogue_panel.visible = false
 	dialogue_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	dialogue_panel.position = Vector2(-420, -180)
-	dialogue_panel.size = Vector2(840, 150)
+	dialogue_panel.position = Vector2(-450, -230)
+	dialogue_panel.size = Vector2(900, 210)
 	canvas.add_child(dialogue_panel)
 	var dp_bg := ColorRect.new()
 	dp_bg.color = Color(0.05, 0.06, 0.1, 0.92)
@@ -538,7 +567,7 @@ func _build_ui() -> void:
 	dialogue_text.add_theme_font_size_override("font_size", 16)
 	dialogue_text.add_theme_color_override("font_color", Color("e8e8e8"))
 	dialogue_text.position = Vector2(20, 46)
-	dialogue_text.size = Vector2(800, 90)
+	dialogue_text.size = Vector2(860, 150)
 	dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD
 	dialogue_panel.add_child(dialogue_text)
 
