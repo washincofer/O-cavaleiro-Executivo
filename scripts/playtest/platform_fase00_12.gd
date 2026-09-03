@@ -170,14 +170,17 @@ const ROOMS := [
 		# Cafeteira steampunk enviada pelo usuario: enfeite ambiente (sem
 		# colisao, sem interacao) num canto livre do corredor, animando
 		# vapor num loop lento (3 quadros: sem vapor -> vapor leve -> vapor
-		# forte + brilho).
+		# forte + brilho). Reposicionada (x=1180/1280 -> 1300/1380): a
+		# posicao original caia em cima da escadinha decorativa de tapete
+		# azul pintada na propria arte (x~1080-1250), ficando encavalada —
+		# usa o trecho de parede lisa entre a escada e o arco da janela.
 		"props": [
-			{"tex": "cafeteira_steampunk_sheet.png", "position": Vector2(1280, 718),
+			{"tex": "cafeteira_steampunk_sheet.png", "position": Vector2(1380, 718),
 				"frame_size": Vector2(512, 1080), "frame_count": 3, "scale": 0.24},
 		],
 		"decor": [
-			{"tex": "decor_cafeteria_standee.png", "position": Vector2(1180, 718)},
-			{"tex": "decor_positivo_standee.png", "position": Vector2(300, 718)},
+			{"tex": "decor_cafeteria_standee.png", "position": Vector2(1300, 718)},
+			{"tex": "decor_positivo_standee.png", "position": Vector2(200, 718)},
 		],
 		"interactions": [
 			{
@@ -378,6 +381,20 @@ func _build_room(room: Dictionary) -> void:
 			cs.one_way_collision_margin = 6.0
 		body.add_child(cs)
 		room_root.add_child(body)
+
+	# Paredes invisiveis nas duas bordas da sala — sem elas, o jogador podia
+	# continuar andando pra fora do `FLOOR`/piso (que tem exatamente a
+	# largura da arte) e cair num limbo sem chao embaixo, reportado como
+	# "cai no limbo indo pros cantos da tela".
+	for wall_x in [-40.0, NATIVE_SIZE.x]:
+		var wall := StaticBody2D.new()
+		var wall_cs := CollisionShape2D.new()
+		var wall_shape := RectangleShape2D.new()
+		wall_shape.size = Vector2(40.0, 4000.0)
+		wall_cs.shape = wall_shape
+		wall_cs.position = Vector2(wall_x + 20.0, NATIVE_SIZE.y - 1500.0)
+		wall.add_child(wall_cs)
+		room_root.add_child(wall)
 
 	interaction_root = Node2D.new()
 	room_root.add_child(interaction_root)
@@ -693,7 +710,11 @@ func _build_ui() -> void:
 	prompt_panel.visible = false
 
 	var dlg_w: float = size.x - 80.0
-	var dlg_h := 220.0 if not is_portrait else 320.0
+	# 220/320 nao dava espaco suficiente pras falas mais longas (ex.: a
+	# fala unica do RH com "criteriosa analise de desempenho..." estourava
+	# a caixa) — aumentado com margem generosa em vez de tentar encaixar
+	# caso a caso.
+	var dlg_h := 280.0 if not is_portrait else 380.0
 	dialogue_panel = CorporateUI12.make_dialogue_panel()
 	dialogue_panel.position = Vector2(40, size.y - dlg_h - 30.0)
 	dialogue_panel.size = Vector2(dlg_w, dlg_h)

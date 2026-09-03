@@ -73,8 +73,13 @@ func _physics_process(delta: float) -> void:
 	if on_ladder:
 		# Escada e so vertical (sem diagonal, pedido do usuario): sair da
 		# escada ao andar pros lados ou pular; travessa continua livre.
+		# Ao sair (topo/base/lados/pulo), zera a velocidade — sem isso a
+		# velocidade vertical da escalada virava um "pulo" residual
+		# descontrolado no frame seguinte, o motivo do jogador nao travar
+		# no topo (ficava saindo voando por cima em vez de parar ali).
 		if not touching_ladder or absf(axis) > 0.35 or (input_enabled and Input.is_action_just_pressed("jump")):
 			on_ladder = false
+			velocity = Vector2.ZERO
 		else:
 			velocity = Vector2(0.0, climb_axis * climb_speed)
 			global_position.x = current_ladder.position.x + current_ladder.size.x * 0.5
