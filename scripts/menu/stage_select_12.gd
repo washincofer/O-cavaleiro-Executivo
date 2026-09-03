@@ -99,6 +99,14 @@ const STAGES := [
 		"selection_mode": "free",
 		"reward_role": "almoxarifado",
 	},
+	{
+		"name": "DOCAS DO ARMAZEM",
+		"unlocked": true,
+		"preview": "res://assets/Backgrounds/Runtime/FaseLogistica/l01_docas_recebimento.png",
+		"target_scene": "res://scenes/playtest/platform_fase_docas_12.tscn",
+		"loading_title": "CARREGANDO AS DOCAS DO ARMAZEM...",
+		"selection_mode": "free",
+	},
 	{"name": "?", "unlocked": false},
 ]
 
