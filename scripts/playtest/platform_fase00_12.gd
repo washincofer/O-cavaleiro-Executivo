@@ -30,6 +30,7 @@ const FASE00_LANDSCAPE_SIZE := Vector2i(1280, 720)
 const FASE00_PORTRAIT_SIZE := Vector2i(720, 1280)
 const BG_DIR := "res://assets/Backgrounds/Runtime/Fase00/"
 const NPC_DIR := "res://assets/Characters/Fase00NPCs/Runtime/"
+const PROP_DIR := "res://assets/Props/Runtime/Fase00/"
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 const PauseWatcher := preload("res://scripts/playtest/pause_watcher_12.gd")
 
@@ -71,16 +72,29 @@ const ROOMS := [
 		# composicao visual: o spawn so anda pra uma area de piso livre.
 		"spawn_feet": Vector2(40, 770),
 		"camera_vertical_offset": -250.0,
-		# Mezanino e escada (linha 35-495 do manifesto original) sao so
-		# cenario pintado no proprio background — como colisao, a escada
-		# levava a um mezanino sem conexao de pulo alcancavel (145px de
-		# distancia vertical do ultimo degrau, contra ~92px de pulo maximo
-		# do perfil de movimento), virando um beco sem saida em cima da
-		# rota obrigatoria pro balcao da recepcionista. Fase 00 e propaganda
-		# "muito facil, sem risco" (DESIGN LOCK sec. 6) — manter so o piso
-		# solido evita depender de timing de pulo pra progressao mandatoria.
+		# Escada opcional ate o mezanino (guia do usuario: stair_01..08 +
+		# upper_walkway). O piso principal ja cobre a rota obrigatoria ate a
+		# recepcionista, entao a escada e so decoracao exploravel: 8 degraus
+		# curtos (~40-45px de subida cada, bem dentro do pulo maximo de
+		# ~92px do jogador) em vez do unico pulo de 145px que existia antes
+		# — cada degrau vira um pulo facil isolado, sem risco (a sala nao
+		# tem buraco: cair da escada so devolve ao piso principal).
 		"platforms": [
 			Rect2(0, 770, 1672, 70),
+			Rect2(320, 728, 100, 18),
+			Rect2(290, 686, 100, 18),
+			Rect2(260, 644, 100, 18),
+			Rect2(230, 602, 100, 18),
+			Rect2(200, 560, 100, 18),
+			Rect2(170, 518, 100, 18),
+			Rect2(140, 476, 100, 18),
+			Rect2(110, 434, 100, 18),
+			Rect2(40, 412, 300, 24),
+		],
+		# Enfeite: colegas de fundo sem interacao, so paisagem do escritorio.
+		"decor": [
+			{"tex": "decor_arqueira_standee.png", "position": Vector2(1100, 770)},
+			{"tex": "decor_generico_standee.png", "position": Vector2(1350, 770)},
 		],
 		"interactions": [
 			{
@@ -114,6 +128,9 @@ const ROOMS := [
 		# caminho obrigatorio ate reuniao_rh/saida_rh — so cenario agora.
 		"platforms": [
 			Rect2(0, 645, 1672, 65),
+		],
+		"decor": [
+			{"tex": "decor_oportunista_standee.png", "position": Vector2(1150, 645)},
 		],
 		"interactions": [
 			{
@@ -150,6 +167,18 @@ const ROOMS := [
 		"platforms": [
 			Rect2(0, 718, 1672, 62),
 		],
+		# Cafeteira steampunk enviada pelo usuario: enfeite ambiente (sem
+		# colisao, sem interacao) num canto livre do corredor, animando
+		# vapor num loop lento (3 quadros: sem vapor -> vapor leve -> vapor
+		# forte + brilho).
+		"props": [
+			{"tex": "cafeteira_steampunk_sheet.png", "position": Vector2(1280, 718),
+				"frame_size": Vector2(512, 1080), "frame_count": 3, "scale": 0.24},
+		],
+		"decor": [
+			{"tex": "decor_cafeteria_standee.png", "position": Vector2(1180, 718)},
+			{"tex": "decor_positivo_standee.png", "position": Vector2(300, 718)},
+		],
 		"interactions": [
 			{
 				"id": "colega_solidario", "type": "dialogue", "npc": "colega",
@@ -181,10 +210,23 @@ const ROOMS := [
 		# mesmo ajuste: x=110 caia dentro do step_01 (x:105-210).
 		"spawn_feet": Vector2(30, 765),
 		"camera_vertical_offset": -255.0,
-		# Mesmo ajuste: andar superior + escada viram cenario, so o piso e
-		# solido (a rota obrigatoria ate a porta principal e toda no chao).
+		# Mesma logica da escada opcional do R00-01: 8 degraus curtos ate o
+		# mezanino, so decoracao exploravel — a rota obrigatoria ate a porta
+		# principal continua toda no piso principal.
 		"platforms": [
 			Rect2(0, 765, 1672, 65),
+			Rect2(310, 723, 100, 18),
+			Rect2(280, 681, 100, 18),
+			Rect2(250, 639, 100, 18),
+			Rect2(220, 597, 100, 18),
+			Rect2(190, 555, 100, 18),
+			Rect2(160, 513, 100, 18),
+			Rect2(130, 471, 100, 18),
+			Rect2(100, 429, 100, 18),
+			Rect2(40, 407, 290, 24),
+		],
+		"decor": [
+			{"tex": "decor_tecnico_standee.png", "position": Vector2(1050, 765)},
 		],
 		"interactions": [
 			{
@@ -317,14 +359,23 @@ func _build_room(room: Dictionary) -> void:
 	bg.texture = load(BG_DIR + String(room["background"]))
 	room_root.add_child(bg)
 
-	for rect in room["platforms"]:
+	var platform_list: Array = room["platforms"]
+	for i in range(platform_list.size()):
 		var body := StaticBody2D.new()
 		var cs := CollisionShape2D.new()
 		var rs := RectangleShape2D.new()
-		var r: Rect2 = rect
+		var r: Rect2 = platform_list[i]
 		rs.size = r.size
 		cs.shape = rs
 		cs.position = r.position + r.size * 0.5
+		# Degraus (todo platform depois do piso principal, indice 0) usam
+		# colisao de mao-unica: o jogador atravessa por baixo ao pular (sem
+		# o "encravamento" de cabeca contra o degrau seguinte, ja que a
+		# capsula de 56px de altura nao cabe entre degraus de ~40px de
+		# subida) e so pousa em cima ao cair sobre o degrau.
+		if i > 0:
+			cs.one_way_collision = true
+			cs.one_way_collision_margin = 6.0
 		body.add_child(cs)
 		room_root.add_child(body)
 
@@ -343,6 +394,39 @@ func _build_room(room: Dictionary) -> void:
 			standee.texture = load(NPC_DIR + String(cfg["tex"]))
 			standee.position = marker.position + cfg["offset"]
 			room_root.add_child(standee)
+
+	for decor in room.get("decor", []):
+		var dcfg: Dictionary = decor
+		var dtex: Texture2D = load(NPC_DIR + String(dcfg["tex"]))
+		var decor_sprite := Sprite2D.new()
+		decor_sprite.texture = dtex
+		decor_sprite.centered = false
+		var feet: Vector2 = dcfg["position"]
+		decor_sprite.position = feet - Vector2(dtex.get_width() * 0.5, dtex.get_height())
+		room_root.add_child(decor_sprite)
+
+	for prop in room.get("props", []):
+		var pcfg: Dictionary = prop
+		var sheet: Texture2D = load(PROP_DIR + String(pcfg["tex"]))
+		var frame_size: Vector2 = pcfg["frame_size"]
+		var frame_count: int = pcfg["frame_count"]
+		var frames := SpriteFrames.new()
+		frames.add_animation("steam")
+		frames.set_animation_speed("steam", 1.4)
+		frames.set_animation_loop("steam", true)
+		for i in range(frame_count):
+			var atlas := AtlasTexture.new()
+			atlas.atlas = sheet
+			atlas.region = Rect2(frame_size.x * i, 0, frame_size.x, frame_size.y)
+			frames.add_frame("steam", atlas)
+		var prop_sprite := AnimatedSprite2D.new()
+		prop_sprite.sprite_frames = frames
+		prop_sprite.animation = "steam"
+		prop_sprite.play("steam")
+		prop_sprite.position = pcfg["position"]
+		prop_sprite.offset = Vector2(0, -frame_size.y * 0.5)
+		prop_sprite.scale = Vector2.ONE * float(pcfg.get("scale", 1.0))
+		room_root.add_child(prop_sprite)
 
 	var spawn: Vector2 = room["spawn_feet"]
 	player.global_position = spawn
