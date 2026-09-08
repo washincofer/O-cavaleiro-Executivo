@@ -35,7 +35,7 @@ func top_y() -> float:
 func contains_actor(actor) -> bool:
 	if not is_instance_valid(actor):
 		return false
-	var p := actor.global_position
+	var p: Vector2 = actor.global_position
 	return absf(p.x - global_position.x) <= 17.0 and p.y >= top_y() - 14.0 and p.y <= global_position.y + 10.0
 
 func _draw() -> void:

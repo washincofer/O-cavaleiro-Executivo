@@ -36,11 +36,11 @@ echo "Importando e validando o projeto com Godot ${GODOT_RELEASE}..."
 "${TOOLS_DIR}/godot" --headless --path "${PWD}" --import
 
 echo "Exportando a versao Web para dist/..."
-"${TOOLS_DIR}/godot" --headless --path "${PWD}" --export-release "Web" "dist/cavaleiro-sprint12-v01.html"
+"${TOOLS_DIR}/godot" --headless --path "${PWD}" --export-release "Web" "dist/cavaleiro-sprint12-v02.html"
 
 # Render serves index.html at the root. The generated runtime assets keep the
 # Sprint-specific basename, bypassing packages cached by older builds.
-mv dist/cavaleiro-sprint12-v01.html dist/index.html
+mv dist/cavaleiro-sprint12-v02.html dist/index.html
 
 # Video de abertura: servido como arquivo estatico solto (fora do .pck) pra
 # company_intro_12.gd tocar com a tag <video> nativa do navegador em vez do
@@ -53,9 +53,9 @@ cp assets/Video/Runtime/company_intro.mp4 dist/company_intro.mp4
 cp assets/Video/Runtime/company_intro.webm dist/company_intro.webm
 
 test -f dist/index.html
-test -f dist/cavaleiro-sprint12-v01.js
-test -f dist/cavaleiro-sprint12-v01.wasm
-test -f dist/cavaleiro-sprint12-v01.pck
+test -f dist/cavaleiro-sprint12-v02.js
+test -f dist/cavaleiro-sprint12-v02.wasm
+test -f dist/cavaleiro-sprint12-v02.pck
 test -f dist/company_intro.mp4
 test -f dist/company_intro.webm
 echo "Exportacao Web concluida."
