@@ -1,13 +1,15 @@
 extends Area2D
 
-## Pickup funcional e provisoriamente desenhado por codigo.
-## A arte final pode substituir o desenho sem alterar as regras canonicas.
+## Pickup funcional RC2.
+## Ao nascer, procura o piso abaixo e assenta o item sobre a colisao real.
+## Depois aplica apenas um bob visual curto em torno desse ponto de repouso.
 
 var kind: String = "coin"
 var amount: int = 0
 var collected := false
 var bob_time := 0.0
 var origin_y := 0.0
+var settled := false
 
 func setup(p_kind: String, p_amount: int = 0) -> void:
 	kind = p_kind
@@ -25,12 +27,28 @@ func _ready() -> void:
 	shape.shape = circle
 	add_child(shape)
 	body_entered.connect(_on_body_entered)
-	origin_y = position.y
+	call_deferred("_settle_on_floor")
 	queue_redraw()
+
+func _settle_on_floor() -> void:
+	if not is_inside_tree():
+		return
+	var space := get_world_2d().direct_space_state
+	var from := global_position + Vector2(0, -8)
+	var to := global_position + Vector2(0, 260)
+	var query := PhysicsRayQueryParameters2D.create(from, to, 1)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	var hit := space.intersect_ray(query)
+	if not hit.is_empty():
+		global_position.y = float(hit["position"].y) - 10.0
+	origin_y = position.y
+	settled = true
 
 func _process(delta: float) -> void:
 	bob_time += delta
-	position.y = origin_y + sin(bob_time * 4.0) * 2.0
+	if settled:
+		position.y = origin_y + sin(bob_time * 4.0) * 1.5
 	queue_redraw()
 
 func _on_body_entered(body: Node) -> void:
