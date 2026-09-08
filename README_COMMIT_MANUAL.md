@@ -1,15 +1,12 @@
-# Como aplicar e commitar manualmente
+# Como aplicar e commitar
 
-## 1. Use a branch de reconstrução
-
+1. Entre na branch desejada:
 ```bash
 git checkout rc2/canonical-visual-rebuild
 git pull
 ```
 
-## 2. Extraia este ZIP fora do repositório
-
-Depois copie **somente o conteúdo da pasta `repo_overlay/`** para a raiz do repositório.
+2. Copie o conteúdo de `repo_overlay/` para a raiz do repositório.
 
 Linux/macOS:
 ```bash
@@ -21,36 +18,25 @@ Windows PowerShell:
 Copy-Item -Path .\repo_overlay\* -Destination C:\caminho\O-cavaleiro-Executivo -Recurse -Force
 ```
 
-## 3. Confira o que será commitado
-
+3. Revise:
 ```bash
 git status
 git diff --stat
 ```
 
-Você deverá ver principalmente:
-- `assets/Characters/CavaleiroExecutivo/Runtime/CanonicalV2/`
-- `assets/UI/Runtime/CanonicalV2/`
-- `docs/FASE00_CANONICAL_ASSET_PACK_V2.md`
-
-## 4. Commit
-
+4. Commit:
 ```bash
-git add assets/Characters/CavaleiroExecutivo/Runtime/CanonicalV2
-git add assets/UI/Runtime/CanonicalV2
-git add docs/FASE00_CANONICAL_ASSET_PACK_V2.md
+git add assets/Characters/CavaleiroExecutivo/Runtime
+git add assets/UI/Runtime/CorporateUI
+git add scripts/playtest/fase00_player_12.gd
+git add scripts/ui/main_menu_oce12.gd
+git add scripts/ui/fase00_hud_overlay_12.gd
+git add scripts/ui/fase00_dialogue_ui_12.gd
+git add scripts/ui/fase00_item_menu_12.gd
+git add docs/FASE00_MENU_UI_REMAKE_PACK.md
 
-git commit -m "assets(fase00): adiciona protagonista canonico V2 e pacote HUD UI"
+git commit -m "feat(fase00): atualiza menu inicial, HUD, dialogos, itens e protagonista"
 git push origin rc2/canonical-visual-rebuild
 ```
 
-## 5. Não apague os assets antigos ainda
-
-Este pack usa uma pasta `CanonicalV2` justamente para permitir revisão visual e novas mudanças sem quebrar a versão anterior.
-
-## Estrutura adicional do ZIP
-
-- `source_originals/`: cópia preservada das artes enviadas; não precisa ir para o Git.
-- `PREVIEW_SPRITES.png`: visão geral do protagonista.
-- `PREVIEW_HUD_UI.png`: visão geral da HUD/UI.
-- `SHA256SUMS.txt`: hashes para conferência.
+Se quiser aplicar diretamente na `main`, troque a branch no checkout/commit. Eu recomendo revisar primeiro numa branch separada.
