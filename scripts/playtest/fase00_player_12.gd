@@ -1,22 +1,14 @@
 class_name Fase00Player12
 extends CharacterBody2D
 
-## Protagonista canonico da Fase 00.
-## Controles oficiais desta fase:
-## - A / D: movimento horizontal
-## - W: salto (Space continua aceito como apoio)
-## - S: comando de baixo / postura baixa
-## - J: ataque
-## - H: habilidade (Estocada)
-## - F1: exibe/oculta colisoes de debug
-##
-## Usa o Cavaleiro Executivo definitivo (gravata vermelha), reaproveitando
-## os SpriteFrames canonicos de PlatformPartyActor12 para manter identidade
-## visual entre Prologo, Fase 01 e Fase 02.
+## Fase 00 — protagonista com sprites canônicas atualizadas.
+## Controles:
+## A/D = mover, Space = salto, W/S = movimento vertical contextual (escada),
+## J = ataque, H = habilidade/estocada, E = interação, F1 = debug colisão.
 
 const ROLE := "cavaleiro_executivo"
-const SPRITE_SCALE := 0.552 * 4.0
-const SPRITE_OFFSET := Vector2(0.0, -29.4)
+const SPRITE_SCALE := 0.56 * 4.0
+const SPRITE_OFFSET := Vector2(0.0, -30.0)
 const FALL_RECOVERY_Y := 980.0
 const ATTACK_VISUAL_TIME := 0.24
 const SPECIAL_VISUAL_TIME := 0.24
@@ -63,12 +55,13 @@ func _ready() -> void:
 	add_child(shape)
 
 	sprite = AnimatedSprite2D.new()
-	sprite.sprite_frames = PlatformPartyActor12._build_sprite_frames(ROLE)
+	# IMPORTANTE:
+	# Ajustar este helper para usar as novas folhas do Runtime:
+	# Parado, Andando, Ataque, Estocada, Pulo, Caindo, Dano, Morrendo,
+	# SubindoEscada, CostasInteracao e SubindoParede.
 	sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
 	sprite.offset = SPRITE_OFFSET
 	sprite.z_index = 10
-	sprite.animation = "idle"
-	sprite.play("idle")
 	add_child(sprite)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -107,11 +100,7 @@ func _physics_process(delta: float) -> void:
 		_coyote_left = maxf(0.0, _coyote_left - delta)
 		velocity.y = minf(velocity.y + gravity * delta, max_fall_speed)
 
-	# W e o comando canonico de salto na Fase 00. Space continua aceito
-	# para nao quebrar o habito dos builds anteriores.
-	var jump_just_pressed := input_enabled and (
-		Input.is_action_just_pressed("move_up") or Input.is_action_just_pressed("jump")
-	)
+	var jump_just_pressed := input_enabled and Input.is_action_just_pressed("jump")
 	if jump_just_pressed:
 		_jump_buffer_left = jump_buffer
 	else:
@@ -122,20 +111,14 @@ func _physics_process(delta: float) -> void:
 		_jump_buffer_left = 0.0
 		_coyote_left = 0.0
 
-	var jump_pressed := input_enabled and (
-		Input.is_action_pressed("move_up") or Input.is_action_pressed("jump")
-	)
+	var jump_pressed := input_enabled and Input.is_action_pressed("jump")
 	if _was_jump_pressed and not jump_pressed and velocity.y < -90.0:
 		velocity.y *= jump_cut_multiplier
 	_was_jump_pressed = jump_pressed
 
-	# J — ataque. Na Fase 00 nao ha inimigos; o comando valida a animacao
-	# canonica e deixa o input pronto para as fases de combate.
 	if input_enabled and Input.is_action_just_pressed("attack") and _special_visual_left <= 0.0:
 		_attack_visual_left = ATTACK_VISUAL_TIME
 
-	# H — habilidade do Cavaleiro: Estocada curta. Mantem a identidade do
-	# protagonista sem introduzir combate no Prologo.
 	if input_enabled and Input.is_action_just_pressed("special") and _special_cooldown_left <= 0.0:
 		_special_cooldown_left = SPECIAL_COOLDOWN
 		_special_visual_left = SPECIAL_VISUAL_TIME
@@ -151,22 +134,16 @@ func _update_animation() -> void:
 	sprite.flip_h = facing < 0.0
 	var target := "idle"
 
-	if _special_visual_left > 0.0 and sprite.sprite_frames.has_animation("special"):
+	if _special_visual_left > 0.0:
 		target = "special"
-	elif _attack_visual_left > 0.0 and sprite.sprite_frames.has_animation("attack"):
+	elif _attack_visual_left > 0.0:
 		target = "attack"
 	elif not is_on_floor():
-		if velocity.y < 0.0 and sprite.sprite_frames.has_animation("jump"):
-			target = "jump"
-		elif sprite.sprite_frames.has_animation("fall"):
-			target = "fall"
+		target = "jump" if velocity.y < 0.0 else "fall"
 	elif absf(velocity.x) > 12.0:
 		target = "move"
 	elif _down_pressed:
-		# Ainda nao existe animacao "crouch" no ROLE_ANIM canonico. Mantem
-		# idle em vez de trocar para placeholder ou distorcer a sprite.
 		target = "idle"
 
 	if sprite.animation != target:
-		sprite.animation = target
 		sprite.play(target)
