@@ -1,16 +1,11 @@
 extends RefCounted
 class_name PartyHpBars12
 
-## Pedido do usuario com imagem de referencia (Mega Man X): barras de vida
-## verticais coladas na borda esquerda da tela, uma por integrante do grupo
-## (em vez do texto "nome[hp]" na faixa superior e da barrinha flutuante em
-## cima da cabeca de cada um, que continua existindo so pra combate visual
-## rapido). Cada barra e "segmentada" (1 bloco = 1 ponto de vida, igual ao
-## medidor do X), com moldura branca e uma letra do papel embaixo. O membro
-## atualmente controlado ganha moldura em destaque (ACCENT_COLOR); os
-## outros ficam em branco apagado; um membro morto fica com a barra vazia e
-## a letra escurecida.
+## Barras verticais estilo Mega Man X.
+## RC2: como o canon passou a usar 60-100 HP, cada bloco visual representa
+## 5 HP. Assim a barra vai de 12 a 20 blocos sem estourar a tela.
 
+const HP_PER_SEGMENT := 5
 const SEGMENT_W := 5.0
 const SEGMENT_H := 3.0
 const SEGMENT_GAP := 1.0
@@ -23,11 +18,6 @@ const EMPTY_COLOR := Color(0.18, 0.18, 0.2, 0.9)
 const LABEL_COLOR_ALIVE := Color("f4ecd8")
 const LABEL_COLOR_DEAD := Color(0.4, 0.4, 0.42, 0.8)
 
-## Monta as barras (uma por slot valido de `party_slots`) dentro do
-## `canvas`, empilhadas a partir de `top_y` na borda esquerda. `tint_for`
-## e um Callable(role: String) -> Color usado pra colorir os segmentos
-## cheios com a mesma cor de identidade do papel (ROLE_TINT de cada fase).
-## Devolve a lista de referencias que `update()` precisa a cada frame.
 static func build(canvas: CanvasLayer, party_slots: Array, top_y: float, tint_for: Callable) -> Array:
 	var bars: Array = []
 	var y := top_y
@@ -35,7 +25,8 @@ static func build(canvas: CanvasLayer, party_slots: Array, top_y: float, tint_fo
 		if not is_instance_valid(member):
 			continue
 		var max_hp: int = max(member.max_hp, 1)
-		var inner_h: float = float(max_hp) * SEGMENT_H + float(max_hp - 1) * SEGMENT_GAP
+		var segment_count := maxi(1, ceili(float(max_hp) / float(HP_PER_SEGMENT)))
+		var inner_h: float = float(segment_count) * SEGMENT_H + float(segment_count - 1) * SEGMENT_GAP
 		var inner_w: float = SEGMENT_W
 		var outer_size := Vector2(inner_w + BAR_PAD * 2.0, inner_h + BAR_PAD * 2.0)
 
@@ -55,10 +46,8 @@ static func build(canvas: CanvasLayer, party_slots: Array, top_y: float, tint_fo
 
 		var tint: Color = tint_for.call(member.role) if tint_for.is_valid() else Color("ffe26f")
 		var segments: Array = []
-		for i in range(max_hp):
+		for i in range(segment_count):
 			var seg := ColorRect.new()
-			# segmento 0 = base da barra (empilha de baixo pra cima, igual ao
-			# medidor do X esvaziando de cima quando toma dano).
 			var seg_y: float = bg.position.y + inner_h - float(i + 1) * SEGMENT_H - float(i) * SEGMENT_GAP
 			seg.position = Vector2(bg.position.x, seg_y)
 			seg.size = Vector2(inner_w, SEGMENT_H)
@@ -84,25 +73,23 @@ static func build(canvas: CanvasLayer, party_slots: Array, top_y: float, tint_fo
 			"border": border,
 			"segments": segments,
 			"label": label,
+			"tint": tint,
 		})
 		y += outer_size.y + 8.0 + BAR_GAP
 
 	return bars
 
-## Chamado todo frame (junto do resto de `_update_hud()`): acende/apaga
-## segmentos conforme o HP atual e realca a moldura do membro ativo.
 static func update(bars: Array, active_actor: PlatformPartyActor12) -> void:
 	for entry in bars:
 		var member: PlatformPartyActor12 = entry["member"]
 		if not is_instance_valid(member):
 			continue
 		var segments: Array = entry["segments"]
+		var tint: Color = entry.get("tint", Color("ffe26f"))
 		for i in range(segments.size()):
 			var seg: ColorRect = segments[i]
-			seg.visible = member.alive and i < member.hp
-			if not seg.visible:
-				seg.color = EMPTY_COLOR
-				seg.visible = true
+			var threshold := i * HP_PER_SEGMENT
+			seg.color = tint if member.alive and member.hp > threshold else EMPTY_COLOR
 
 		var border: ColorRect = entry["border"]
 		border.color = BORDER_COLOR_ACTIVE if member == active_actor and member.alive else BORDER_COLOR_IDLE

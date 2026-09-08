@@ -9,7 +9,10 @@ run/main_scene="res://scenes/menu/company_intro_12.tscn"
 [autoload]
 DeviceLayout12="*res://scripts/globals/device_layout_12.gd"
 PartySelection12="*res://scripts/globals/party_selection_12.gd"
+Progression12="*res://scripts/globals/progression_12.gd"
 SaveSystem12="*res://scripts/globals/save_system_12.gd"
+Fase01Canon12="*res://scripts/globals/fase01_canon_12.gd"
+Fase02Canon12="*res://scripts/globals/fase02_canon_12.gd"
 
 [display]
 window/size/viewport_width=320
