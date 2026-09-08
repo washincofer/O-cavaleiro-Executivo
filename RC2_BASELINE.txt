@@ -1,0 +1,14 @@
+O CAVALEIRO EXECUTIVO — RELEASE CANDIDATE 2
+
+RC: RC2
+Base branch: main
+Base commit: 6f95547db26025bb4f7be4dc17e0049038ac088f
+RC branch: release/rc2-final
+Closed on: 2026-09-08
+
+Promotion rule:
+GO somente apos smoke test manual sem P0/P1 aberto.
+
+Documentos:
+- RC2_RELEASE_NOTES.md
+- RC2_QA_CHECKLIST.md
