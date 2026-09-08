@@ -73,10 +73,10 @@ func _on_actor_died(actor: Node) -> void:
 		return
 	if String(actor.get("team")) != "enemy":
 		return
-	var parent := actor.get_parent()
+	var parent: Node = actor.get_parent()
 	if parent == null:
 		return
-	var drop_pos := actor.global_position
+	var drop_pos: Vector2 = actor.global_position
 	_spawn_pickup(parent, drop_pos + Vector2(-8, -4), "coin", coin_value_for_enemy(actor))
 	_spawn_pickup(parent, drop_pos + Vector2(8, -4), roll_health_drop_kind(), 0)
 	if should_drop_revive_companion():

@@ -194,9 +194,9 @@ func _nearest_enemy_in_range(origin: Vector2, max_x: float, max_y: float):
 	for enemy in enemies:
 		if not is_instance_valid(enemy) or not enemy.alive:
 			continue
-		var delta := enemy.global_position - origin
+		var delta: Vector2 = enemy.global_position - origin
 		if absf(delta.x) <= max_x and absf(delta.y) <= max_y:
-			var d := delta.length_squared()
+			var d: float = delta.length_squared()
 			if d < best:
 				best = d
 				result = enemy
@@ -245,8 +245,8 @@ func _rescue_inactive_ally(actor) -> void:
 	report_event("%s: RESGATE DE FOLLOW" % actor.actor_name)
 
 func _safe_floor_position(x: float, reference_y: float) -> Vector2:
-	var from := Vector2(x, maxf(36.0, reference_y - 90.0))
-	var to := Vector2(x, minf(DEATH_Y - 8.0, reference_y + 130.0))
+	var from: Vector2 = Vector2(x, maxf(36.0, reference_y - 90.0))
+	var to: Vector2 = Vector2(x, minf(DEATH_Y - 8.0, reference_y + 130.0))
 	var query := PhysicsRayQueryParameters2D.create(from, to, 1)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
@@ -259,8 +259,8 @@ func has_floor_ahead(actor, direction: float, horizontal_distance := 14.0) -> bo
 	if not is_instance_valid(actor) or absf(direction) < 0.01:
 		return true
 
-	var from := actor.global_position + Vector2(signf(direction) * horizontal_distance, -3.0)
-	var to := from + Vector2(0.0, 34.0)
+	var from: Vector2 = actor.global_position + Vector2(signf(direction) * horizontal_distance, -3.0)
+	var to: Vector2 = from + Vector2(0.0, 34.0)
 	var query := PhysicsRayQueryParameters2D.create(from, to, 1)
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
@@ -273,8 +273,8 @@ func _on_actor_died(actor) -> void:
 		report_event("INIMIGO DERROTADO — restam %d" % active_enemies)
 		return
 
-	var was_active := actor == active_actor
-	var dead_slot := actor.party_slot
+	var was_active: bool = actor == active_actor
+	var dead_slot: int = actor.party_slot
 	if was_active:
 		_handoff_from_slot(dead_slot)
 	else:
