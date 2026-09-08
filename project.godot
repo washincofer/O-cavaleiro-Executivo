@@ -13,6 +13,7 @@ Progression12="*res://scripts/globals/progression_12.gd"
 SaveSystem12="*res://scripts/globals/save_system_12.gd"
 Fase01Canon12="*res://scripts/globals/fase01_canon_12.gd"
 Fase02Canon12="*res://scripts/globals/fase02_canon_12.gd"
+CanonicalVisualRebuild12="*res://scripts/globals/canonical_visual_rebuild_12.gd"
 
 [display]
 window/size/viewport_width=320
