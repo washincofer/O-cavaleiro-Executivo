@@ -8,15 +8,19 @@ const MAX_MAX_HP := 100
 const POWER_LIFE_STEP := 10
 const FIRST_CLEAR_REWARD := 500
 const REVIVE_COMPANION_DROP_CHANCE := 0.05
+const REVIVE_COMPANION_PRICE := 700
+const REVIVE_SCATTER_MIN := 2
+const REVIVE_SCATTER_MAX := 5
 
 const HEAL_LOW := 5
 const HEAL_MEDIUM := 15
 const HEAL_HIGH := 20
 const PICKUP_SCRIPT := preload("res://scripts/playtest/progression_pickup_12.gd")
 
-# Bosses conhecidos recebem o tier maximo de moeda. Os demais tiers abaixo
-# sao tuning inicial por HP e podem ser refinados por inimigo sem mudar o canon.
-const BOSS_ROLES := ["necromancer", "satyr", "ogre", "bat", "dragon", "coordinator", "especialista", "danelmo"]
+# Roles com mecanica especial/chefe recebem tier maximo independentemente
+# de HP bruto. Os demais usam a quantidade aproximada de acertos (dano-base
+# 1) como classificacao economica.
+const MECHANIC_ROLES := ["necromancer", "satyr", "ogre", "bat", "dragon", "coordinator", "especialista", "danelmo"]
 
 var coins: int = 0
 var role_max_hp: Dictionary = {}
@@ -90,16 +94,26 @@ func _spawn_pickup(parent: Node, world_position: Vector2, kind: String, amount: 
 
 func coin_value_for_enemy(enemy: Node) -> int:
 	var role := String(enemy.get("role"))
-	if BOSS_ROLES.has(role):
+	if MECHANIC_ROLES.has(role):
 		return 100
-	var enemy_hp := int(enemy.get("max_hp"))
-	if enemy_hp >= 12:
+	var required_hits := maxi(1, int(enemy.get("max_hp")))
+	return coin_value_for_required_hits(required_hits, false)
+
+func coin_value_for_required_hits(required_hits: int, has_special_mechanic: bool) -> int:
+	if has_special_mechanic or required_hits > 10:
+		return 100
+	# Exatamente 10 ficou fora das faixas originais; fallback operacional
+	# atual = 50, registrado como micro-tuning revisavel no documento canonico.
+	if required_hits >= 8:
 		return 50
-	if enemy_hp >= 8:
+	if required_hits >= 5:
 		return 30
-	if enemy_hp >= 5:
+	if required_hits >= 3:
 		return 10
 	return 5
+
+func random_revive_scatter_count() -> int:
+	return randi_range(REVIVE_SCATTER_MIN, REVIVE_SCATTER_MAX)
 
 func reset_progression() -> void:
 	coins = 0
@@ -119,6 +133,14 @@ func apply_power_life(role: String) -> bool:
 	role_max_hp[role] = mini(MAX_MAX_HP, before + POWER_LIFE_STEP)
 	return true
 
+func get_etank_capacity_for_actor(actor: Node) -> int:
+	if actor == null or not is_instance_valid(actor):
+		return BASE_MAX_HP
+	var max_hp_value = actor.get("max_hp")
+	if max_hp_value == null:
+		return BASE_MAX_HP
+	return clampi(int(max_hp_value), 1, MAX_MAX_HP)
+
 func apply_heal_to_actor(actor: Node, amount: int) -> int:
 	if actor == null or not is_instance_valid(actor):
 		return 0
@@ -133,8 +155,27 @@ func apply_heal_to_actor(actor: Node, amount: int) -> int:
 	actor.set("hp", hp_before + direct_heal)
 	var overflow := maxi(0, amount - direct_heal)
 	if overflow > 0:
-		etank_charge += overflow
+		var capacity := get_etank_capacity_for_actor(actor)
+		etank_charge = mini(capacity, etank_charge + overflow)
 	return direct_heal
+
+func use_etank_on_actor(actor: Node) -> int:
+	if actor == null or not is_instance_valid(actor) or etank_charge <= 0:
+		return 0
+	var hp_value = actor.get("hp")
+	var max_hp_value = actor.get("max_hp")
+	if hp_value == null or max_hp_value == null:
+		return 0
+	var hp_before := int(hp_value)
+	var max_hp := int(max_hp_value)
+	var missing := maxi(0, max_hp - hp_before)
+	if missing <= 0:
+		return 0
+	var restored := mini(missing, etank_charge)
+	actor.set("hp", hp_before + restored)
+	etank_charge -= restored
+	SaveSystem12.save_game()
+	return restored
 
 func roll_health_drop_kind() -> String:
 	var roll := randf()
@@ -156,6 +197,14 @@ func should_drop_revive_companion() -> bool:
 
 func add_coins(amount: int) -> void:
 	coins = maxi(0, coins + amount)
+
+func buy_revive_companion() -> bool:
+	if coins < REVIVE_COMPANION_PRICE:
+		return false
+	coins -= REVIVE_COMPANION_PRICE
+	add_revive_companion_item()
+	SaveSystem12.save_game()
+	return true
 
 func grant_first_clear_reward(stage_id: String) -> bool:
 	if stage_id == "" or first_clear_rewarded_stages.has(stage_id):
