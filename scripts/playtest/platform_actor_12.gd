@@ -83,17 +83,18 @@ const ROLE_ANIM := {
 	# altura (180x60 final, 30px por quadro) pra bater com a mesma altura
 	# de canvas de Parado.png/Correndo.png e usar o mesmo ROLE_BODY.scale.
 	"cavaleiro_executivo": {
-		"idle": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Parado.png", "fps": 6.0, "loop": true, "rects": [Rect2(0,0,48,60), Rect2(48,0,47,60), Rect2(95,0,45,60), Rect2(140,0,46,60), Rect2(186,0,50,60)]},
-		"move": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Andando.png", "fps": 12.0, "loop": true, "rects": [Rect2(0,0,53,57), Rect2(53,0,50,57), Rect2(103,0,51,57), Rect2(154,0,55,57), Rect2(209,0,56,57), Rect2(265,0,55,57), Rect2(320,0,56,57), Rect2(376,0,57,57), Rect2(433,0,113,57)]},
-		"attack": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Ataque.png", "fps": 14.0, "loop": false, "rects": [Rect2(0,0,30,60), Rect2(30,0,30,60), Rect2(60,0,30,60), Rect2(90,0,30,60), Rect2(120,0,30,60), Rect2(150,0,30,60)]},
+		"idle": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/CanonicalV2/Parado.png", "fw": 320, "fh": 256, "count": 3, "fps": 6.0, "loop": true},
+		"move": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/CanonicalV2/Andando.png", "fw": 320, "fh": 256, "count": 3, "fps": 10.0, "loop": true},
+		"attack": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/CanonicalV2/Ataque.png", "fw": 320, "fh": 256, "count": 3, "fps": 12.0, "loop": false},
 		# fps alto de proposito: a Estocada (warrior/knight/cavaleiro_executivo)
 		# trava a animacao por so 0.22s (`_start_charge()`, mesmo tempo da
 		# arrancada em si — nao mudado aqui pra nao alterar o alcance/balance
 		# ja calibrado pros outros papeis) — 6 quadros precisam caber nesse
 		# tempo (~27fps) pra nao serem cortados no meio pelo retorno a idle/move.
-		"special": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Estocada.png", "fps": 27.0, "loop": false, "rects": [Rect2(0,0,30,60), Rect2(30,0,30,60), Rect2(60,0,30,60), Rect2(90,0,30,60), Rect2(120,0,30,60), Rect2(150,0,30,60)]},
-		"jump": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Pulo.png", "fps": 8.0, "loop": false, "rects": [Rect2(0,0,77,83), Rect2(77,0,75,83), Rect2(152,0,82,83), Rect2(234,0,74,83)]},
-		"fall": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/Caindo.png", "fps": 6.0, "loop": true, "rects": [Rect2(0,0,80,75), Rect2(80,0,69,75), Rect2(149,0,80,75)]},
+		"special": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/CanonicalV2/Estocada.png", "fw": 320, "fh": 256, "count": 3, "fps": 15.0, "loop": false},
+		"jump": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/CanonicalV2/Pulo.png", "fw": 320, "fh": 256, "count": 3, "fps": 8.0, "loop": true},
+		"fall": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/CanonicalV2/Caindo.png", "fw": 320, "fh": 256, "count": 3, "fps": 8.0, "loop": true},
+		"hurt": {"path": "res://assets/Characters/CavaleiroExecutivo/Runtime/CanonicalV2/Dano.png", "fw": 320, "fh": 256, "count": 3, "fps": 10.0, "loop": false},
 	},
 	# Paladino e Cavaleiro sao personagens livres (selecionaveis so nas fases
 	# de boss, fora do sistema de categorias da Caverna) — cada um reaproveita

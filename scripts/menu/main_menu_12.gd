@@ -25,6 +25,9 @@ const MENU_BGM := preload("res://assets/Audio/Runtime/menu_theme.ogg")
 const STAGE_SELECT_SCENE := "res://scenes/menu/stage_select_12.tscn"
 const FASE00_SCENE := "res://scenes/playtest/platform_fase00_12.tscn"
 const SAVE_SLOTS_SCENE := "res://scenes/menu/save_slots_12.tscn"
+const BTN_INICIAR_NORMAL := preload("res://assets/UI/Runtime/CorporateUI/ButtonsV2/Iniciar_Normal.png")
+const BTN_INICIAR_PRESS := preload("res://assets/UI/Runtime/CorporateUI/ButtonsV2/Iniciar_OnClick.png")
+const BTN_CONTINUAR := preload("res://assets/UI/Runtime/CorporateUI/ButtonsV2/Continuar.png")
 
 var body_font: Font
 var title_font: Font
@@ -72,11 +75,9 @@ func _build_landscape_ui() -> void:
 
 	var y := start_y
 	for entry in _button_entries():
-		var btn := Button.new()
-		btn.text = entry[0]
+		var btn: BaseButton = _make_menu_button(String(entry[0]), Vector2(btn_w, btn_h), 8, Color("2a1a0f"))
 		btn.focus_mode = Control.FOCUS_NONE
 		btn.position = Vector2(size.x * 0.5 - btn_w * 0.5, y)
-		CorporateUI12.style_button(btn, false, body_font, 8, Color("2a1a0f"), Vector2(btn_w, btn_h))
 		btn.pressed.connect(entry[1])
 		add_child(btn)
 		y += btn_h + gap
@@ -107,11 +108,9 @@ func _build_portrait_ui() -> void:
 
 	var y := start_y
 	for entry in _button_entries():
-		var btn := Button.new()
-		btn.text = entry[0]
+		var btn: BaseButton = _make_menu_button(String(entry[0]), Vector2(btn_w, btn_h), 7, Color("f4e7c9"))
 		btn.focus_mode = Control.FOCUS_NONE
 		btn.position = Vector2(size.x * 0.5 - btn_w * 0.5, y)
-		CorporateUI12.style_button(btn, false, body_font, 7, Color("f4e7c9"), Vector2(btn_w, btn_h))
 		btn.pressed.connect(entry[1])
 		add_child(btn)
 		y += btn_h + gap
@@ -124,6 +123,28 @@ func _button_entries() -> Array:
 		["SALVAR / CARREGAR", _on_save_slots_pressed],
 		["SAIR", _on_quit_pressed],
 	]
+
+
+func _make_menu_button(label_text: String, button_size: Vector2, font_size: int, color: Color) -> BaseButton:
+	if label_text == "NOVO JOGO" or label_text == "CONTINUAR":
+		var texture_button := TextureButton.new()
+		texture_button.ignore_texture_size = true
+		texture_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		texture_button.custom_minimum_size = button_size
+		texture_button.size = button_size
+		if label_text == "NOVO JOGO":
+			texture_button.texture_normal = BTN_INICIAR_NORMAL
+			texture_button.texture_hover = BTN_INICIAR_NORMAL
+			texture_button.texture_pressed = BTN_INICIAR_PRESS
+		else:
+			texture_button.texture_normal = BTN_CONTINUAR
+			texture_button.texture_hover = BTN_CONTINUAR
+			texture_button.texture_pressed = BTN_CONTINUAR
+		return texture_button
+	var button := Button.new()
+	button.text = label_text
+	CorporateUI12.style_button(button, false, body_font, font_size, color, button_size)
+	return button
 
 
 func _has_any_save() -> bool:

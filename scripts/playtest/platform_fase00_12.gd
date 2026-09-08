@@ -673,7 +673,25 @@ func _build_ui() -> void:
 	add_child(canvas)
 
 	room_title = Label.new()
-	room_title.position = Vector2(24, 16)
+	var hp_frame := TextureRect.new()
+	hp_frame.texture = load("res://assets/UI/Runtime/CorporateUI/hp_frame_protagonist.png")
+	hp_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hp_frame.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hp_frame.position = Vector2(18, 14)
+	hp_frame.size = Vector2(280, 84)
+	hp_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(hp_frame)
+
+	var cooldown_frame := TextureRect.new()
+	cooldown_frame.texture = load("res://assets/UI/Runtime/CorporateUI/cooldown_frame.png")
+	cooldown_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	cooldown_frame.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	cooldown_frame.position = Vector2(size.x * 0.5 - 110, 14)
+	cooldown_frame.size = Vector2(220, 74)
+	cooldown_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(cooldown_frame)
+
+	room_title.position = Vector2(24, 104)
 	room_title.size = Vector2(size.x - 48, 32)
 	# body_font, nao title_font: MedievalScrollOfWisdom.ttf nao tem o
 	# glifo de "ã" (confirmado visualmente em "Recepção em Alerta" —
@@ -687,7 +705,7 @@ func _build_ui() -> void:
 	canvas.add_child(room_title)
 
 	objective_label = Label.new()
-	objective_label.position = Vector2(24, 54)
+	objective_label.position = Vector2(24, 140)
 	objective_label.size = Vector2(size.x - 48, 24)
 	objective_label.add_theme_font_override("font", body_font)
 	objective_label.add_theme_font_size_override("font_size", 13)
@@ -783,9 +801,14 @@ func _build_pause_panel(size: Vector2) -> Control:
 	panel.add_child(dim)
 
 	var label := Label.new()
-	label.text = "PAUSADO\n\nESC para continuar"
-	label.position = Vector2(0, size.y * 0.5 - 40)
-	label.size = Vector2(size.x, 80)
+	label.text = "SELEÇÃO DE ITENS\n\nPower Life: HP máximo %d\nReviver Companion: x%d\nVida Extra: x%d\nE-Tank: %d\n\nESC para continuar" % [
+		Progression12.get_role_max_hp("cavaleiro_executivo"),
+		Progression12.revive_companion_items,
+		Progression12.extra_life_items,
+		Progression12.etank_charge,
+	]
+	label.position = Vector2(0, size.y * 0.5 - 110)
+	label.size = Vector2(size.x, 220)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_override("font", title_font)
 	label.add_theme_font_size_override("font_size", 18)

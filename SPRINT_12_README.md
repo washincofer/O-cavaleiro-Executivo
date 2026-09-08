@@ -202,7 +202,7 @@ contra a borda do viewport; por isso os titulos de `stage_select_12.gd` e
 
 - `project.godot` — `run/main_scene` aponta para `scenes/menu/stage_select_12.tscn`.
 - `scripts/build_web.sh` — basename de export atualizado para
-  `cavaleiro-sprint12-v01`.
+  `cavaleiro-canonical-visual-v01`.
 - `scenes/menu/stage_select_12.tscn` + `scripts/menu/stage_select_12.gd`
   — grid de selecao de fase estilo Mega Man.
 - `scenes/menu/loading_screen_12.tscn` + `scripts/menu/loading_screen_12.gd`
