@@ -2,6 +2,7 @@ services:
   - type: web
     runtime: static
     name: o-cavaleiro-executivo
+    branch: rc2/canonical-visual-rebuild
     buildCommand: bash scripts/build_web.sh
     staticPublishPath: ./dist
     envVars:

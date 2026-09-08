@@ -1,7 +1,7 @@
 # RC2 — Playtest Completo do Jogo até este ponto
 
 **Projeto:** O Cavaleiro Executivo  
-**Branch de teste:** `release/rc2-final`  
+**Branch de teste:** `rc2/canonical-visual-rebuild`
 **Escopo:** Fase 00 — Prólogo/Recepção + Fase 01 — Operações & Logística + Fase 02 — Tecnologia  
 **Objetivo:** validar em uma única rodada todo o jogo implementado até este checkpoint da RC2.
 
@@ -30,7 +30,7 @@ Classificação sugerida:
 
 Antes de iniciar:
 
-- [ ] Confirmar que a branch usada é `release/rc2-final`.
+- [ ] Confirmar que a branch usada é `rc2/canonical-visual-rebuild`.
 - [ ] Executar o jogo a partir da cena principal normal, não por uma cena de debug isolada.
 - [ ] Fazer uma rodada começando com **Novo Jogo**.
 - [ ] Fazer pelo menos uma validação posterior usando **Continuar/Carregar**.

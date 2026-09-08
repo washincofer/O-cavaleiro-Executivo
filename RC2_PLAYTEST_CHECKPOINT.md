@@ -1,7 +1,7 @@
 # RC2 — Checkpoint de Playtest Integrado
 
 Data: 2026-09-08
-Branch: `release/rc2-final`
+Branch: `rc2/canonical-visual-rebuild`
 
 Este commit marca o estado consolidado da RC2 antes do playtest integrado.
 
