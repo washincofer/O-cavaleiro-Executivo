@@ -7,7 +7,7 @@ extends CharacterBody2D
 ## J = ataque, H = habilidade/estocada, E = interação, F1 = debug colisão.
 
 const ROLE := "cavaleiro_executivo"
-const SPRITE_SCALE := 0.56 * 4.0
+const SPRITE_SCALE := 0.56
 const SPRITE_OFFSET := Vector2(0.0, -30.0)
 const FALL_RECOVERY_Y := 980.0
 const ATTACK_VISUAL_TIME := 0.24
@@ -55,13 +55,12 @@ func _ready() -> void:
 	add_child(shape)
 
 	sprite = AnimatedSprite2D.new()
-	# IMPORTANTE:
-	# Ajustar este helper para usar as novas folhas do Runtime:
-	# Parado, Andando, Ataque, Estocada, Pulo, Caindo, Dano, Morrendo,
-	# SubindoEscada, CostasInteracao e SubindoParede.
+	sprite.sprite_frames = PlatformPartyActor12._build_sprite_frames(ROLE)
 	sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
 	sprite.offset = SPRITE_OFFSET
 	sprite.z_index = 10
+	sprite.animation = "idle"
+	sprite.play("idle")
 	add_child(sprite)
 
 func _unhandled_input(event: InputEvent) -> void:
