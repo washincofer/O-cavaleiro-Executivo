@@ -12,6 +12,7 @@ var origin_y := 0.0
 func setup(p_kind: String, p_amount: int = 0) -> void:
 	kind = p_kind
 	amount = p_amount
+	queue_redraw()
 
 func _ready() -> void:
 	collision_layer = 0
@@ -35,7 +36,8 @@ func _process(delta: float) -> void:
 func _on_body_entered(body: Node) -> void:
 	if collected or body == null:
 		return
-	if not ("team" in body) or String(body.team) != "ally":
+	var team_value = body.get("team")
+	if team_value == null or String(team_value) != "ally":
 		return
 	collected = true
 	match kind:
@@ -44,9 +46,11 @@ func _on_body_entered(body: Node) -> void:
 		"heal_low", "heal_medium", "heal_high":
 			Progression12.apply_heal_to_actor(body, Progression12.health_amount_for_kind(kind))
 		"power_life":
-			if "role" in body and Progression12.apply_power_life(String(body.role)):
-				body.max_hp = Progression12.get_role_max_hp(String(body.role))
-				body.hp = mini(int(body.max_hp), int(body.hp) + Progression12.POWER_LIFE_STEP)
+			var role_value = body.get("role")
+			if role_value != null and Progression12.apply_power_life(String(role_value)):
+				var new_max := Progression12.get_role_max_hp(String(role_value))
+				body.set("max_hp", new_max)
+				body.set("hp", mini(new_max, int(body.get("hp")) + Progression12.POWER_LIFE_STEP))
 		"revive_companion":
 			Progression12.add_revive_companion_item()
 		"extra_life":
